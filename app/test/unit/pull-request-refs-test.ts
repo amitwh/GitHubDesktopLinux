@@ -26,7 +26,10 @@ function makeCommit(summary: string, body: string = ''): Commit {
   )
 }
 
-function makePullRequest(num: number, title: string = `PR ${num}`): PullRequest {
+function makePullRequest(
+  num: number,
+  title: string = `PR ${num}`
+): PullRequest {
   const owner = new Owner('owner', 'https://example.com', 1)
   const repo = new GitHubRepository(
     'repo',
@@ -36,7 +39,16 @@ function makePullRequest(num: number, title: string = `PR ${num}`): PullRequest 
     'https://example.com/owner/repo'
   )
   const ref = new PullRequestRef('feature', 'sha', repo)
-  return new PullRequest(new Date(0), title, num, ref, ref, 'someone', false, '')
+  return new PullRequest(
+    new Date(0),
+    title,
+    num,
+    ref,
+    ref,
+    'someone',
+    false,
+    ''
+  )
 }
 
 describe('extractPullRequestNumbersFromCommits', () => {

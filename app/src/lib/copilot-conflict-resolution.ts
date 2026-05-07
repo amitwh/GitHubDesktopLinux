@@ -24,8 +24,8 @@ export interface ICopilotConflictResolutionResponse {
   readonly resolutions: ReadonlyArray<IFileResolution>
   /**
    * Optional markdown summary of the conflict and the resolution strategy.
-   * The system prompt requires the model to include exactly two `##`
-   * headings — `## What changed` and `## Resolution decision` — but a
+   * The system prompt requires the model to include exactly two `###`
+   * headings — `### What changed` and `### Resolution decision` — but a
    * missing or malformed value is *not* treated as a fatal error so we
    * preserve the existing happy path.
    */
@@ -130,7 +130,7 @@ Resolution guidelines:
 
 You MUST respond with valid JSON in this exact format:
 {
-  "summary": "## What changed\\n<1-2 sentences about the incoming side's changes that caused the conflict>\\n\\n## Resolution decision\\n<1-2 sentences explaining how and why you resolved the conflicts this way>",
+  "summary": "### What changed\\n<1-2 sentences about the incoming side's changes that caused the conflict>\\n\\n### Resolution decision\\n<1-2 sentences explaining how and why you resolved the conflicts this way>",
   "resolutions": [
     {
       "path": "relative/file/path.ts",
@@ -146,7 +146,7 @@ Important:
 - Include one resolution entry per conflicted file
 
 Summary rules (read carefully — the summary is rendered as markdown directly to the user):
-- The summary value MUST be a single markdown string with exactly two level-2 headings, in this order: "## What changed" and "## Resolution decision"
+- The summary value MUST be a single markdown string with exactly two level-3 headings, in this order: "### What changed" and "### Resolution decision"
 - Each section is 1-2 short sentences. A short bullet list is acceptable when it is genuinely clearer than prose
 - Refer to pull requests by id only — write "#1234" (no link, no URL). Refer to commits by their short SHA — write "abc1234" (no link, no URL). The application will turn these into links itself
 - Do NOT include a third section, a "References" / "Links" section, or any URLs — those are rendered separately by the application

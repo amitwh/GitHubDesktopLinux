@@ -147,36 +147,11 @@ dialog#copilot-conflicts-dialog {
   border-radius: var(--border-radius);
   background: var(--background-color);
 
-  .copilot-conflicts-summary-header {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: var(--spacing-half);
-    font-size: var(--font-size-md);
+  .copilot-conflicts-summary-title {
+    margin: 0;
+    font-size: var(--font-size-lg);
     font-weight: var(--font-weight-semibold);
-  }
-
-  .copilot-conflicts-summary-verb {
-    color: var(--text-secondary-color);
-  }
-
-  .copilot-conflicts-summary-ref {
-    display: inline-block;
-    padding: 2px var(--spacing-half);
-    border-radius: var(--border-radius);
-    background: var(--box-alt-background-color);
-    font-family: var(--font-family-monospace);
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-normal);
-    max-width: 320px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .copilot-conflicts-summary-arrow {
-    color: var(--text-secondary-color);
-    flex-shrink: 0;
+    line-height: 1.3;
   }
 
   .copilot-conflicts-summary-body {
@@ -201,7 +176,7 @@ dialog#copilot-conflicts-dialog {
     font-size: var(--font-size);
     line-height: 1.5;
 
-    h2 {
+    h3 {
       font-size: var(--font-size-md);
       font-weight: var(--font-weight-semibold);
       margin: var(--spacing) 0 var(--spacing-third) 0;
@@ -237,18 +212,15 @@ dialog#copilot-conflicts-dialog {
   .copilot-conflicts-summary-references {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-half);
+    gap: var(--spacing);
     padding-top: var(--spacing);
     border-top: var(--base-border);
   }
 
   .copilot-conflicts-summary-references-title {
     margin: 0;
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-md);
     font-weight: var(--font-weight-semibold);
-    color: var(--text-secondary-color);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
   }
 
   .copilot-conflicts-summary-references-section {
@@ -261,7 +233,6 @@ dialog#copilot-conflicts-dialog {
     margin: 0;
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-semibold);
-    color: var(--text-secondary-color);
   }
 
   .copilot-conflicts-summary-pr-list,
@@ -274,15 +245,13 @@ dialog#copilot-conflicts-dialog {
     gap: var(--spacing-third);
   }
 
-  .copilot-conflicts-summary-pr-item,
-  .copilot-conflicts-summary-commit-item {
+  .copilot-conflicts-summary-pr-item {
     display: flex;
     align-items: center;
     min-width: 0;
   }
 
-  .copilot-conflicts-summary-pr-link,
-  .copilot-conflicts-summary-commit-link {
+  .copilot-conflicts-summary-pr-link {
     display: inline-flex;
     align-items: baseline;
     gap: var(--spacing-third);
@@ -308,10 +277,18 @@ dialog#copilot-conflicts-dialog {
     white-space: nowrap;
   }
 
+  .copilot-conflicts-summary-commit-item {
+    display: flex;
+    align-items: baseline;
+    gap: var(--spacing-half);
+    min-width: 0;
+  }
+
   .copilot-conflicts-summary-commit-sha {
     font-family: var(--font-family-monospace);
     font-size: var(--font-size-sm);
     color: var(--text-secondary-color);
     flex-shrink: 0;
+    cursor: pointer;
   }
 }

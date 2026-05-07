@@ -7,6 +7,7 @@ import { MultiCommitOperationKind } from '../../../models/multi-commit-operation
 import { PullRequest } from '../../../models/pull-request'
 import { Commit } from '../../../models/commit'
 import { LinkButton } from '../../lib/link-button'
+import { TooltippedCommitSHA } from '../../lib/tooltipped-commit-sha'
 import { Octicon } from '../../octicons'
 import * as octicons from '../../octicons/octicons.generated'
 
@@ -16,24 +17,28 @@ interface ICopilotConflictsResolutionSummaryProps {
 }
 
 /**
- * Returns the verb describing how the *theirs* side is being applied to the
- * *ours* side, given the multi-commit operation kind. Used to anchor the
- * branch-flow header at the top of the resolution summary card.
+ * Returns the title-bar text describing the operation as a complete
+ * sentence — e.g. "Merging Feature-A into Feature-B" — using only words
+ * (no arrows). Renders directly into the card's h2.
  */
-function getOperationVerb(kind: MultiCommitOperationKind): string {
+function getOperationTitle(
+  kind: MultiCommitOperationKind,
+  ourLabel: string,
+  theirLabel: string
+): string {
   switch (kind) {
     case MultiCommitOperationKind.Merge:
-      return 'Merging'
+      return `Merging ${theirLabel} into ${ourLabel}`
     case MultiCommitOperationKind.Rebase:
-      return 'Rebasing onto'
+      return `Rebasing ${ourLabel} onto ${theirLabel}`
     case MultiCommitOperationKind.CherryPick:
-      return 'Cherry-picking from'
+      return `Cherry-picking from ${theirLabel} into ${ourLabel}`
     case MultiCommitOperationKind.Squash:
-      return 'Squashing'
+      return `Squashing into ${ourLabel}`
     case MultiCommitOperationKind.Reorder:
-      return 'Reordering'
+      return `Reordering ${ourLabel}`
     default:
-      return 'Resolving'
+      return `Resolving conflicts in ${ourLabel}`
   }
 }
 
@@ -64,35 +69,43 @@ function getCommitUrl(commit: Commit, pr: PullRequest | null): string | null {
 }
 
 /**
+ * Pattern matching commit summaries that carry no useful human context —
+ * checkpoint commits, fixups, in-progress markers, single-character
+ * placeholders, etc. Any commit matching this is dropped from the "For
+ * more context" block since it would only add noise.
+ */
+const lowSignalCommitPattern =
+  /^(?:wip\b|work in progress\b|fixup!?\b|squash!?\b|amend\b|temp\b|tmp\b|draft\b|debug\b|todo\b|asdf+|test+|\.+|-+|x+)$/i
+
+function isLowSignalCommit(commit: Commit): boolean {
+  const summary = commit.summary.trim()
+  if (summary.length < 5) {
+    return true
+  }
+  return lowSignalCommitPattern.test(summary)
+}
+
+/**
  * The Copilot resolution summary card rendered at the top of the conflict
- * resolution dialog. Combines a deterministic branch-flow header, the
- * model-authored markdown body, and a Desktop-rendered references block
- * with real links to PRs and commits.
+ * resolution dialog. Combines a deterministic title, the model-authored
+ * markdown body, and a Desktop-rendered references block with real links
+ * to PRs and commits.
  */
 export class CopilotConflictsResolutionSummary extends React.Component<ICopilotConflictsResolutionSummaryProps> {
   public render() {
     const { summary, operationKind } = this.props
-    const verb = getOperationVerb(operationKind)
+    const title = getOperationTitle(
+      operationKind,
+      summary.ourLabel,
+      summary.theirLabel
+    )
 
     return (
       <section
         className="copilot-conflicts-summary"
         aria-label="Resolution summary"
       >
-        <header className="copilot-conflicts-summary-header">
-          <span className="copilot-conflicts-summary-verb">{verb}</span>
-          <span className="copilot-conflicts-summary-ref">
-            {summary.theirLabel}
-          </span>
-          <Octicon
-            symbol={octicons.arrowRight}
-            className="copilot-conflicts-summary-arrow"
-          />
-          <span className="copilot-conflicts-summary-ref">
-            {summary.ourLabel}
-          </span>
-        </header>
-
+        <h2 className="copilot-conflicts-summary-title">{title}</h2>
         {this.renderMarkdownBody()}
         {this.renderReferences()}
       </section>
@@ -131,9 +144,12 @@ export class CopilotConflictsResolutionSummary extends React.Component<ICopilotC
       ...(summary.ourPullRequest === null ? [] : [summary.ourPullRequest]),
       ...summary.theirPullRequests,
     ]
+    const ourCommits = summary.ourCommits.filter(c => !isLowSignalCommit(c))
+    const theirCommits = summary.theirCommits.filter(c => !isLowSignalCommit(c))
+
     const hasPullRequests = allPullRequests.length > 0
-    const hasOurCommits = summary.ourCommits.length > 0
-    const hasTheirCommits = summary.theirCommits.length > 0
+    const hasOurCommits = ourCommits.length > 0
+    const hasTheirCommits = theirCommits.length > 0
 
     if (!hasPullRequests && !hasOurCommits && !hasTheirCommits) {
       return null
@@ -141,9 +157,9 @@ export class CopilotConflictsResolutionSummary extends React.Component<ICopilotC
 
     return (
       <div className="copilot-conflicts-summary-references">
-        <h4 className="copilot-conflicts-summary-references-title">
+        <h3 className="copilot-conflicts-summary-references-title">
           For more context
-        </h4>
+        </h3>
 
         {hasPullRequests && (
           <div className="copilot-conflicts-summary-references-section">
@@ -155,11 +171,11 @@ export class CopilotConflictsResolutionSummary extends React.Component<ICopilotC
 
         {hasTheirCommits && (
           <div className="copilot-conflicts-summary-references-section">
-            <h5 className="copilot-conflicts-summary-references-subtitle">
+            <h4 className="copilot-conflicts-summary-references-subtitle">
               Commits from {summary.theirLabel}
-            </h5>
+            </h4>
             {this.renderCommits(
-              summary.theirCommits,
+              theirCommits,
               summary.theirPullRequests[0] ?? null
             )}
           </div>
@@ -167,10 +183,10 @@ export class CopilotConflictsResolutionSummary extends React.Component<ICopilotC
 
         {hasOurCommits && (
           <div className="copilot-conflicts-summary-references-section">
-            <h5 className="copilot-conflicts-summary-references-subtitle">
+            <h4 className="copilot-conflicts-summary-references-subtitle">
               Commits from {summary.ourLabel}
-            </h5>
-            {this.renderCommits(summary.ourCommits, summary.ourPullRequest)}
+            </h4>
+            {this.renderCommits(ourCommits, summary.ourPullRequest)}
           </div>
         )}
       </div>
@@ -212,42 +228,37 @@ export class CopilotConflictsResolutionSummary extends React.Component<ICopilotC
     commits: ReadonlyArray<Commit>,
     relatedPullRequest: PullRequest | null
   ): JSX.Element {
-    // Cap at a small number — the references block is meant to be a glance,
-    // not an exhaustive log. The model already saw all of them in the prompt.
-    const visible = commits.slice(0, 5)
-
     return (
       <ul className="copilot-conflicts-summary-commit-list">
-        {visible.map(commit => {
+        {commits.map(commit => {
           const url = getCommitUrl(commit, relatedPullRequest)
-          const label = (
-            <>
-              <code className="copilot-conflicts-summary-commit-sha">
-                {commit.shortSha}
-              </code>
+          const sha = (
+            <TooltippedCommitSHA
+              className="copilot-conflicts-summary-commit-sha"
+              commit={commit}
+            />
+          )
+          const message =
+            url === null ? (
               <span className="copilot-conflicts-summary-commit-summary">
                 {commit.summary}
               </span>
-            </>
-          )
+            ) : (
+              <LinkButton
+                uri={url}
+                className="copilot-conflicts-summary-commit-summary"
+              >
+                {commit.summary}
+              </LinkButton>
+            )
 
           return (
             <li
               key={commit.sha}
               className="copilot-conflicts-summary-commit-item"
             >
-              {url === null ? (
-                <span className="copilot-conflicts-summary-commit-link">
-                  {label}
-                </span>
-              ) : (
-                <LinkButton
-                  uri={url}
-                  className="copilot-conflicts-summary-commit-link"
-                >
-                  {label}
-                </LinkButton>
-              )}
+              {sha}
+              {message}
             </li>
           )
         })}
