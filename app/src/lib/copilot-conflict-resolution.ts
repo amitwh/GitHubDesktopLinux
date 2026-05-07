@@ -1,6 +1,8 @@
 import isPlainObject from 'lodash/isPlainObject'
 
 import { IFileConflictContext } from './copilot-conflict-context'
+import { Commit } from '../models/commit'
+import { PullRequest } from '../models/pull-request'
 
 // ---------------------------------------------------------------------------
 // Types & interfaces
@@ -20,6 +22,40 @@ export interface IFileResolution {
 export interface ICopilotConflictResolutionResponse {
   /** Resolution suggestions, one per conflicted file. */
   readonly resolutions: ReadonlyArray<IFileResolution>
+  /**
+   * Optional markdown summary of the conflict and the resolution strategy.
+   * The system prompt requires the model to include exactly two `##`
+   * headings — `## What changed` and `## Resolution decision` — but a
+   * missing or malformed value is *not* treated as a fatal error so we
+   * preserve the existing happy path.
+   */
+  readonly summary: string | null
+}
+
+/**
+ * The full set of context needed to render the resolution-summary card in
+ * the conflict resolution dialog. Bundled together so we capture it once
+ * while the data is fresh and hand it to the dialog as a single prop.
+ */
+export interface ICopilotResolutionSummary {
+  /** Markdown text written by Copilot. Null when the model omitted it. */
+  readonly markdown: string | null
+  /** Display label for the *ours* (current) side. */
+  readonly ourLabel: string
+  /** Display label for the *theirs* (incoming) side. */
+  readonly theirLabel: string
+  /** Pull request for the *ours* (current) side, if known locally. */
+  readonly ourPullRequest: PullRequest | null
+  /**
+   * Pull requests believed to have contributed changes to the *theirs*
+   * side, derived from `#NNNN` references in their commit messages and
+   * matched against the local PR cache.
+   */
+  readonly theirPullRequests: ReadonlyArray<PullRequest>
+  /** Recent commits from the *ours* side (most recent first). */
+  readonly ourCommits: ReadonlyArray<Commit>
+  /** Recent commits from the *theirs* side (most recent first). */
+  readonly theirCommits: ReadonlyArray<Commit>
 }
 
 /** Progress information emitted during conflict resolution. */
@@ -82,6 +118,7 @@ Your job:
 1. Understand the INTENT behind each side's changes using commit messages and PR context when available
 2. Resolve each conflict by producing the correct merged content
 3. Explain your reasoning for each resolution
+4. Produce a concise, human-readable markdown summary that gives the user the highest-leverage context for understanding the conflict and your resolution
 
 Resolution guidelines:
 - Make the MINIMAL changes necessary to resolve the conflict — do not refactor, reformat, or alter code outside the conflicted regions
@@ -93,6 +130,7 @@ Resolution guidelines:
 
 You MUST respond with valid JSON in this exact format:
 {
+  "summary": "## What changed\\n<1-2 sentences about the incoming side's changes that caused the conflict>\\n\\n## Resolution decision\\n<1-2 sentences explaining how and why you resolved the conflicts this way>",
   "resolutions": [
     {
       "path": "relative/file/path.ts",
@@ -106,6 +144,13 @@ Important:
 - resolvedContent must contain the COMPLETE file content (not just the conflicted sections)
 - All conflict markers must be removed in the resolved content
 - Include one resolution entry per conflicted file
+
+Summary rules (read carefully — the summary is rendered as markdown directly to the user):
+- The summary value MUST be a single markdown string with exactly two level-2 headings, in this order: "## What changed" and "## Resolution decision"
+- Each section is 1-2 short sentences. A short bullet list is acceptable when it is genuinely clearer than prose
+- Refer to pull requests by id only — write "#1234" (no link, no URL). Refer to commits by their short SHA — write "abc1234" (no link, no URL). The application will turn these into links itself
+- Do NOT include a third section, a "References" / "Links" section, or any URLs — those are rendered separately by the application
+- Use plain language. Do not name the speaker or address the user as "you"
 `
 
 // ---------------------------------------------------------------------------
@@ -180,7 +225,7 @@ export function parseCopilotConflictResolution(
   }
 
   const obj = parsed as Record<string, unknown>
-  const { resolutions } = obj
+  const { resolutions, summary: rawSummary } = obj
 
   if (!Array.isArray(resolutions)) {
     throw new CopilotValidationError(
@@ -193,6 +238,14 @@ export function parseCopilotConflictResolution(
       'Copilot returned an invalid conflict resolution payload: "resolutions" must not be empty'
     )
   }
+
+  // Soft-fail summary: it's a nice-to-have, not a critical part of the
+  // contract. If the model omits it or returns the wrong shape we still
+  // ship a usable resolution.
+  const summary =
+    typeof rawSummary === 'string' && rawSummary.trim().length > 0
+      ? rawSummary
+      : null
 
   const validated: Array<IFileResolution> = []
 
@@ -235,7 +288,7 @@ export function parseCopilotConflictResolution(
     validated.push({ path: normalizeLLMPath(path), resolvedContent, reasoning })
   }
 
-  return { resolutions: validated }
+  return { resolutions: validated, summary }
 }
 
 /**

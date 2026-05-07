@@ -135,3 +135,183 @@ dialog#copilot-conflicts-dialog {
     width: 100%;
   }
 }
+
+// Resolution summary card rendered at the top of the Copilot conflicts dialog.
+.copilot-conflicts-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing);
+  margin-bottom: var(--spacing-double);
+  padding: var(--spacing);
+  border: var(--base-border);
+  border-radius: var(--border-radius);
+  background: var(--background-color);
+
+  .copilot-conflicts-summary-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--spacing-half);
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .copilot-conflicts-summary-verb {
+    color: var(--text-secondary-color);
+  }
+
+  .copilot-conflicts-summary-ref {
+    display: inline-block;
+    padding: 2px var(--spacing-half);
+    border-radius: var(--border-radius);
+    background: var(--box-alt-background-color);
+    font-family: var(--font-family-monospace);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-normal);
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .copilot-conflicts-summary-arrow {
+    color: var(--text-secondary-color);
+    flex-shrink: 0;
+  }
+
+  .copilot-conflicts-summary-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-half);
+  }
+
+  .copilot-conflicts-summary-attribution {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-third);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary-color);
+
+    .copilot-conflicts-summary-copilot-icon {
+      flex-shrink: 0;
+    }
+  }
+
+  .copilot-conflicts-summary-markdown {
+    font-size: var(--font-size);
+    line-height: 1.5;
+
+    h2 {
+      font-size: var(--font-size-md);
+      font-weight: var(--font-weight-semibold);
+      margin: var(--spacing) 0 var(--spacing-third) 0;
+
+      &:first-child {
+        margin-top: 0;
+      }
+    }
+
+    p {
+      margin: 0 0 var(--spacing-half) 0;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    ul,
+    ol {
+      margin: 0 0 var(--spacing-half) var(--spacing);
+      padding: 0;
+    }
+
+    code {
+      font-family: var(--font-family-monospace);
+      font-size: var(--font-size-sm);
+      padding: 1px 4px;
+      border-radius: var(--border-radius);
+      background: var(--box-alt-background-color);
+    }
+  }
+
+  .copilot-conflicts-summary-references {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-half);
+    padding-top: var(--spacing);
+    border-top: var(--base-border);
+  }
+
+  .copilot-conflicts-summary-references-title {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-secondary-color);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .copilot-conflicts-summary-references-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-third);
+  }
+
+  .copilot-conflicts-summary-references-subtitle {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-secondary-color);
+  }
+
+  .copilot-conflicts-summary-pr-list,
+  .copilot-conflicts-summary-commit-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-third);
+  }
+
+  .copilot-conflicts-summary-pr-item,
+  .copilot-conflicts-summary-commit-item {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+  }
+
+  .copilot-conflicts-summary-pr-link,
+  .copilot-conflicts-summary-commit-link {
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--spacing-third);
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .copilot-conflicts-summary-pr-icon {
+    flex-shrink: 0;
+    align-self: center;
+  }
+
+  .copilot-conflicts-summary-pr-number {
+    font-family: var(--font-family-monospace);
+    color: var(--text-secondary-color);
+    flex-shrink: 0;
+  }
+
+  .copilot-conflicts-summary-pr-title,
+  .copilot-conflicts-summary-commit-summary {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .copilot-conflicts-summary-commit-sha {
+    font-family: var(--font-family-monospace);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary-color);
+    flex-shrink: 0;
+  }
+}

@@ -386,13 +386,18 @@ import { startTimer } from '../../ui/lib/timing'
 import { BypassReasonType } from '../../ui/secret-scanning/bypass-push-protection-dialog'
 import { getRepoHooks } from '../hooks/get-repo-hooks'
 import {
-  ICopilotConflictResolutionResponse,
   IConflictResolutionProgress,
+  ICopilotResolutionSummary,
+  IFileResolution,
 } from '../copilot-conflict-resolution'
 import {
   buildConflictContext,
   gatherCommitContext,
 } from '../copilot-conflict-context'
+import {
+  extractPullRequestNumbersFromCommits,
+  findPullRequestsByNumbers,
+} from '../pull-request-refs'
 import { resolveWithin } from '../path'
 
 const LastSelectedRepositoryIDKey = 'last-selected-repository-id'
@@ -5874,7 +5879,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
   public async _resolveConflictsWithCopilot(
     repository: Repository,
     onProgress?: (progress: IConflictResolutionProgress) => void
-  ): Promise<ICopilotConflictResolutionResponse | null> {
+  ): Promise<{
+    readonly resolutions: ReadonlyArray<IFileResolution>
+    readonly summary: ICopilotResolutionSummary
+  } | null> {
     if (!enableCopilotConflictResolution()) {
       return null
     }
@@ -5939,6 +5947,34 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
       const currentPullRequest = state.branchesState.currentPullRequest ?? null
 
+      // Best-effort: identify pull requests that contributed changes to the
+      // *theirs* side by parsing #NNNN references from their commit
+      // messages and joining against the local PR cache. No network calls
+      // — anything we don't know locally is silently skipped.
+      let theirPullRequests: ReadonlyArray<PullRequest> | null = null
+      if (
+        commitContext &&
+        commitContext.theirCommits.length > 0 &&
+        isRepositoryWithGitHubRepository(repository)
+      ) {
+        try {
+          const numbers = extractPullRequestNumbersFromCommits(
+            commitContext.theirCommits
+          )
+          if (numbers.length > 0) {
+            const allPRs = await this.pullRequestCoordinator.getAllPullRequests(
+              repository
+            )
+            theirPullRequests = findPullRequestsByNumbers(numbers, allPRs)
+          }
+        } catch (e) {
+          log.warn(
+            'AppStore: failed to look up theirs-side PRs from local cache',
+            e
+          )
+        }
+      }
+
       const resolveTimer = startTimer(
         'copilotStore.resolveConflicts',
         repository
@@ -5947,6 +5983,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
         context,
         commitContext,
         currentPullRequest,
+        theirPullRequests,
         repository.path,
         onProgress
       )
@@ -5954,7 +5991,18 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
       totalTimer.done()
 
-      return result
+      return {
+        resolutions: result.resolutions,
+        summary: {
+          markdown: result.summary,
+          ourLabel: labels.ourLabel,
+          theirLabel: labels.theirLabel,
+          ourPullRequest: currentPullRequest,
+          theirPullRequests: theirPullRequests ?? [],
+          ourCommits: commitContext?.ourCommits ?? [],
+          theirCommits: commitContext?.theirCommits ?? [],
+        },
+      }
     } catch (e) {
       totalTimer.done()
       log.warn('AppStore: Copilot conflict resolution failed', e)
@@ -6127,6 +6175,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
                 MultiCommitOperationStepKind.ShowCopilotConflicts,
             },
             copilotResolutions: result.resolutions,
+            copilotResolutionSummary: result.summary,
             copilotResolutionProgress: null,
           })
         )
@@ -6146,6 +6195,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
             conflictState,
           },
           copilotResolutions: result.resolutions,
+          copilotResolutionSummary: result.summary,
           copilotResolutionProgress: null,
         })
       )
@@ -6169,6 +6219,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
           },
           useCopilotConflictResolution: false,
           copilotResolutions: null,
+          copilotResolutionSummary: null,
           copilotResolutionProgress: null,
         })
       )
@@ -8648,6 +8699,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       userHasResolvedConflicts: false,
       useCopilotConflictResolution: false,
       copilotResolutions: null,
+      copilotResolutionSummary: null,
       copilotResolutionProgress: null,
       originalBranchTip,
       targetBranch,

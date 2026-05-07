@@ -316,13 +316,18 @@ export async function buildConflictContext(
  *
  * @param context - The structured conflict context to format
  * @param commitContext - Optional commit history from both sides
- * @param pullRequest - Optional pull request associated with the merge
+ * @param ourPullRequest - Optional pull request for the *ours* (current) side
+ * @param theirPullRequests - Optional pull requests we believe contributed
+ *                            changes on the *theirs* (incoming) side, derived
+ *                            from `#NNNN` references in commit messages and
+ *                            joined against the local PR cache.
  * @returns A formatted string describing the merge conflicts
  */
 export function formatConflictContextForPrompt(
   context: ICopilotConflictContext,
   commitContext?: IConflictCommitContext | null,
-  pullRequest?: PullRequest | null
+  ourPullRequest?: PullRequest | null,
+  theirPullRequests?: ReadonlyArray<PullRequest> | null
 ): string {
   const parts: Array<string> = []
 
@@ -331,15 +336,28 @@ export function formatConflictContextForPrompt(
   )
   parts.push('')
 
-  if (pullRequest) {
-    parts.push('## Pull Request Context')
-    parts.push(`PR #${pullRequest.pullRequestNumber}: ${pullRequest.title}`)
+  if (ourPullRequest) {
+    parts.push(`## Pull Request Context (ours: ${context.ourLabel})`)
+    parts.push(
+      `PR #${ourPullRequest.pullRequestNumber}: ${ourPullRequest.title}`
+    )
     parts.push('')
-    if (pullRequest.body) {
+    if (ourPullRequest.body) {
       parts.push('Description:')
-      parts.push(makeFencedBlock(pullRequest.body))
+      parts.push(makeFencedBlock(ourPullRequest.body))
       parts.push('')
     }
+  }
+
+  if (theirPullRequests && theirPullRequests.length > 0) {
+    parts.push(`## Pull Request Context (theirs: ${context.theirLabel})`)
+    parts.push(
+      'These pull requests contributed changes to the incoming side and may explain the conflict:'
+    )
+    for (const pr of theirPullRequests) {
+      parts.push(`- PR #${pr.pullRequestNumber}: ${pr.title}`)
+    }
+    parts.push('')
   }
 
   if (

@@ -132,10 +132,7 @@ import { ICustomIntegration } from '../../lib/custom-integration'
 import { isAbsolute } from 'path'
 import { CLIAction } from '../../lib/cli-action'
 import { BypassReasonType } from '../secret-scanning/bypass-push-protection-dialog'
-import {
-  ICopilotConflictResolutionResponse,
-  IConflictResolutionProgress,
-} from '../../lib/copilot-conflict-resolution'
+import { IConflictResolutionProgress } from '../../lib/copilot-conflict-resolution'
 
 /**
  * An error handler function.
@@ -1120,7 +1117,7 @@ export class Dispatcher {
   public resolveConflictsWithCopilot(
     repository: Repository,
     onProgress?: (progress: IConflictResolutionProgress) => void
-  ): Promise<ICopilotConflictResolutionResponse | null> {
+  ) {
     return this.appStore._resolveConflictsWithCopilot(repository, onProgress)
   }
 

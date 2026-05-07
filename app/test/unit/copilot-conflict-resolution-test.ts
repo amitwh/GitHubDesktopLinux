@@ -308,6 +308,42 @@ describe('parseCopilotConflictResolution', () => {
     const result = parseCopilotConflictResolution(json)
     assert.equal(result.resolutions[0].path, 'src/lib/file.ts')
   })
+
+  it('returns null summary when missing', () => {
+    const json = JSON.stringify({
+      resolutions: [{ path: 'a.ts', resolvedContent: 'c', reasoning: 'r' }],
+    })
+    const result = parseCopilotConflictResolution(json)
+    assert.equal(result.summary, null)
+  })
+
+  it('returns null summary when wrong type', () => {
+    const json = JSON.stringify({
+      resolutions: [{ path: 'a.ts', resolvedContent: 'c', reasoning: 'r' }],
+      summary: 42,
+    })
+    const result = parseCopilotConflictResolution(json)
+    assert.equal(result.summary, null)
+  })
+
+  it('returns null summary when empty string', () => {
+    const json = JSON.stringify({
+      resolutions: [{ path: 'a.ts', resolvedContent: 'c', reasoning: 'r' }],
+      summary: '   ',
+    })
+    const result = parseCopilotConflictResolution(json)
+    assert.equal(result.summary, null)
+  })
+
+  it('preserves a non-empty summary string', () => {
+    const summary = '## What changed\nA.\n\n## Resolution decision\nB.'
+    const json = JSON.stringify({
+      resolutions: [{ path: 'a.ts', resolvedContent: 'c', reasoning: 'r' }],
+      summary,
+    })
+    const result = parseCopilotConflictResolution(json)
+    assert.equal(result.summary, summary)
+  })
 })
 
 // ---------------------------------------------------------------------------
