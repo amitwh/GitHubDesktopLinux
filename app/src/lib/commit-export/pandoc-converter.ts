@@ -2,6 +2,7 @@ import * as cp from 'child_process'
 import * as path from 'path'
 
 export type PandocFormat =
+  | 'markdown'
   | 'pdf'
   | 'docx'
   | 'odt'
