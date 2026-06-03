@@ -1,3 +1,4 @@
+import { promises as fs } from 'fs'
 import { Repository } from '../../models/repository'
 import { Commit } from '../../models/commit'
 import { generateMarkdown, IMarkdownGeneratorOptions } from './markdown-generator'
@@ -22,10 +23,9 @@ export async function exportCommitHistory(
   const repoName = repository.name
   const markdown = generateMarkdown(commits, repoName, options)
 
-  if (options.format === 'pdf' || options.outputPath.endsWith('.md') === false) {
-    await convertWithPandoc(markdown, options.outputPath, options.format)
-  } else {
-    const fs = await import('fs/promises')
+  if (options.format === 'markdown') {
     await fs.writeFile(options.outputPath, markdown, 'utf-8')
+  } else {
+    await convertWithPandoc(markdown, options.outputPath, options.format)
   }
 }

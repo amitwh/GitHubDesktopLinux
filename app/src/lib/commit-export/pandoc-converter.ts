@@ -28,7 +28,7 @@ export async function convertWithPandoc(
     }
 
     const child = cp.spawn('pandoc', args, {
-      stdio: ['pipe', 'pipe', 'pipe'],
+      stdio: ['pipe', 'ignore', 'pipe'],
     })
 
     let stderr = ''
@@ -36,7 +36,13 @@ export async function convertWithPandoc(
       stderr += data.toString()
     })
 
+    const timeout = setTimeout(() => {
+      child.kill('SIGTERM')
+      reject(new Error('pandoc timed out after 30 seconds'))
+    }, 30000)
+
     child.on('close', (code: number | null) => {
+      clearTimeout(timeout)
       if (code === 0) {
         resolve()
       } else {
@@ -45,11 +51,13 @@ export async function convertWithPandoc(
     })
 
     child.on('error', (err: Error) => {
+      clearTimeout(timeout)
       reject(new Error(`Failed to spawn pandoc: ${err.message}. Is pandoc installed?`))
     })
 
     child.stdin.write(markdownContent, 'utf-8', (err: Error | null | undefined) => {
       if (err) {
+        clearTimeout(timeout)
         reject(new Error(`Failed to write to pandoc stdin: ${err.message}`))
         return
       }
