@@ -394,6 +394,11 @@ export function buildDefaultMenu({
         id: 'show-repository-settings',
         click: emit('show-repository-settings'),
       },
+      {
+        label: __DARWIN__ ? 'Export Commit History…' : 'Export commit &history…',
+        id: 'export-commit-history',
+        click: emit('export-commit-history'),
+      },
     ],
   })
 

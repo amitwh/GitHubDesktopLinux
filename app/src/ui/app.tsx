@@ -211,6 +211,7 @@ import { AddWorktreeDialog } from './worktrees/add-worktree-dialog'
 import { RenameWorktreeDialog } from './worktrees/rename-worktree-dialog'
 import { DeleteWorktreeDialog } from './worktrees/delete-worktree-dialog'
 import { DeleteWorktreeFailedDialog } from './worktrees/delete-worktree-failed-dialog'
+import { ExportCommitHistoryDialog } from './export-commit-history'
 
 const MinuteInMilliseconds = 1000 * 60
 const HourInMilliseconds = MinuteInMilliseconds * 60
@@ -496,6 +497,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showRebaseDialog()
       case 'show-repository-settings':
         return this.showRepositorySettings()
+      case 'export-commit-history':
+        return this.showExportCommitHistoryDialog()
       case 'view-repository-on-github':
         return this.viewRepositoryOnGitHub()
       case 'compare-on-github':
@@ -1302,6 +1305,15 @@ export class App extends React.Component<IAppProps, IAppState> {
     })
   }
 
+  private showExportCommitHistoryDialog() {
+    const repository = this.getRepository()
+
+    if (!repository || repository instanceof CloningRepository) {
+      return
+    }
+    this.props.dispatcher.showExportCommitHistoryDialog(repository)
+  }
+
   /**
    * Opens a browser to the issue creation page
    * of the current GitHub repository.
@@ -1699,6 +1711,17 @@ export class App extends React.Component<IAppProps, IAppState> {
             repository={repository}
             repositoryAccount={repositoryAccount}
             onDismissed={onPopupDismissedFn}
+          />
+        )
+      }
+      case PopupType.ExportCommitHistory: {
+        const popup = this.state.currentPopup
+        return (
+          <ExportCommitHistoryDialog
+            key="export-commit-history"
+            dispatcher={this.props.dispatcher}
+            repository={popup.repository}
+            onDismissed={this.onPopupDismissed}
           />
         )
       }

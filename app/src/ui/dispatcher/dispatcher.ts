@@ -4248,4 +4248,8 @@ export class Dispatcher {
       this.postError(e)
     }
   }
+
+  public showExportCommitHistoryDialog(repository: Repository) {
+    return this.showPopup({ type: PopupType.ExportCommitHistory, repository })
+  }
 }
