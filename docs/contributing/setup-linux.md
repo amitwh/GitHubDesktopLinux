@@ -61,6 +61,20 @@ $ sudo dnf install -y libsecret-devel libXScrnSaver
 $ sudo apt install libsecret-1-dev libgconf-2-4
 ```
 
+## Export Dependencies
+
+To use the commit history export feature (Markdown, PDF, DOCX, etc.), you need pandoc installed:
+
+```bash
+$ sudo apt install -y pandoc
+```
+
+For PDF export, you also need a LaTeX engine:
+
+```bash
+$ sudo apt install -y texlive-xetex
+```
+
 ## Back to setup
 
 Once you've installed the necessary dependencies, head back to the [setup page](https://github.com/desktop/desktop/blob/development/docs/contributing/setup.md) to finish getting set up.
