@@ -9,6 +9,7 @@ import {
   SelectionType,
   HistoryTabMode,
   CommitOptions,
+  ChangesSelectionKind,
 } from '../lib/app-state'
 import { Dispatcher } from './dispatcher'
 import { AppStore, GitHubUserStore, IssuesStore } from '../lib/stores'
@@ -40,6 +41,7 @@ import { Account, isDotComAccount } from '../models/account'
 import { TipState } from '../models/tip'
 import { CloneRepositoryTab } from '../models/clone-repository-tab'
 import { CloningRepository } from '../models/cloning-repository'
+import { WorkingDirectoryStatus } from '../models/status'
 
 import { TitleBar, ZoomInfo, FullScreenInfo } from './window'
 
@@ -1802,12 +1804,12 @@ export class App extends React.Component<IAppProps, IAppState> {
         return (
           <ExportCommitHistoryDialog
             key="export-commit-history"
+            dispatcher={this.props.dispatcher}
             repository={popup.repository}
             onDismissed={onPopupDismissedFn}
           />
         )
-      case PopupType.ViewReflog: {
-        const popup = this.state.currentPopup
+      case PopupType.ViewReflog:
         return (
           <ReflogDialog
             key="reflog"
@@ -1816,9 +1818,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             onDismissed={onPopupDismissedFn}
           />
         )
-      }
-      case PopupType.ViewBlame: {
-        const popup = this.state.currentPopup
+      case PopupType.ViewBlame:
         return (
           <BlameDialog
             key="blame"
@@ -1828,9 +1828,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             onDismissed={onPopupDismissedFn}
           />
         )
-      }
-      case PopupType.ViewStashes: {
-        const popup = this.state.currentPopup
+      case PopupType.ViewStashes:
         return (
           <StashManagerDialog
             key="stash-manager"
@@ -1839,7 +1837,6 @@ export class App extends React.Component<IAppProps, IAppState> {
             onDismissed={onPopupDismissedFn}
           />
         )
-      }
       case PopupType.SignIn:
         return (
           <SignIn
@@ -2940,12 +2937,11 @@ export class App extends React.Component<IAppProps, IAppState> {
         )
       }
       case PopupType.ResolveConflicts: {
-        const popup = this.state.currentPopup
         const selectedState = this.state.selectedState
         const workingDirectory =
           selectedState?.type === SelectionType.Repository
             ? selectedState.state.changesState.workingDirectory
-            : { files: [] }
+            : WorkingDirectoryStatus.fromFiles([])
         return (
           <MergeConflictDialog
             key="merge-conflict"
@@ -2956,8 +2952,7 @@ export class App extends React.Component<IAppProps, IAppState> {
           />
         )
       }
-      case PopupType.InteractiveRebase: {
-        const popup = this.state.currentPopup
+      case PopupType.InteractiveRebase:
         return (
           <InteractiveRebaseDialog
             key="interactive-rebase"
@@ -2967,9 +2962,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             onDismissed={onPopupDismissedFn}
           />
         )
-      }
-      case PopupType.SubmoduleManagement: {
-        const popup = this.state.currentPopup
+      case PopupType.SubmoduleManagement:
         return (
           <SubmoduleDialog
             key="submodule"
@@ -2978,7 +2971,6 @@ export class App extends React.Component<IAppProps, IAppState> {
             onDismissed={onPopupDismissedFn}
           />
         )
-      }
       default:
         return assertNever(popup, `Unknown popup type: ${popup}`)
     }

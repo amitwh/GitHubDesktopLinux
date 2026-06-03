@@ -60,9 +60,9 @@ export class StashManagerDialog extends React.Component<
           {!loading &&
             entries.map(entry => (
               <Row key={entry.name} className="stash-entry">
-                <Ref className="stash-name">{entry.name}</Ref>{' '}
-                <Ref className="stash-sha">{entry.stashSha.substring(0, 7)}</Ref>{' '}
-                <Ref className="stash-message">{entry.message}</Ref>{' '}
+                <span className="stash-name"><Ref>{entry.name}</Ref></span>{' '}
+                <span className="stash-sha"><Ref>{entry.stashSha.substring(0, 7)}</Ref></span>{' '}
+                <span className="stash-message"><Ref>{entry.message}</Ref></span>{' '}
                 <Button onClick={() => this.onDrop(entry.name)}>Drop</Button>
               </Row>
             ))}

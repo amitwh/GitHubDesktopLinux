@@ -97,9 +97,9 @@ export class MergeConflictDialog extends React.Component<
             const isResolved = resolvedFiles.has(file.path)
             return (
               <Row key={file.path} className="conflict-file">
-                <Ref className={isResolved ? 'resolved' : 'conflicted'}>
-                  {file.path} {isResolved && '(resolved)'}
-                </Ref>
+                <span className={isResolved ? 'resolved' : 'conflicted'}>
+                  <Ref>{file.path} {isResolved && '(resolved)'}</Ref>
+                </span>
                 {!isResolved && (
                   <div className="button-group">
                     <Button onClick={() => this.onAcceptOurs(file.path)}>

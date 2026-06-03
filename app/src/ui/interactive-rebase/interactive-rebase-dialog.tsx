@@ -135,8 +135,8 @@ export class InteractiveRebaseDialog extends React.Component<
                     <option key={a} value={a}>{a}</option>
                   ))}
                 </Select>
-                <Ref className="rebase-sha">{commit.sha.substring(0, 7)}</Ref>{' '}
-                <Ref className="rebase-summary">{commit.summary}</Ref>
+                <span className="rebase-sha"><Ref>{commit.sha.substring(0, 7)}</Ref></span>{' '}
+                <span className="rebase-summary"><Ref>{commit.summary}</Ref></span>
                 <Button onClick={() => this.onMoveUp(index)} disabled={index === 0}>↑</Button>
                 <Button onClick={() => this.onMoveDown(index)} disabled={index === commits.length - 1}>↓</Button>
               </Row>

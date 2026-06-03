@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs'
 import { Repository } from '../../models/repository'
 import { Commit } from '../../models/commit'
+export { Commit }
 import { generateMarkdown, IMarkdownGeneratorOptions } from './markdown-generator'
 import { convertWithPandoc, PandocFormat, getFormatFromExtension } from './pandoc-converter'
 import { getCommits } from '../git/log'
