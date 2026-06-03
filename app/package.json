@@ -18,6 +18,7 @@
   "license": "MIT",
   "dependencies": {
     "@floating-ui/react-dom": "^2.1.2",
+    "@fontsource/jetbrains-mono": "^5.2.8",
     "@github/alive-client": "^1.2.0",
     "@github/copilot-sdk": "^1.0.0-beta.1",
     "@xterm/xterm": "^5.5.0",

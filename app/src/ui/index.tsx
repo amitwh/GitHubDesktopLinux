@@ -1,3 +1,6 @@
+import '@fontsource/jetbrains-mono/400.css'
+import '@fontsource/jetbrains-mono/700.css'
+
 import '../lib/logging/renderer/install'
 
 import * as React from 'react'
