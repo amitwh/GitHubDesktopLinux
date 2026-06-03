@@ -94,8 +94,8 @@ export class ExportCommitHistoryDialog extends React.Component<
     this.setState({ isExporting: true, exportError: null })
 
     try {
-      const { ipcRenderer } = await import('../../lib/ipc-renderer')
-      const outputPath: string | undefined = await ipcRenderer.invoke(
+      const { invoke } = await import('../../lib/ipc-renderer')
+      const outputPath = await invoke(
         'show-save-dialog',
         {
           defaultPath: `${repository.name}-commits.${format === 'markdown' ? 'md' : format}`,

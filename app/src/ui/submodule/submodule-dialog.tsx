@@ -65,8 +65,8 @@ export class SubmoduleDialog extends React.Component<
           {!loading &&
             submodules.map(sub => (
               <Row key={sub.path} className="submodule-entry">
-                <Ref className="submodule-sha">{sub.sha.substring(0, 7)}</Ref>{' '}
-                <Ref className="submodule-path">{sub.path}</Ref>{' '}
+                <span className="submodule-sha"><Ref>{sub.sha.substring(0, 7)}</Ref></span>{' '}
+                <span className="submodule-path"><Ref>{sub.path}</Ref></span>{' '}
                 <Button onClick={() => this.onUpdate(sub.path)}>Update</Button>{' '}
                 <Button onClick={() => this.onSync(sub.path)}>Sync</Button>
               </Row>
