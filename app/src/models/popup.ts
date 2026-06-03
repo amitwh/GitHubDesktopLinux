@@ -119,6 +119,7 @@ export enum PopupType {
   ExportCommitHistory = 'ExportCommitHistory',
   ViewReflog = 'ViewReflog',
   ViewBlame = 'ViewBlame',
+  ViewStashes = 'ViewStashes',
 }
 
 interface IBasePopup {
@@ -538,4 +539,5 @@ export type PopupDetail =
       repository: Repository
       relativePath: string
     }
+  | { type: PopupType.ViewStashes; repository: Repository }
 export type Popup = IBasePopup & PopupDetail

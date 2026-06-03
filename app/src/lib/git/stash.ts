@@ -270,6 +270,53 @@ export async function popStashEntry(
   }
 }
 
+export interface IAllStashEntry {
+  readonly name: string
+  readonly stashSha: string
+  readonly message: string
+  readonly branchName: string | null
+}
+
+export async function getAllStashes(
+  repository: Repository
+): Promise<ReadonlyArray<IAllStashEntry>> {
+  const { formatArgs, parse } = createLogParser({
+    name: '%gD',
+    stashSha: '%H',
+    message: '%gs',
+  })
+
+  const result = await git(
+    ['log', '-g', ...formatArgs, 'refs/stash', '--'],
+    repository.path,
+    'getAllStashes',
+    { successExitCodes: new Set([0, 128]) }
+  )
+
+  if (result.exitCode === 128) {
+    return []
+  }
+
+  const entries = parse(result.stdout)
+  return entries.map((e: any) => ({
+    name: e.name.toString(),
+    stashSha: e.stashSha.toString(),
+    message: e.message.toString(),
+    branchName: extractBranchFromMessage(e.message.toString()),
+  }))
+}
+
+export async function dropStashByName(
+  repository: Repository,
+  stashName: string
+): Promise<void> {
+  await git(
+    ['stash', 'drop', stashName],
+    repository.path,
+    'dropStashByName'
+  )
+}
+
 function extractBranchFromMessage(message: string): string | null {
   const match = desktopStashEntryMessageRe.exec(message)
   return match === null || match[1].length === 0 ? null : match[1]

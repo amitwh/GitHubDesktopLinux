@@ -409,6 +409,11 @@ export function buildDefaultMenu({
         id: 'view-blame',
         click: emit('view-blame'),
       },
+      {
+        label: __DARWIN__ ? 'View Stashes…' : 'View &stashes…',
+        id: 'view-stashes',
+        click: emit('view-stashes'),
+      },
     ],
   })
 

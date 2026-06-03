@@ -214,6 +214,7 @@ import { DeleteWorktreeFailedDialog } from './worktrees/delete-worktree-failed-d
 import { ExportCommitHistoryDialog } from './export-commit-history'
 import { ReflogDialog } from './reflog'
 import { BlameDialog } from './blame'
+import { StashManagerDialog } from './stash-manager'
 
 const MinuteInMilliseconds = 1000 * 60
 const HourInMilliseconds = MinuteInMilliseconds * 60
@@ -505,6 +506,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showReflogDialog()
       case 'view-blame':
         return this.showBlameDialog()
+      case 'view-stashes':
+        return this.showStashManagerDialog()
       case 'view-repository-on-github':
         return this.viewRepositoryOnGitHub()
       case 'compare-on-github':
@@ -1348,6 +1351,14 @@ export class App extends React.Component<IAppProps, IAppState> {
     this.props.dispatcher.showBlameDialog(repository, selectedFile)
   }
 
+  private showStashManagerDialog() {
+    const repository = this.getRepository()
+    if (!repository || repository instanceof CloningRepository) {
+      return
+    }
+    this.props.dispatcher.showStashManagerDialog(repository)
+  }
+
   /**
    * Opens a browser to the issue creation page
    * of the current GitHub repository.
@@ -1775,6 +1786,17 @@ export class App extends React.Component<IAppProps, IAppState> {
             dispatcher={this.props.dispatcher}
             repository={popup.repository}
             relativePath={popup.relativePath}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      }
+      case PopupType.ViewStashes: {
+        const popup = this.state.currentPopup
+        return (
+          <StashManagerDialog
+            key="stash-manager"
+            dispatcher={this.props.dispatcher}
+            repository={popup.repository}
             onDismissed={onPopupDismissedFn}
           />
         )

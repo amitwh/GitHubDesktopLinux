@@ -4264,4 +4264,8 @@ export class Dispatcher {
       relativePath,
     })
   }
+
+  public showStashManagerDialog(repository: Repository) {
+    return this.showPopup({ type: PopupType.ViewStashes, repository })
+  }
 }

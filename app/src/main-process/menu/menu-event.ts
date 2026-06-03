@@ -28,6 +28,7 @@ export type MenuEvent =
   | 'export-commit-history'
   | 'view-reflog'
   | 'view-blame'
+  | 'view-stashes'
   | 'open-in-shell'
   | 'compare-on-github'
   | 'branch-on-github'
