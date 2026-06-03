@@ -31,6 +31,7 @@ export type MenuEvent =
   | 'view-stashes'
   | 'resolve-conflicts'
   | 'interactive-rebase'
+  | 'submodule-management'
   | 'open-in-shell'
   | 'compare-on-github'
   | 'branch-on-github'

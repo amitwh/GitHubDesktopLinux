@@ -721,6 +721,10 @@ export class Dispatcher {
     })
   }
 
+  public showSubmoduleDialog(repository: Repository) {
+    return this.showPopup({ type: PopupType.SubmoduleManagement, repository })
+  }
+
   /** Check out the given branch. */
   public checkoutBranch(
     repository: Repository,

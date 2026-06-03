@@ -217,6 +217,7 @@ import { BlameDialog } from './blame'
 import { StashManagerDialog } from './stash-manager'
 import { MergeConflictDialog } from './merge-conflict'
 import { InteractiveRebaseDialog } from './interactive-rebase'
+import { SubmoduleDialog } from './submodule'
 
 const MinuteInMilliseconds = 1000 * 60
 const HourInMilliseconds = MinuteInMilliseconds * 60
@@ -514,6 +515,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showMergeConflictDialog()
       case 'interactive-rebase':
         return this.showInteractiveRebaseDialog()
+      case 'submodule-management':
+        return this.showSubmoduleDialog()
       case 'view-repository-on-github':
         return this.viewRepositoryOnGitHub()
       case 'compare-on-github':
@@ -1385,6 +1388,14 @@ export class App extends React.Component<IAppProps, IAppState> {
     const tip = state.state.branchesState.tip
     const branchName = tip.kind === TipState.Valid ? tip.branch.name : 'HEAD'
     this.props.dispatcher.showInteractiveRebaseDialog(repository, branchName)
+  }
+
+  private showSubmoduleDialog() {
+    const repository = this.getRepository()
+    if (!repository || repository instanceof CloningRepository) {
+      return
+    }
+    this.props.dispatcher.showSubmoduleDialog(repository)
   }
 
   /**
@@ -2953,6 +2964,17 @@ export class App extends React.Component<IAppProps, IAppState> {
             dispatcher={this.props.dispatcher}
             repository={popup.repository}
             branchName={popup.branchName}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      }
+      case PopupType.SubmoduleManagement: {
+        const popup = this.state.currentPopup
+        return (
+          <SubmoduleDialog
+            key="submodule"
+            dispatcher={this.props.dispatcher}
+            repository={popup.repository}
             onDismissed={onPopupDismissedFn}
           />
         )

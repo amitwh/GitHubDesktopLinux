@@ -425,6 +425,12 @@ export function buildDefaultMenu({
         id: 'interactive-rebase',
         click: emit('interactive-rebase'),
       },
+      separator,
+      {
+        label: __DARWIN__ ? 'Submodules…' : '&Submodules…',
+        id: 'submodule-management',
+        click: emit('submodule-management'),
+      },
     ],
   })
 

@@ -210,3 +210,60 @@ export async function resetSubmodulePaths(
     'updateSubmodule'
   )
 }
+
+export interface ISubmodule {
+  readonly path: string
+  readonly url: string
+  readonly sha: string
+}
+
+export async function getSubmodules(
+  repository: Repository
+): Promise<ReadonlyArray<ISubmodule>> {
+  const result = await git(
+    ['submodule', 'status'],
+    repository.path,
+    'getSubmodules',
+    { successExitCodes: new Set([0, 128]) }
+  )
+
+  if (result.exitCode === 128) {
+    return []
+  }
+
+  const lines = result.stdout.split('\n')
+  const submodules: ISubmodule[] = []
+
+  for (const line of lines) {
+    const parts = line.trim().split(/\s+/)
+    if (parts.length >= 2) {
+      const sha = parts[0].replace(/^[-+U]/, '')
+      const path = parts[1]
+      submodules.push({ sha, path, url: '' })
+    }
+  }
+
+  return submodules
+}
+
+export async function updateSubmodule(
+  repository: Repository,
+  path: string
+): Promise<void> {
+  await git(
+    ['submodule', 'update', '--init', '--recursive', '--', path],
+    repository.path,
+    'updateSubmodule'
+  )
+}
+
+export async function syncSubmodule(
+  repository: Repository,
+  path: string
+): Promise<void> {
+  await git(
+    ['submodule', 'sync', '--recursive', '--', path],
+    repository.path,
+    'syncSubmodule'
+  )
+}
