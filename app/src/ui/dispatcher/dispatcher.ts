@@ -4252,4 +4252,8 @@ export class Dispatcher {
   public showExportCommitHistoryDialog(repository: Repository) {
     return this.showPopup({ type: PopupType.ExportCommitHistory, repository })
   }
+
+  public showReflogDialog(repository: Repository) {
+    return this.showPopup({ type: PopupType.ViewReflog, repository })
+  }
 }

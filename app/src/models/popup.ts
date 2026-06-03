@@ -117,6 +117,7 @@ export enum PopupType {
   ConfirmDeleteCopilotBYOKProvider = 'ConfirmDeleteCopilotBYOKProvider',
   DeleteWorktreeFailed = 'DeleteWorktreeFailed',
   ExportCommitHistory = 'ExportCommitHistory',
+  ViewReflog = 'ViewReflog',
 }
 
 interface IBasePopup {
@@ -530,4 +531,5 @@ export type PopupDetail =
       error: Error
     }
   | { type: PopupType.ExportCommitHistory; repository: Repository }
+  | { type: PopupType.ViewReflog; repository: Repository }
 export type Popup = IBasePopup & PopupDetail

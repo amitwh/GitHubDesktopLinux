@@ -26,6 +26,7 @@ export type MenuEvent =
   | 'rebase-branch'
   | 'show-repository-settings'
   | 'export-commit-history'
+  | 'view-reflog'
   | 'open-in-shell'
   | 'compare-on-github'
   | 'branch-on-github'

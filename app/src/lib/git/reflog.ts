@@ -125,3 +125,45 @@ export async function getBranchCheckouts(
 
   return checkouts
 }
+
+export interface IReflogEntry {
+  readonly sha: string
+  readonly reflogName: string
+  readonly subject: string
+  readonly author: string
+  readonly timestamp: Date
+}
+
+export async function getReflog(
+  repository: Repository,
+  refName: string = 'HEAD'
+): Promise<ReadonlyArray<IReflogEntry>> {
+  const result = await git(
+    ['reflog', '--format=%H%x00%gD%x00%gs%x00%an%x00%ai', refName],
+    repository.path,
+    'getReflog',
+    { successExitCodes: new Set([0, 128]) }
+  )
+
+  if (result.exitCode === 128) {
+    return []
+  }
+
+  const lines = result.stdout.split('\n')
+  const entries: IReflogEntry[] = []
+
+  for (const line of lines) {
+    const parts = line.split('\0')
+    if (parts.length >= 5) {
+      entries.push({
+        sha: parts[0],
+        reflogName: parts[1],
+        subject: parts[2],
+        author: parts[3],
+        timestamp: new Date(parts[4]),
+      })
+    }
+  }
+
+  return entries
+}

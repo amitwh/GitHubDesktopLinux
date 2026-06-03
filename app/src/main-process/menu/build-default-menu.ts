@@ -399,6 +399,11 @@ export function buildDefaultMenu({
         id: 'export-commit-history',
         click: emit('export-commit-history'),
       },
+      {
+        label: __DARWIN__ ? 'View Reflog' : 'View &reflog',
+        id: 'view-reflog',
+        click: emit('view-reflog'),
+      },
     ],
   })
 
