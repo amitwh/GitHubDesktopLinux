@@ -105,7 +105,7 @@ export class ExportCommitHistoryDialog extends React.Component<
         }
       )
 
-      if (outputPath === undefined) {
+      if (outputPath === undefined || outputPath === null) {
         this.setState({ isExporting: false })
         return
       }

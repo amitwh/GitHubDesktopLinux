@@ -1,6 +1,6 @@
 import { RequestChannels, RequestResponseChannels } from '../lib/ipc-shared'
 // eslint-disable-next-line no-restricted-imports
-import { ipcMain, dialog } from 'electron'
+import { ipcMain } from 'electron'
 import { IpcMainEvent, IpcMainInvokeEvent } from 'electron/main'
 import { isTrustedIPCSender } from './trusted-ipc-sender'
 
@@ -64,8 +64,3 @@ function safeListener<E extends IpcMainEvent | IpcMainInvokeEvent, R>(
     return listener(event, ...args)
   }
 }
-
-ipcMain.handle('show-save-dialog', async (_, options) => {
-  const { filePath } = await dialog.showSaveDialog(options)
-  return filePath
-})
