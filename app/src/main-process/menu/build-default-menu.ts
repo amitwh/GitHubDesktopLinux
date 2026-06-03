@@ -414,6 +414,12 @@ export function buildDefaultMenu({
         id: 'view-stashes',
         click: emit('view-stashes'),
       },
+      separator,
+      {
+        label: __DARWIN__ ? 'Resolve Conflicts…' : 'Resolve &conflicts…',
+        id: 'resolve-conflicts',
+        click: emit('resolve-conflicts'),
+      },
     ],
   })
 

@@ -215,6 +215,7 @@ import { ExportCommitHistoryDialog } from './export-commit-history'
 import { ReflogDialog } from './reflog'
 import { BlameDialog } from './blame'
 import { StashManagerDialog } from './stash-manager'
+import { MergeConflictDialog } from './merge-conflict'
 
 const MinuteInMilliseconds = 1000 * 60
 const HourInMilliseconds = MinuteInMilliseconds * 60
@@ -508,6 +509,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showBlameDialog()
       case 'view-stashes':
         return this.showStashManagerDialog()
+      case 'resolve-conflicts':
+        return this.showMergeConflictDialog()
       case 'view-repository-on-github':
         return this.viewRepositoryOnGitHub()
       case 'compare-on-github':
@@ -1357,6 +1360,14 @@ export class App extends React.Component<IAppProps, IAppState> {
       return
     }
     this.props.dispatcher.showStashManagerDialog(repository)
+  }
+
+  private showMergeConflictDialog() {
+    const repository = this.getRepository()
+    if (!repository || repository instanceof CloningRepository) {
+      return
+    }
+    this.props.dispatcher.showMergeConflictDialog(repository)
   }
 
   /**
@@ -2896,6 +2907,23 @@ export class App extends React.Component<IAppProps, IAppState> {
             worktreePath={popup.worktreePath}
             error={popup.error}
             onDeleteWorktree={this.onDeleteWorkTree}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      }
+      case PopupType.ResolveConflicts: {
+        const popup = this.state.currentPopup
+        const selectedState = this.state.selectedState
+        const workingDirectory =
+          selectedState?.type === SelectionType.Repository
+            ? selectedState.state.changesState.workingDirectory
+            : { files: [] }
+        return (
+          <MergeConflictDialog
+            key="merge-conflict"
+            dispatcher={this.props.dispatcher}
+            repository={popup.repository}
+            workingDirectory={workingDirectory}
             onDismissed={onPopupDismissedFn}
           />
         )

@@ -4268,4 +4268,8 @@ export class Dispatcher {
   public showStashManagerDialog(repository: Repository) {
     return this.showPopup({ type: PopupType.ViewStashes, repository })
   }
+
+  public showMergeConflictDialog(repository: Repository) {
+    return this.showPopup({ type: PopupType.ResolveConflicts, repository })
+  }
 }

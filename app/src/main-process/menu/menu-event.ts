@@ -29,6 +29,7 @@ export type MenuEvent =
   | 'view-reflog'
   | 'view-blame'
   | 'view-stashes'
+  | 'resolve-conflicts'
   | 'open-in-shell'
   | 'compare-on-github'
   | 'branch-on-github'

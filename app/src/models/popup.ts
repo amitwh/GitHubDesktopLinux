@@ -120,6 +120,7 @@ export enum PopupType {
   ViewReflog = 'ViewReflog',
   ViewBlame = 'ViewBlame',
   ViewStashes = 'ViewStashes',
+  ResolveConflicts = 'ResolveConflicts',
 }
 
 interface IBasePopup {
@@ -540,4 +541,5 @@ export type PopupDetail =
       relativePath: string
     }
   | { type: PopupType.ViewStashes; repository: Repository }
+  | { type: PopupType.ResolveConflicts; repository: Repository }
 export type Popup = IBasePopup & PopupDetail
