@@ -216,6 +216,7 @@ import { ReflogDialog } from './reflog'
 import { BlameDialog } from './blame'
 import { StashManagerDialog } from './stash-manager'
 import { MergeConflictDialog } from './merge-conflict'
+import { InteractiveRebaseDialog } from './interactive-rebase'
 
 const MinuteInMilliseconds = 1000 * 60
 const HourInMilliseconds = MinuteInMilliseconds * 60
@@ -511,6 +512,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showStashManagerDialog()
       case 'resolve-conflicts':
         return this.showMergeConflictDialog()
+      case 'interactive-rebase':
+        return this.showInteractiveRebaseDialog()
       case 'view-repository-on-github':
         return this.viewRepositoryOnGitHub()
       case 'compare-on-github':
@@ -1368,6 +1371,20 @@ export class App extends React.Component<IAppProps, IAppState> {
       return
     }
     this.props.dispatcher.showMergeConflictDialog(repository)
+  }
+
+  private showInteractiveRebaseDialog() {
+    const repository = this.getRepository()
+    if (!repository || repository instanceof CloningRepository) {
+      return
+    }
+    const state = this.state.selectedState
+    if (state == null || state.type !== SelectionType.Repository) {
+      return
+    }
+    const tip = state.state.branchesState.tip
+    const branchName = tip.kind === TipState.Valid ? tip.branch.name : 'HEAD'
+    this.props.dispatcher.showInteractiveRebaseDialog(repository, branchName)
   }
 
   /**
@@ -2924,6 +2941,18 @@ export class App extends React.Component<IAppProps, IAppState> {
             dispatcher={this.props.dispatcher}
             repository={popup.repository}
             workingDirectory={workingDirectory}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      }
+      case PopupType.InteractiveRebase: {
+        const popup = this.state.currentPopup
+        return (
+          <InteractiveRebaseDialog
+            key="interactive-rebase"
+            dispatcher={this.props.dispatcher}
+            repository={popup.repository}
+            branchName={popup.branchName}
             onDismissed={onPopupDismissedFn}
           />
         )

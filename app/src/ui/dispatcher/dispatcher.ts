@@ -4272,4 +4272,15 @@ export class Dispatcher {
   public showMergeConflictDialog(repository: Repository) {
     return this.showPopup({ type: PopupType.ResolveConflicts, repository })
   }
+
+  public showInteractiveRebaseDialog(
+    repository: Repository,
+    branchName: string
+  ) {
+    return this.showPopup({
+      type: PopupType.InteractiveRebase,
+      repository,
+      branchName,
+    })
+  }
 }

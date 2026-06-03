@@ -121,6 +121,7 @@ export enum PopupType {
   ViewBlame = 'ViewBlame',
   ViewStashes = 'ViewStashes',
   ResolveConflicts = 'ResolveConflicts',
+  InteractiveRebase = 'InteractiveRebase',
 }
 
 interface IBasePopup {
@@ -542,4 +543,9 @@ export type PopupDetail =
     }
   | { type: PopupType.ViewStashes; repository: Repository }
   | { type: PopupType.ResolveConflicts; repository: Repository }
+  | {
+      type: PopupType.InteractiveRebase
+      repository: Repository
+      branchName: string
+    }
 export type Popup = IBasePopup & PopupDetail

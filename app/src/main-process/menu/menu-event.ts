@@ -30,6 +30,7 @@ export type MenuEvent =
   | 'view-blame'
   | 'view-stashes'
   | 'resolve-conflicts'
+  | 'interactive-rebase'
   | 'open-in-shell'
   | 'compare-on-github'
   | 'branch-on-github'

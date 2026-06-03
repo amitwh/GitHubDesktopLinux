@@ -420,6 +420,11 @@ export function buildDefaultMenu({
         id: 'resolve-conflicts',
         click: emit('resolve-conflicts'),
       },
+      {
+        label: __DARWIN__ ? 'Interactive Rebase…' : 'Interactive &rebase…',
+        id: 'interactive-rebase',
+        click: emit('interactive-rebase'),
+      },
     ],
   })
 
