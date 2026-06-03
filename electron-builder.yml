@@ -17,14 +17,13 @@ linux:
       arch: x64
     - target: flatpak
       arch: x64
-  icon: app/static/logos/prod/icon-logo.png
+  icon: app/static/linux/icon-logo.png
 directories:
-  buildResources: build
+  output: dist
 deb:
   priority: optional
   depends:
     - libsecret-1-0
-    - libgconf-2-4
     - git
 appImage:
   artifactName: GitHub-Desktop-${version}.AppImage
