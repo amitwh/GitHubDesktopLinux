@@ -404,6 +404,11 @@ export function buildDefaultMenu({
         id: 'view-reflog',
         click: emit('view-reflog'),
       },
+      {
+        label: __DARWIN__ ? 'View Blame' : 'View &blame',
+        id: 'view-blame',
+        click: emit('view-blame'),
+      },
     ],
   })
 

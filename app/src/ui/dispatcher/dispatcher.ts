@@ -4256,4 +4256,12 @@ export class Dispatcher {
   public showReflogDialog(repository: Repository) {
     return this.showPopup({ type: PopupType.ViewReflog, repository })
   }
+
+  public showBlameDialog(repository: Repository, relativePath: string) {
+    return this.showPopup({
+      type: PopupType.ViewBlame,
+      repository,
+      relativePath,
+    })
+  }
 }

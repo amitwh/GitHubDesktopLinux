@@ -27,6 +27,7 @@ export type MenuEvent =
   | 'show-repository-settings'
   | 'export-commit-history'
   | 'view-reflog'
+  | 'view-blame'
   | 'open-in-shell'
   | 'compare-on-github'
   | 'branch-on-github'

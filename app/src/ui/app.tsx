@@ -213,6 +213,7 @@ import { DeleteWorktreeDialog } from './worktrees/delete-worktree-dialog'
 import { DeleteWorktreeFailedDialog } from './worktrees/delete-worktree-failed-dialog'
 import { ExportCommitHistoryDialog } from './export-commit-history'
 import { ReflogDialog } from './reflog'
+import { BlameDialog } from './blame'
 
 const MinuteInMilliseconds = 1000 * 60
 const HourInMilliseconds = MinuteInMilliseconds * 60
@@ -502,6 +503,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showExportCommitHistoryDialog()
       case 'view-reflog':
         return this.showReflogDialog()
+      case 'view-blame':
+        return this.showBlameDialog()
       case 'view-repository-on-github':
         return this.viewRepositoryOnGitHub()
       case 'compare-on-github':
@@ -1325,6 +1328,26 @@ export class App extends React.Component<IAppProps, IAppState> {
     this.props.dispatcher.showReflogDialog(repository)
   }
 
+  private showBlameDialog() {
+    const repository = this.getRepository()
+    if (!repository || repository instanceof CloningRepository) {
+      return
+    }
+    const state = this.state.selectedState
+    if (state == null || state.type !== SelectionType.Repository) {
+      return
+    }
+    const selection = state.state.changesState.selection
+    if (
+      selection.kind !== ChangesSelectionKind.WorkingDirectory ||
+      selection.selectedFileIDs.length === 0
+    ) {
+      return
+    }
+    const selectedFile = selection.selectedFileIDs[0]
+    this.props.dispatcher.showBlameDialog(repository, selectedFile)
+  }
+
   /**
    * Opens a browser to the issue creation page
    * of the current GitHub repository.
@@ -1740,6 +1763,18 @@ export class App extends React.Component<IAppProps, IAppState> {
             key="reflog"
             dispatcher={this.props.dispatcher}
             repository={popup.repository}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      }
+      case PopupType.ViewBlame: {
+        const popup = this.state.currentPopup
+        return (
+          <BlameDialog
+            key="blame"
+            dispatcher={this.props.dispatcher}
+            repository={popup.repository}
+            relativePath={popup.relativePath}
             onDismissed={onPopupDismissedFn}
           />
         )

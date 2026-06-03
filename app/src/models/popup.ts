@@ -118,6 +118,7 @@ export enum PopupType {
   DeleteWorktreeFailed = 'DeleteWorktreeFailed',
   ExportCommitHistory = 'ExportCommitHistory',
   ViewReflog = 'ViewReflog',
+  ViewBlame = 'ViewBlame',
 }
 
 interface IBasePopup {
@@ -532,4 +533,9 @@ export type PopupDetail =
     }
   | { type: PopupType.ExportCommitHistory; repository: Repository }
   | { type: PopupType.ViewReflog; repository: Repository }
+  | {
+      type: PopupType.ViewBlame
+      repository: Repository
+      relativePath: string
+    }
 export type Popup = IBasePopup & PopupDetail
