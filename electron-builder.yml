@@ -1,0 +1,54 @@
+appId: com.github.GitHubClient
+productName: GitHub Desktop
+linux:
+  category: Development
+  maintainer: GitHub Desktop Linux Fork
+  vendor: GitHub, Inc.
+  synopsis: Simple collaboration from your desktop
+  description: |
+    GitHub Desktop is an open source Electron-based GitHub app.
+    It is written in TypeScript and uses React.
+  target:
+    - target: deb
+      arch: x64
+    - target: AppImage
+      arch: x64
+    - target: snap
+      arch: x64
+    - target: flatpak
+      arch: x64
+  icon: app/static/logos/prod/icon-logo.png
+directories:
+  buildResources: build
+deb:
+  priority: optional
+  depends:
+    - libsecret-1-0
+    - libgconf-2-4
+    - git
+appImage:
+  artifactName: GitHub-Desktop-${version}.AppImage
+snap:
+  summary: Simple collaboration from your desktop
+  grade: stable
+  confinement: classic
+  plugs:
+    - default
+    - removable-media
+    - password-manager-service
+flatpak:
+  runtime: org.freedesktop.Platform
+  runtimeVersion: "23.08"
+  sdk: org.freedesktop.Sdk
+  base: org.electronjs.Electron2.BaseApp
+  baseVersion: "23.08"
+  finishArgs:
+    - --share=ipc
+    - --socket=x11
+    - --socket=wayland
+    - --socket=pulseaudio
+    - --share=network
+    - --device=dri
+    - --filesystem=host
+    - --talk-name=org.freedesktop.secrets
+    - --talk-name=org.gnome.keyring.SystemPrompter
