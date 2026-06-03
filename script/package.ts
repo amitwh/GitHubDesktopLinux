@@ -39,6 +39,8 @@ if (process.platform === 'darwin') {
   packageOSX()
 } else if (process.platform === 'win32') {
   packageWindows()
+} else if (process.platform === 'linux') {
+  packageLinux()
 } else {
   console.error(`I don't know how to package for ${process.platform} :(`)
   process.exit(1)
@@ -149,4 +151,10 @@ function packageWindows() {
       console.error(`Error packaging: ${e}`)
       process.exit(1)
     })
+}
+
+function packageLinux() {
+  console.log('Packaging for Linux with electron-builder…')
+  cp.execSync('yarn package:linux', { stdio: 'inherit' })
+  console.log(`Linux packages created in ${outputDir}`)
 }
