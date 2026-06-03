@@ -1,13 +1,12 @@
 appId: com.github.GitHubClient
 productName: GitHub Desktop
 linux:
+  executableName: github-desktop
   category: Development
   maintainer: GitHub Desktop Linux Fork
   vendor: GitHub, Inc.
   synopsis: Simple collaboration from your desktop
-  description: |
-    GitHub Desktop is an open source Electron-based GitHub app.
-    It is written in TypeScript and uses React.
+  description: GitHub Desktop is an open source Electron-based GitHub app written in TypeScript and React.
   target:
     - target: deb
       arch: x64
