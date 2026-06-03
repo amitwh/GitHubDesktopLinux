@@ -154,7 +154,40 @@ function packageWindows() {
 }
 
 function packageLinux() {
+  // Rename the executable to avoid conflict with the system `desktop` command.
+  // electron-builder uses executableName from electron-builder.yml, so the
+  // binary inside the prepackaged directory must match.
+  const oldExec = path.join(distPath, 'desktop')
+  const newExec = path.join(distPath, 'github-desktop')
+  if (existsSync(oldExec)) {
+    console.log('Renaming executable to github-desktop…')
+    cp.execSync(`mv "${oldExec}" "${newExec}"`)
+  }
+
   console.log('Packaging for Linux with electron-builder…')
-  cp.execSync('yarn package:linux', { stdio: 'inherit' })
+  cp.execSync(
+    'yarn electron-builder --linux deb AppImage snap --prepackaged dist/desktop-linux-x64 --publish never',
+    { stdio: 'inherit' }
+  )
+
+  // Fix .desktop file permissions in the .deb package.
+  // electron-builder creates it with 664, but GNOME requires 644.
+  const debName = `desktop_${getVersion()}_amd64.deb`
+  const debPath = path.join(outputDir, debName)
+  if (existsSync(debPath)) {
+    console.log('Fixing .desktop file permissions in .deb…')
+    const tempDir = path.join(outputDir, 'deb-fix-temp')
+    cp.execSync(`rm -rf "${tempDir}"`)
+    cp.execSync(`dpkg-deb -R "${debPath}" "${tempDir}"`)
+    cp.execSync(
+      `chmod 644 "${path.join(
+        tempDir,
+        'usr/share/applications/github-desktop.desktop'
+      )}"`
+    )
+    cp.execSync(`dpkg-deb -b "${tempDir}" "${debPath}"`)
+    cp.execSync(`rm -rf "${tempDir}"`)
+  }
+
   console.log(`Linux packages created in ${outputDir}`)
 }
