@@ -6,6 +6,11 @@ linux:
   executableName: GithubDesktopLinux
   category: Development
   maintainer: GitHub Desktop Linux Fork
+  protocols:
+    - name: GitHub Desktop
+      schemes:
+        - x-github-desktop-auth
+        - x-github-client
   vendor: GitHub, Inc.
   synopsis: Simple collaboration from your desktop
   description: GitHub Desktop is an open source Electron-based GitHub app written in TypeScript and React.
