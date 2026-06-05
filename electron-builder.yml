@@ -1,7 +1,9 @@
 appId: com.github.GitHubClient
+extraMetadata:
+  name: GithubDesktopLinux
 productName: GitHub Desktop
 linux:
-  executableName: github-desktop
+  executableName: GithubDesktopLinux
   category: Development
   maintainer: GitHub Desktop Linux Fork
   vendor: GitHub, Inc.
@@ -25,7 +27,7 @@ deb:
     - libsecret-1-0
     - git
 appImage:
-  artifactName: GitHub-Desktop-${version}.AppImage
+  artifactName: GithubDesktopLinux-${version}.AppImage
 snap:
   summary: Simple collaboration from your desktop
   grade: stable

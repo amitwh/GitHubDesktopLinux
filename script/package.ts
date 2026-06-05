@@ -158,9 +158,9 @@ function packageLinux() {
   // electron-builder uses executableName from electron-builder.yml, so the
   // binary inside the prepackaged directory must match.
   const oldExec = path.join(distPath, 'desktop')
-  const newExec = path.join(distPath, 'github-desktop')
+  const newExec = path.join(distPath, 'GithubDesktopLinux')
   if (existsSync(oldExec)) {
-    console.log('Renaming executable to github-desktop…')
+    console.log('Renaming executable to GithubDesktopLinux…')
     cp.execSync(`mv "${oldExec}" "${newExec}"`)
   }
 
@@ -172,7 +172,7 @@ function packageLinux() {
 
   // Fix .desktop file permissions in the .deb package.
   // electron-builder creates it with 664, but GNOME requires 644.
-  const debName = `desktop_${getVersion()}_amd64.deb`
+  const debName = `GithubDesktopLinux_${getVersion()}_amd64.deb`
   const debPath = path.join(outputDir, debName)
   if (existsSync(debPath)) {
     console.log('Fixing .desktop file permissions in .deb…')
@@ -182,7 +182,7 @@ function packageLinux() {
     cp.execSync(
       `chmod 644 "${path.join(
         tempDir,
-        'usr/share/applications/github-desktop.desktop'
+        'usr/share/applications/GithubDesktopLinux.desktop'
       )}"`
     )
     cp.execSync(`dpkg-deb -b "${tempDir}" "${debPath}"`)
