@@ -207,6 +207,7 @@ interface IMeldSession {
 | `app/src/ui/meld/MeldCopyButtons.tsx` | 80 | Copy-left / copy-right arrows |
 | `app/src/lib/meld/diffOperations.ts` | 150 | Pure diff/merge algorithms |
 | `app/src/lib/meld/sessionPersistence.ts` | 80 | Persist edits per session |
+| `app/src/ui/meld/MeldDiffPane.tsx` (modified) | +100 | Swap read-only for editor panes, add Save/Discard, wire copy buttons |
 
 ### Features Shipped
 
@@ -317,7 +318,7 @@ The codebase uses CodeMirror 5.65.17 for syntax highlighting (`app/src/ui/diff/s
 - All git operations are async; wrap in try/catch and surface user-friendly errors via the existing toast system.
 - If external tool fails to launch (binary not found, exit code non-zero), show toast: `Could not launch "Meld". Check the tool configuration in Preferences.`
 - If a Meld window's repository is closed (user removes repo), close the window gracefully with a toast: `Repository was removed; closing Meld window.`
-- If user edits conflict markers incorrectly, "Save" validates the result is well-formed (no orphan `<<<<<<<` without `=======` and `>>>>>>>`) before writing.
+- If user edits conflict markers incorrectly, "Save" runs validation: scans the MERGED content for `<<<<<<<`, `=======`, `>>>>>>>` markers, requires they appear in matched sets of 3 (one of each per hunk, in order). If validation fails, the Save button is disabled and an inline error shows which hunk is malformed. The save action itself blocks until validation passes.
 - If a file in the diff is binary, show a placeholder in the editor pane: "Binary file; use external tool for diff."
 - If the diff is too large (>1MB), show a warning and offer to load anyway or use external tool.
 
@@ -372,4 +373,4 @@ None at design time. The architectural decisions (B / All of the above / New par
 
 ## Approval
 
-Design approved by project owner on 2026-06-05.
+Design pending spec review by project owner.
