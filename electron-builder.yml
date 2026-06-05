@@ -10,6 +10,7 @@ linux:
     - name: GitHub Desktop
       schemes:
         - x-github-desktop-auth
+        - x-github-desktop-dev-auth
         - x-github-client
   vendor: GitHub, Inc.
   synopsis: Simple collaboration from your desktop
