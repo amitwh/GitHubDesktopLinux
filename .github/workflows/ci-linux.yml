@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - feat/linux-port
+      - linux
   pull_request:
     branches:
       - feat/linux-port
+      - linux
 
 env:
   NODE_VERSION: 24.15.0
