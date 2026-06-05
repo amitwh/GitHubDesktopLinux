@@ -78,6 +78,7 @@ import { EditCopilotBYOKProviderDialog } from './copilot/edit-byok-provider-dial
 import { EditCopilotBYOKModelDialog } from './copilot/edit-byok-model-dialog'
 import { ConfirmDeleteCopilotBYOKProviderDialog } from './copilot/confirm-delete-byok-provider-dialog'
 import type { IBYOKProvider } from '../lib/copilot/byok'
+import { getConflictResolutionModelDisplay } from '../lib/copilot/conflict-resolution-model'
 import { OpenWithExternalEditor } from './open-with-external-editor/open-with-external-editor'
 import { RepositorySettings } from './repository-settings'
 import { AppError } from './app-error'
@@ -194,7 +195,10 @@ import { webUtils } from 'electron'
 import { showTestUI } from './lib/test-ui-components/test-ui-components'
 import { ConfirmCommitFilteredChanges } from './changes/confirm-commit-filtered-changes-dialog'
 import { AboutTestDialog } from './about/about-test-dialog'
-import { enableCopilotSdkCommitMessageGeneration } from '../lib/feature-flag'
+import {
+  enableCopilotSdkCommitMessageGeneration,
+  enableWorktreeSupport,
+} from '../lib/feature-flag'
 import {
   ISecretScanResult,
   PushProtectionErrorDialog,
@@ -213,6 +217,7 @@ import { AddWorktreeDialog } from './worktrees/add-worktree-dialog'
 import { RenameWorktreeDialog } from './worktrees/rename-worktree-dialog'
 import { DeleteWorktreeDialog } from './worktrees/delete-worktree-dialog'
 import { DeleteWorktreeFailedDialog } from './worktrees/delete-worktree-failed-dialog'
+import { WorktreeEntry } from '../models/worktree'
 import { ExportCommitHistoryDialog } from './export-commit-history'
 import { ReflogDialog } from './reflog'
 import { BlameDialog } from './blame'
@@ -972,6 +977,10 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   private showWorktrees() {
+    if (!enableWorktreeSupport()) {
+      return
+    }
+
     const state = this.state.selectedState
     if (state == null || state.type !== SelectionType.Repository) {
       return
@@ -988,6 +997,10 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   private showCreateWorktree() {
+    if (!enableWorktreeSupport()) {
+      return
+    }
+
     const state = this.state.selectedState
     if (state == null || state.type !== SelectionType.Repository) {
       return
@@ -1754,6 +1767,9 @@ export class App extends React.Component<IAppProps, IAppState> {
             confirmCommitMessageOverride={
               this.state.askForConfirmationOnCommitMessageOverride
             }
+            confirmWorktreeRemoval={
+              this.state.askForConfirmationOnWorktreeRemoval
+            }
             uncommittedChangesStrategy={this.state.uncommittedChangesStrategy}
             selectedExternalEditor={this.state.selectedExternalEditor}
             useWindowsOpenSSH={this.state.useWindowsOpenSSH}
@@ -2467,6 +2483,11 @@ export class App extends React.Component<IAppProps, IAppState> {
             shouldShowCopilotConflictResolutionCallOut={
               !this.state.copilotConflictResolutionButtonClicked
             }
+            copilotConflictResolutionModel={getConflictResolutionModelDisplay(
+              this.state.selectedCopilotModels['conflict-resolution'] ?? null,
+              this.state.copilotModels,
+              this.state.byokProviders
+            )}
             openFileInExternalEditor={this.openFileInExternalEditor}
             resolvedExternalEditor={this.state.resolvedExternalEditor}
             openRepositoryInShell={this.openCurrentRepositoryInShell}
@@ -2919,7 +2940,13 @@ export class App extends React.Component<IAppProps, IAppState> {
             key="delete-worktree"
             repository={popup.repository}
             worktreePath={popup.worktreePath}
+            askForConfirmationOnWorktreeRemoval={
+              this.state.askForConfirmationOnWorktreeRemoval
+            }
             onDeleteWorktree={this.onDeleteWorkTree}
+            onConfirmWorktreeRemovalChanged={
+              this.onConfirmWorktreeRemovalChanged
+            }
             onDismissed={onPopupDismissedFn}
           />
         )
@@ -2931,7 +2958,9 @@ export class App extends React.Component<IAppProps, IAppState> {
             repository={popup.repository}
             worktreePath={popup.worktreePath}
             error={popup.error}
+            originalWorktree={popup.originalWorktree}
             onDeleteWorktree={this.onDeleteWorkTree}
+            onSwitchToWorktree={this.onSwitchToWorktree}
             onDismissed={onPopupDismissedFn}
           />
         )
@@ -2976,12 +3005,23 @@ export class App extends React.Component<IAppProps, IAppState> {
     }
   }
 
+  private onSwitchToWorktree = (
+    repository: Repository,
+    worktree: WorktreeEntry
+  ) => {
+    return this.props.dispatcher.switchWorktree(repository, worktree)
+  }
+
   private onDeleteWorkTree = (
     repository: Repository,
     worktreePath: string,
     force?: boolean
   ) => {
     return this.props.dispatcher.deleteWorktree(repository, worktreePath, force)
+  }
+
+  private onConfirmWorktreeRemovalChanged = (value: boolean) => {
+    this.props.dispatcher.setConfirmWorktreeRemovalSetting(value)
   }
 
   private onUpdateCommitOptions = (
@@ -3520,8 +3560,8 @@ export class App extends React.Component<IAppProps, IAppState> {
       onChangeRepositoryAlias: onChangeRepositoryAlias,
       onRemoveRepositoryAlias: onRemoveRepositoryAlias,
       onViewOnGitHub: this.viewOnGitHub,
-      onCreateWorktree: onCreateWorktree,
-      onShowWorktrees: onShowWorktrees,
+      onCreateWorktree: enableWorktreeSupport() ? onCreateWorktree : undefined,
+      onShowWorktrees: enableWorktreeSupport() ? onShowWorktrees : undefined,
       repository: repository,
       shellLabel: this.state.useCustomShell
         ? undefined
@@ -3736,6 +3776,10 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   private renderWorktreeToolbarButton(): JSX.Element | null {
+    if (!enableWorktreeSupport()) {
+      return null
+    }
+
     const selection = this.state.selectedState
 
     if (selection == null || selection.type !== SelectionType.Repository) {

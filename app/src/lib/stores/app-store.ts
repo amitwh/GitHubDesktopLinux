@@ -388,17 +388,34 @@ import { updateStore } from '../../ui/lib/update-store'
 import { startTimer } from '../../ui/lib/timing'
 import { BypassReasonType } from '../../ui/secret-scanning/bypass-push-protection-dialog'
 import {
-  ICopilotConflictResolutionResponse,
+  selectReferencedContext,
+  fallbackReferencedContext,
   IConflictResolutionProgress,
+  ICopilotResolutionSummary,
+  IFileResolution,
 } from '../copilot-conflict-resolution'
 import {
   buildConflictContext,
   gatherCommitContext,
+  IConflictContextCommit,
+  IConflictContextPullRequest,
+  IConflictResolutionContext,
 } from '../copilot-conflict-context'
+import {
+  extractPullRequestNumbersFromCommits,
+  findPullRequestsByNumbers,
+} from '../pull-request-refs'
 import { resolveWithin } from '../path'
 import { WorktreeEntry } from '../../models/worktree'
 
 const LastSelectedRepositoryIDKey = 'last-selected-repository-id'
+
+/**
+ * Upper bound on how many pull requests we'll resolve (across both sides)
+ * when gathering Copilot conflict-resolution context. Caps best-effort API
+ * lookups so a noisy set of `#NNNN` references can't stall resolution.
+ */
+const MaxPullRequestLookups = 10
 
 const RecentRepositoriesKey = 'recently-selected-repositories'
 /**
@@ -439,6 +456,7 @@ const askForConfirmationOnForcePushDefault = true
 const confirmUndoCommitDefault: boolean = true
 const confirmCommitFilteredChangesDefault: boolean = true
 const confirmCommitMessageOverrideDefault: boolean = true
+const confirmWorktreeRemovalDefault: boolean = true
 const askToMoveToApplicationsFolderKey: string = 'askToMoveToApplicationsFolder'
 const confirmRepoRemovalKey: string = 'confirmRepoRemoval'
 const showCommitLengthWarningKey: string = 'showCommitLengthWarning'
@@ -452,6 +470,7 @@ const confirmUndoCommitKey: string = 'confirmUndoCommit'
 const confirmCommitFilteredChangesKey: string =
   'confirmCommitFilteredChangesKey'
 const confirmCommitMessageOverrideKey: string = 'confirmCommitMessageOverride'
+const confirmWorktreeRemovalKey: string = 'confirmWorktreeRemoval'
 
 const uncommittedChangesStrategyKey = 'uncommittedChangesStrategyKind'
 
@@ -603,6 +622,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     confirmCommitFilteredChangesDefault
   private confirmCommitMessageOverride: boolean =
     confirmCommitMessageOverrideDefault
+  private confirmWorktreeRemoval: boolean = confirmWorktreeRemovalDefault
   private imageDiffType: ImageDiffType = imageDiffTypeDefault
   private hideWhitespaceInChangesDiff: boolean =
     hideWhitespaceInChangesDiffDefault
@@ -1159,6 +1179,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
         this.confirmCommitFilteredChanges,
       askForConfirmationOnCommitMessageOverride:
         this.confirmCommitMessageOverride,
+      askForConfirmationOnWorktreeRemoval: this.confirmWorktreeRemoval,
       uncommittedChangesStrategy: this.uncommittedChangesStrategy,
       selectedExternalEditor: this.selectedExternalEditor,
       imageDiffType: this.imageDiffType,
@@ -2371,6 +2392,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.confirmCommitMessageOverride = getBoolean(
       confirmCommitMessageOverrideKey,
       confirmCommitMessageOverrideDefault
+    )
+
+    this.confirmWorktreeRemoval = getBoolean(
+      confirmWorktreeRemovalKey,
+      confirmWorktreeRemovalDefault
     )
 
     this.uncommittedChangesStrategy =
@@ -5730,6 +5756,24 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   /** This shouldn't be called directly. See 'Dispatcher'. */
+  public _requestDeleteWorktree(
+    repository: Repository,
+    worktreePath: string
+  ): void {
+    if (this.confirmWorktreeRemoval) {
+      this._showPopup({
+        type: PopupType.DeleteWorktree,
+        repository,
+        worktreePath,
+      })
+    } else {
+      this._deleteWorktree(repository, worktreePath).catch(e =>
+        this.emitError(e)
+      )
+    }
+  }
+
+  /** This shouldn't be called directly. See 'Dispatcher'. */
   public async _deleteWorktree(
     repository: Repository,
     worktreePath: string,
@@ -5737,10 +5781,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
   ): Promise<void> {
     const isDeletingCurrentWorktree = repository.path === worktreePath
     let path = repository.path
+    let originalWorktree: WorktreeEntry | null = null
 
     if (isDeletingCurrentWorktree) {
       const worktrees = await listWorktrees(repository)
       const main = worktrees.find(wt => wt.type === 'main')
+      originalWorktree =
+        worktrees.find(wt => wt.path === repository.path) ?? null
 
       if (main === undefined) {
         throw new Error('Could not find main worktree')
@@ -5762,6 +5809,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
         repository,
         worktreePath,
         error: e,
+        originalWorktree,
       })
     }
 
@@ -6032,8 +6080,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
   /** This shouldn't be called directly. See 'Dispatcher'. */
   public async _resolveConflictsWithCopilot(
     repository: Repository,
-    onProgress?: (progress: IConflictResolutionProgress) => void
-  ): Promise<ICopilotConflictResolutionResponse | null> {
+    onProgress?: (progress: IConflictResolutionProgress) => void,
+    signal?: AbortSignal
+  ): Promise<{
+    readonly resolutions: ReadonlyArray<IFileResolution>
+    readonly summary: ICopilotResolutionSummary
+  } | null> {
     if (!enableCopilotConflictResolution()) {
       return null
     }
@@ -6075,50 +6127,240 @@ export class AppStore extends TypedBaseStore<IAppState> {
         `[Timing] resolving ${conflictedFiles.length} conflicted file(s)`
       )
 
-      const contextTimer = startTimer('build conflict context', repository)
-      const context = await buildConflictContext(
-        labels.ourLabel,
-        labels.theirLabel,
-        repository.path,
-        conflictedFiles
+      const context = await this.gatherConflictResolutionContext(
+        repository,
+        labels,
+        conflictedFiles,
+        state
       )
-      contextTimer.done()
-
-      // Best-effort enrichment — never block resolution on these
-      const commitContextTimer = startTimer('gather commit context', repository)
-      const commitContext =
-        labels.ourRef && labels.theirRef
-          ? await gatherCommitContext(
-              repository,
-              labels.ourRef,
-              labels.theirRef
-            ).catch(() => null)
-          : null
-      commitContextTimer.done()
-
-      const currentPullRequest = state.branchesState.currentPullRequest ?? null
 
       const resolveTimer = startTimer(
         'copilotStore.resolveConflicts',
         repository
       )
-      const result = await this.copilotStore.resolveConflicts(
-        context,
-        commitContext,
-        currentPullRequest,
-        repository.path,
-        onProgress
+      const modelRequest = await this.resolveCopilotModelRequest(
+        this.selectedCopilotModels['conflict-resolution'] ?? null
       )
-      resolveTimer.done()
+      try {
+        const result = await this.copilotStore.resolveConflicts(
+          context,
+          repository.path,
+          modelRequest,
+          onProgress,
+          signal
+        )
 
-      totalTimer.done()
+        // The model can only cite data we placed in the prompt, so resolving
+        // its references is a simple lookup against the gathered context —
+        // no re-fetching or re-hydration required. When the model cites
+        // nothing, fall back to the most informative item we gathered so the
+        // "Context" list always traces the conflict to at least one source.
+        const cited = selectReferencedContext(result.references, context)
+        const references =
+          cited.length > 0 ? cited : fallbackReferencedContext(context)
 
-      return result
+        return {
+          resolutions: result.resolutions,
+          summary: {
+            markdown: result.summary,
+            ourLabel: labels.ourLabel,
+            theirLabel: labels.theirLabel,
+            references,
+          },
+        }
+      } finally {
+        resolveTimer.done()
+      }
     } catch (e) {
-      totalTimer.done()
+      // A user-initiated cancellation isn't a failure — don't log it as one.
+      if (signal?.aborted) {
+        log.info('AppStore: Copilot conflict resolution aborted by user')
+        return null
+      }
       log.warn('AppStore: Copilot conflict resolution failed', e)
       return null
+    } finally {
+      totalTimer.done()
     }
+  }
+
+  /**
+   * Gather the full, display-ready context for a Copilot conflict
+   * resolution in a single pass: the conflicted file hunks, the recent
+   * commits from both sides (with remote-reachability and github.com
+   * links), and the pull requests we can associate with each side.
+   *
+   * This is the one place context is collected. The same object feeds the
+   * Copilot prompt *and* the dialog's summary card, so there's no second
+   * pass to re-hydrate the model's cited references.
+   *
+   * Pull requests are resolved local-cache-first; only numbers we can't
+   * find locally are fetched from the API (capped, best-effort) so a
+   * merged PR's title and body still reach the prompt.
+   */
+  private async gatherConflictResolutionContext(
+    repository: Repository,
+    labels: {
+      readonly ourLabel: string
+      readonly theirLabel: string
+      readonly ourRef: string | undefined
+      readonly theirRef: string | undefined
+    },
+    conflictedFiles: ReadonlyArray<{ readonly path: string }>,
+    state: IRepositoryState
+  ): Promise<IConflictResolutionContext> {
+    const contextTimer = startTimer('build conflict context', repository)
+    const fileContext = await buildConflictContext(
+      labels.ourLabel,
+      labels.theirLabel,
+      repository.path,
+      conflictedFiles
+    )
+    contextTimer.done()
+
+    // Best-effort enrichment — never block resolution on these.
+    const commitContextTimer = startTimer('gather commit context', repository)
+    const commitContext =
+      labels.ourRef && labels.theirRef
+        ? await gatherCommitContext(
+            repository,
+            labels.ourRef,
+            labels.theirRef
+          ).catch(() => null)
+        : null
+    commitContextTimer.done()
+
+    const ghRepo = isRepositoryWithGitHubRepository(repository)
+      ? repository.gitHubRepository
+      : null
+
+    // Treat a commit as "on the remote" when it isn't in the git store's
+    // local-only set. localCommitSHAs tracks current-branch commits that
+    // haven't been pushed yet, so anything else (most notably theirs-side
+    // commits that arrived via fetch) is safe to link to github.com.
+    const localShas = new Set(
+      this.gitStoreCache.get(repository).localCommitSHAs
+    )
+    const toContextCommit = (commit: Commit): IConflictContextCommit => ({
+      sha: commit.sha,
+      shortSha: commit.shortSha,
+      summary: commit.summary,
+      isOnRemote: !localShas.has(commit.sha),
+    })
+
+    const currentPullRequest = state.branchesState.currentPullRequest
+    const seededPullRequests = new Map<number, IConflictContextPullRequest>()
+    if (currentPullRequest !== null) {
+      // The current branch's own PR is authoritative from app state and may
+      // be merged/closed (and thus absent from the open-PR cache), so seed
+      // it directly rather than looking it up.
+      seededPullRequests.set(currentPullRequest.pullRequestNumber, {
+        number: currentPullRequest.pullRequestNumber,
+        title: currentPullRequest.title,
+        body: currentPullRequest.body,
+      })
+    }
+
+    // Mine PR references from *both* sides' commits. Ours-vs-theirs is not a
+    // reliable proxy for "which side carries the PRs" — a rebase, for
+    // instance, makes ours the branch you're landing onto — so we gather
+    // symmetrically and let the model decide what's material.
+    const allPrNumbers = new Set<number>([
+      ...seededPullRequests.keys(),
+      ...extractPullRequestNumbersFromCommits(commitContext?.ourCommits ?? []),
+      ...extractPullRequestNumbersFromCommits(
+        commitContext?.theirCommits ?? []
+      ),
+    ])
+
+    const resolved = await this.resolvePullRequestContexts(
+      repository,
+      ghRepo,
+      [...allPrNumbers],
+      seededPullRequests
+    )
+
+    // Build a deterministic flat list from the input number order.
+    const pullRequests = [...allPrNumbers]
+      .map(n => resolved.get(n))
+      .filter((pr): pr is IConflictContextPullRequest => pr !== undefined)
+
+    return {
+      ...fileContext,
+      pullRequests,
+      ourCommits: (commitContext?.ourCommits ?? []).map(toContextCommit),
+      theirCommits: (commitContext?.theirCommits ?? []).map(toContextCommit),
+    }
+  }
+
+  /**
+   * Resolve a set of pull-request numbers into display-ready context,
+   * preferring the local cache and falling back to the API for any missing
+   * (e.g. merged PRs no longer in the open-PR cache). Capped and
+   * best-effort: failures are logged or skipped. `seeded` entries are
+   * treated as already resolved and never re-fetched.
+   */
+  private async resolvePullRequestContexts(
+    repository: Repository,
+    ghRepo: GitHubRepository | null,
+    numbers: ReadonlyArray<number>,
+    seeded: ReadonlyMap<number, IConflictContextPullRequest>
+  ): Promise<Map<number, IConflictContextPullRequest>> {
+    const byNumber = new Map<number, IConflictContextPullRequest>(seeded)
+
+    const lookups = numbers
+      .filter(n => !byNumber.has(n))
+      .slice(0, MaxPullRequestLookups)
+    if (lookups.length === 0 || !isRepositoryWithGitHubRepository(repository)) {
+      return byNumber
+    }
+
+    try {
+      const allPRs = await this.pullRequestCoordinator.getAllPullRequests(
+        repository
+      )
+      for (const pr of findPullRequestsByNumbers(lookups, allPRs)) {
+        byNumber.set(pr.pullRequestNumber, {
+          number: pr.pullRequestNumber,
+          title: pr.title,
+          body: pr.body,
+        })
+      }
+    } catch (e) {
+      log.warn('AppStore: failed to read conflict-side PRs from local cache', e)
+    }
+
+    // Fetch anything still missing from the API so merged PRs (no longer in
+    // the open-PR cache) still contribute their title and body.
+    const missing = lookups.filter(n => !byNumber.has(n))
+    if (missing.length > 0 && ghRepo) {
+      const account = getAccountForRepository(this.accounts, repository)
+      if (account !== null) {
+        const api = API.fromAccount(account)
+        await Promise.all(
+          missing.map(async prNumber => {
+            try {
+              const apiPr = await api.fetchPullRequest(
+                ghRepo.owner.login,
+                ghRepo.name,
+                String(prNumber)
+              )
+              if (apiPr) {
+                byNumber.set(prNumber, {
+                  number: prNumber,
+                  title: apiPr.title,
+                  body: apiPr.body,
+                })
+              }
+            } catch {
+              // Best-effort — skip PRs we can't fetch.
+            }
+          })
+        )
+      }
+    }
+
+    return byNumber
   }
 
   /**
@@ -6216,17 +6458,35 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     const { conflictState } = step
 
+    // Controller used to actually cancel the in-flight SDK turn when the user
+    // clicks "Stop" (see _abortCopilotConflictResolution).
+    const abortController = new AbortController()
+    this.repositoryStateCache.updateMultiCommitOperationState(
+      repository,
+      () => ({ copilotResolutionAbortController: abortController })
+    )
+
+    // Only the run that owns this controller may mutate Copilot resolution
+    // state. Guards against a stale run (still unwinding after the user
+    // cancelled and restarted) clobbering the controller, progress, or result
+    // of the newer run.
+    const ownsCurrentRun = () =>
+      this.repositoryStateCache.get(repository).multiCommitOperationState
+        ?.copilotResolutionAbortController === abortController
+
     try {
       const result = await this._resolveConflictsWithCopilot(
         repository,
         progress => {
-          // Bail if user cancelled while the request was in-flight
+          // Bail if user cancelled while the request was in-flight, or if a
+          // newer run has taken over.
           const current = this.repositoryStateCache.get(repository)
           const mcoState = current.multiCommitOperationState
           if (
             mcoState === null ||
             mcoState.step.kind !==
-              MultiCommitOperationStepKind.ShowCopilotConflictsLoading
+              MultiCommitOperationStepKind.ShowCopilotConflictsLoading ||
+            !ownsCurrentRun()
           ) {
             return
           }
@@ -6240,8 +6500,31 @@ export class AppStore extends TypedBaseStore<IAppState> {
             () => ({ copilotResolutionProgress: progress })
           )
           this.emitUpdate()
-        }
+        },
+        abortController.signal
       )
+
+      // The user stopped the resolution. The loading dialog has already
+      // navigated back to the conflicts list, so just clear the in-flight
+      // state without surfacing an error.
+      if (abortController.signal.aborted) {
+        if (ownsCurrentRun()) {
+          this.repositoryStateCache.updateMultiCommitOperationState(
+            repository,
+            () => ({
+              copilotResolutionProgress: null,
+              copilotResolutionAbortController: null,
+            })
+          )
+          this.emitUpdate()
+        }
+        return
+      }
+
+      // A newer run took over while we were awaiting — let it own the outcome.
+      if (!ownsCurrentRun()) {
+        return
+      }
 
       // Re-check state: user may have cancelled during the await
       const currentState = this.repositoryStateCache.get(repository)
@@ -6286,7 +6569,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
                 MultiCommitOperationStepKind.ShowCopilotConflicts,
             },
             copilotResolutions: result.resolutions,
+            copilotResolutionSummary: result.summary,
             copilotResolutionProgress: null,
+            copilotResolutionAbortController: null,
           })
         )
 
@@ -6305,13 +6590,20 @@ export class AppStore extends TypedBaseStore<IAppState> {
             conflictState,
           },
           copilotResolutions: result.resolutions,
+          copilotResolutionSummary: result.summary,
           copilotResolutionProgress: null,
+          copilotResolutionAbortController: null,
         })
       )
 
       this.emitUpdate()
     } catch (e) {
       log.warn('AppStore: Copilot conflict resolution flow failed', e)
+
+      // A stale run shouldn't surface errors or reset a newer run's state.
+      if (!ownsCurrentRun()) {
+        return
+      }
 
       // Surface the error to the user so they understand why they were
       // routed back to manual conflict resolution. Mirrors the pattern
@@ -6328,11 +6620,31 @@ export class AppStore extends TypedBaseStore<IAppState> {
           },
           useCopilotConflictResolution: false,
           copilotResolutions: null,
+          copilotResolutionSummary: null,
           copilotResolutionProgress: null,
+          copilotResolutionAbortController: null,
         })
       )
 
       this.emitUpdate()
+    }
+  }
+
+  /**
+   * Cancel the in-flight Copilot conflict resolution for the given repository,
+   * if one is running. Fires the stored AbortController so the underlying SDK
+   * turn is torn down immediately rather than running to completion in the
+   * background.
+   *
+   * This shouldn't be called directly. See `Dispatcher`.
+   */
+  public _abortCopilotConflictResolution(repository: Repository): void {
+    const state = this.repositoryStateCache.get(repository)
+    const controller =
+      state.multiCommitOperationState?.copilotResolutionAbortController ?? null
+
+    if (controller !== null) {
+      controller.abort()
     }
   }
 
@@ -6906,6 +7218,15 @@ export class AppStore extends TypedBaseStore<IAppState> {
   ): Promise<void> {
     this.confirmCommitMessageOverride = value
     setBoolean(confirmCommitMessageOverrideKey, value)
+
+    this.emitUpdate()
+
+    return Promise.resolve()
+  }
+
+  public _setConfirmWorktreeRemovalSetting(value: boolean): Promise<void> {
+    this.confirmWorktreeRemoval = value
+    setBoolean(confirmWorktreeRemovalKey, value)
 
     this.emitUpdate()
 
@@ -8831,7 +9152,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
       userHasResolvedConflicts: false,
       useCopilotConflictResolution: false,
       copilotResolutions: null,
+      copilotResolutionSummary: null,
       copilotResolutionProgress: null,
+      copilotResolutionAbortController: null,
       originalBranchTip,
       targetBranch,
     })
