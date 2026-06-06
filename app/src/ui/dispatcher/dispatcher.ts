@@ -73,6 +73,7 @@ import { GitHubRepository } from '../../models/github-repository'
 import { ManualConflictResolution } from '../../models/manual-conflict-resolution'
 import { IExternalTool } from '../../models/external-tool'
 import { Popup, PopupType } from '../../models/popup'
+import { invoke } from '../../lib/ipc-renderer'
 import {
   PullRequest,
   PullRequestSuggestedNextAction,
@@ -1568,14 +1569,24 @@ export class Dispatcher {
 
   /** Open the Meld-style diff viewer for the given file. */
   public openInMeldWindow(repository: Repository, filePath: string): Promise<void> {
-    // Main-process side opens the BrowserWindow via IPC; we just track the
-    // session in app-state for persistence across app restarts.
-    return this.appStore._addMeldSession({
+    // Track the session in app-state and ask main process to open the
+    // BrowserWindow. Main process owns the lifecycle.
+    void this.appStore._addMeldSession({
       id: `${repository.id}:${filePath}:working`,
       repositoryID: repository.id,
       filePath,
       mode: 'working',
-    }) as unknown as Promise<void>
+    })
+    // Fire-and-forget IPC; the main process handles the BrowserWindow
+    // creation (see app/src/main-process/meld/meld-window.ts).
+    return invoke(
+      'meld:open-window' as never,
+      {
+        repositoryID: repository.id,
+        filePath,
+        mode: 'working',
+      } as never
+    ) as unknown as Promise<void>
   }
 
   /** Close a Meld window session. */
