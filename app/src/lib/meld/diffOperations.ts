@@ -1,4 +1,4 @@
-import { diffChars, IChange } from 'diff'
+import { diffChars, Change } from 'diff'
 import { IMeldEditState } from '../../models/meld-edit'
 
 /**
@@ -37,7 +37,7 @@ export function computeCharDiff(
   left: string,
   right: string
 ): ReadonlyArray<ICharDiffPart> {
-  const changes: ReadonlyArray<IChange> = diffChars(left, right)
+  const changes: ReadonlyArray<Change> = diffChars(left, right)
   return changes.map<ICharDiffPart>(c => {
     if (c.added) {
       return { value: c.value, added: true }

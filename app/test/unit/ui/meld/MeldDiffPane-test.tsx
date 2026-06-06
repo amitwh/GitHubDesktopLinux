@@ -126,6 +126,7 @@ describe('MeldDiffPane', () => {
       <MeldDiffPane {...defaultProps} editState={sampleEditState} />
     )
     const buttons = container.querySelectorAll('button[aria-label="Copy to right"]')
+    void buttons // unused, but kept for future per-hunk assertions
     // No hunk buttons row should render when there is only one hunk.
     const hunkRows = container.querySelectorAll('.meld-diff-pane-hunk-row')
     assert.strictEqual(hunkRows.length, 0, 'expected no hunk copy rows')

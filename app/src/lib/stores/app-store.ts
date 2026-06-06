@@ -714,6 +714,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private byokProviders: ReadonlyArray<IBYOKProvider> = []
   private meldSessions: ReadonlyArray<IMeldSession> = []
   private externalTools: ReadonlyArray<IExternalTool> = getDefaultExternalTools()
+  private meldPendingEdits: ReadonlyMap<string, string> = new Map()
 
   public constructor(
     private readonly gitHubUserStore: GitHubUserStore,
@@ -1157,6 +1158,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       focusCommitMessage: this.focusCommitMessage,
       meldSessions: this.meldSessions,
       externalTools: this.externalTools,
+      meldPendingEdits: this.meldPendingEdits,
       emoji: this.emoji,
       sidebarWidth: this.sidebarWidth,
       branchDropdownWidth: this.branchDropdownWidth,
@@ -5730,6 +5732,38 @@ export class AppStore extends TypedBaseStore<IAppState> {
   /** Remove a Meld window session when the BrowserWindow is closed. */
   public _removeMeldSession(sessionID: string): void {
     this.meldSessions = this.meldSessions.filter(s => s.id !== sessionID)
+    this.emitUpdate()
+  }
+
+  /**
+   * Read the current pending edit (if any) for a Meld session.
+   * Returns `undefined` when no edit has been made since the last
+   * save/discard.
+   */
+  public _getMeldPendingEdit(sessionID: string): string | undefined {
+    return this.meldPendingEdits.get(sessionID)
+  }
+
+  /**
+   * Set / overwrite the pending edit for a Meld session. The edit
+   * is purely in-memory until the user clicks Save.
+   */
+  public _setMeldPendingEdit(sessionID: string, content: string): void {
+    const next = new Map(this.meldPendingEdits)
+    next.set(sessionID, content)
+    this.meldPendingEdits = next
+    this.emitUpdate()
+  }
+
+  /**
+   * Clear the pending edit for a Meld session. Called when the user
+   * clicks Save (after writing + staging) or Discard.
+   */
+  public _clearMeldPendingEdit(sessionID: string): void {
+    if (!this.meldPendingEdits.has(sessionID)) return
+    const next = new Map(this.meldPendingEdits)
+    next.delete(sessionID)
+    this.meldPendingEdits = next
     this.emitUpdate()
   }
 

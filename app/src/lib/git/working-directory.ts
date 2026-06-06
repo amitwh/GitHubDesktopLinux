@@ -2,7 +2,6 @@ import { writeFile, mkdir } from 'fs/promises'
 import { join, dirname } from 'path'
 import { Repository } from '../../models/repository'
 import { git } from './core'
-import { GitError } from 'dugite'
 
 /**
  * Write the given `contents` to `filePath` inside the repository's
@@ -33,8 +32,8 @@ export async function stageWorkingDirectoryFile(
   const result = await git(args, repository.path, 'stageWorkingDirectoryFile', {
     successExitCodes: new Set([0]),
   })
-  if (result.gitError !== undefined) {
-    throw new GitError(result.gitError, args)
+  if (result.gitError) {
+    throw new Error(`Failed to stage ${filePath}: ${String(result.gitError)}`)
   }
 }
 

@@ -155,6 +155,15 @@ export interface IAppState {
    * appended.
    */
   readonly externalTools: ReadonlyArray<IExternalTool>
+
+  /**
+   * In-memory cache of pending Meld edits. Keyed by the Meld session
+   * id (`${repositoryID}:${filePath}:${mode}`). Edits live here until
+   * the user clicks Save (which writes to disk + stages) or Discard
+   * (which clears the entry). Closing the Meld window without
+   * saving/discarding is treated as a Discard.
+   */
+  readonly meldPendingEdits: ReadonlyMap<string, string>
   readonly focusCommitMessage: boolean
   readonly currentPopup: Popup | null
   readonly allPopups: ReadonlyArray<Popup>

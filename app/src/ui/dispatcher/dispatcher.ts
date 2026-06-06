@@ -1614,6 +1614,64 @@ export class Dispatcher {
     return this.appStore._removeExternalTool(toolID)
   }
 
+  /**
+   * Phase 1b: store a pending edit for a Meld session. The edit is
+   * in-memory only; the user must click Save to flush to disk and
+   * stage, or Discard to drop it.
+   */
+  public setMeldPendingEdit(
+    sessionID: string,
+    content: string
+  ): Promise<void> {
+    this.appStore._setMeldPendingEdit(sessionID, content)
+    return Promise.resolve()
+  }
+
+  /**
+   * Phase 1b: write the pending edit to disk and stage the file.
+   * Called when the user clicks Save in the Meld window.
+   *
+   * Returns the (possibly empty) list of files that were modified
+   * so the caller can refresh any dependent UI.
+   */
+  public async saveMeldEdit(
+    repository: Repository,
+    filePath: string,
+    mode: 'working' | 'commit' | 'merge',
+    content: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const sessionID = `${repository.id}:${filePath}:${mode}`
+    try {
+      // Lazy-require so unit tests that only touch lib code don't
+      // pull in the git module (which spawns `git` and fails without
+      // a real repo on disk).
+      const { saveMeldEdit: saveMeldEditToDisk } = await import(
+        '../../lib/git/working-directory'
+      )
+      await saveMeldEditToDisk(repository, filePath, content)
+      this.appStore._clearMeldPendingEdit(sessionID)
+      // Tell the rest of the app (changes list, status bar) to refresh.
+      this.appStore._refreshRepository(repository)
+      return { success: true }
+    } catch (e) {
+      return {
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      }
+    }
+  }
+
+  /**
+   * Phase 1b: drop the pending edit for a Meld session. Called when
+   * the user clicks Discard or closes the Meld window without saving.
+   */
+  public discardMeldEdit(
+    sessionID: string
+  ): Promise<void> {
+    this.appStore._clearMeldPendingEdit(sessionID)
+    return Promise.resolve()
+  }
+
   /** Add the pattern to the repository's gitignore. */
   public appendIgnoreRule(
     repository: Repository,

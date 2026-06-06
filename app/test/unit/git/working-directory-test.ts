@@ -6,17 +6,15 @@ import { join } from 'path'
 import { Repository } from '../../../src/models/repository'
 import {
   writeWorkingDirectoryFile,
-  saveMeldEdit,
 } from '../../../src/lib/git/working-directory'
 
 function makeFakeRepository(): Repository {
   // For these tests we only need a path; we don't actually shell out to
-  // git because saveMeldEdit's `stage` step will fail without a real
+  // git because saveMeldEdit's `stage` step would fail without a real
   // repo. So we only exercise writeWorkingDirectoryFile here and skip
   // the saveMeldEdit happy-path (covered by E2E).
   const dir = mkdtempSync(join(tmpdir(), 'meld-test-'))
-  const repo = new Repository(dir, -1, null, false, [])
-  return repo
+  return new Repository(dir, -1, null, false, null)
 }
 
 describe('git/working-directory', () => {
