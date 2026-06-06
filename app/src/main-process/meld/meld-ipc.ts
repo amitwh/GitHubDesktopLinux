@@ -17,8 +17,8 @@ export function registerMeldIpcHandlers() {
     return getDefaultExternalTools()
   })
 
-  ipcMain.handle('meld:open-window', async (_event, args: IOpenMeldWindowArgs) => {
-    const sessionID = openMeldWindow(args)
+  ipcMain.handle('meld:open-window', async (_event, args: unknown) => {
+    const sessionID = openMeldWindow(args as IOpenMeldWindowArgs)
     return { sessionID }
   })
 
