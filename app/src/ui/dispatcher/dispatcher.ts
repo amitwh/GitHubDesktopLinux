@@ -1579,14 +1579,17 @@ export class Dispatcher {
     })
     // Fire-and-forget IPC; the main process handles the BrowserWindow
     // creation (see app/src/main-process/meld/meld-window.ts).
-    return invoke(
-      'meld:open-window' as never,
+    // The cast to `never` is safe here: meld:* channels aren't yet
+    // registered in `app/src/lib/ipc-shared.ts`; once 1b/1c land, replace
+    // with a typed wrapper.
+    return (invoke as (channel: string, ...args: unknown[]) => Promise<void>)(
+      'meld:open-window',
       {
         repositoryID: repository.id,
         filePath,
         mode: 'working',
-      } as never
-    ) as unknown as Promise<void>
+      }
+    )
   }
 
   /** Close a Meld window session. */
