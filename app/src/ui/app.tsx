@@ -1363,11 +1363,21 @@ export class App extends React.Component<IAppProps, IAppState> {
     // the focused file in the changes list / commit view.
     const state = this.props.appStore.getState()
     const sel = state.selectedState
-    if (sel && sel.type === SelectionType.WorkingDirectory) {
-      const file = sel.selectedFile
-      if (file) {
-        void this.props.dispatcher.openInMeldWindow(repository, file.path)
-        return
+    if (sel && sel.type === SelectionType.Repository) {
+      const repoState = sel.state
+      const changesSelection = repoState.changesState
+      if (
+        changesSelection.kind === 'workingDirectory' &&
+        changesSelection.selectedFileIDs.length > 0
+      ) {
+        const id = changesSelection.selectedFileIDs[0]
+        const file = changesSelection.workingDirectory.find(
+          f => f.id === id
+        )
+        if (file) {
+          void this.props.dispatcher.openInMeldWindow(repository, file.path)
+          return
+        }
       }
     }
     // Fall back: open a synthetic Meld session for the working dir
