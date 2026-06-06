@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-no-bind */
 import '@fontsource/jetbrains-mono/400.css'
 import '@fontsource/jetbrains-mono/700.css'
 
@@ -429,7 +430,9 @@ function parseMeldArgsFromHash(): {
   readonly mode: 'working' | 'commit' | 'merge'
 } | null {
   const hash = window.location.hash
-  if (!hash.startsWith('#meld?')) return null
+  if (!hash.startsWith('#meld?')) {
+    return null
+  }
   const params = new URLSearchParams(hash.substring('#meld?'.length))
   const repositoryID = Number(params.get('repositoryID'))
   const filePath = params.get('filePath') || ''
@@ -437,7 +440,9 @@ function parseMeldArgsFromHash(): {
     | 'working'
     | 'commit'
     | 'merge'
-  if (Number.isNaN(repositoryID) || filePath === '') return null
+  if (Number.isNaN(repositoryID) || filePath === '') {
+    return null
+  }
   return { repositoryID, filePath, mode }
 }
 

@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-no-bind */
 import * as React from 'react'
 import { IExternalTool } from '../../../models/external-tool'
 
@@ -28,7 +29,9 @@ export class ExternalToolsSettings extends React.Component<
 
   private onAddClicked = () => {
     const { newToolName, newToolCommand, newToolArgs } = this.state
-    if (newToolName.trim() === '' || newToolCommand.trim() === '') return
+    if (newToolName.trim() === '' || newToolCommand.trim() === '') {
+      return
+    }
     this.props.onToolAdded({
       name: newToolName.trim(),
       command: newToolCommand.trim(),

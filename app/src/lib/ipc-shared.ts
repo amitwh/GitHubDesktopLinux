@@ -135,4 +135,11 @@ export type RequestResponseChannels = {
   ) => Promise<string | null>
   'get-notifications-permission': () => Promise<DesktopNotificationPermission>
   'request-notifications-permission': () => Promise<boolean>
+  // Meld window Phase 1a channels — defined here for type-safe IPC.
+  'meld:list-tools': () => Promise<ReadonlyArray<unknown>>
+  'meld:launch-external-tool': (req: unknown) => Promise<{
+    success: boolean
+    error?: string
+  }>
+  'meld:open-window': (args: unknown) => Promise<{ sessionID: string }>
 }

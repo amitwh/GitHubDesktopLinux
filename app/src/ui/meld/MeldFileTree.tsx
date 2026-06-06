@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-no-bind */
 import * as React from 'react'
 
 export type IFileStatus =
@@ -26,6 +27,7 @@ export class MeldFileTree extends React.Component<IMeldFileTreeProps, {}> {
           <div
             key={f.path}
             role="treeitem"
+            aria-selected={this.props.selectedPath === f.path}
             data-selected={this.props.selectedPath === f.path}
             data-status={f.status}
             onClick={() => this.props.onFileSelected(f.path)}

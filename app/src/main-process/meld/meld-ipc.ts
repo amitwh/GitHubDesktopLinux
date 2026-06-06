@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import * as ipcMain from '../ipc-main'
 import { spawn } from 'child_process'
 import { getDefaultExternalTools } from '../../lib/meld/default-tools'
 import { substituteArgs } from '../../lib/meld/external-tool-args'

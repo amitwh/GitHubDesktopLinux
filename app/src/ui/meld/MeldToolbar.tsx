@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-no-bind */
 import * as React from 'react'
 import { IExternalTool } from '../../models/external-tool'
 
