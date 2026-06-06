@@ -22,11 +22,12 @@ export function registerMeldIpcHandlers() {
     return { sessionID }
   })
 
-  ipcMain.handle('meld:launch-external-tool', async (_event, req: ILaunchToolRequest) => {
-    const args = substituteArgs(req.tool, {
-      leftPath: req.leftPath,
-      rightPath: req.rightPath,
-      basePath: req.basePath,
+  ipcMain.handle('meld:launch-external-tool', async (_event, req: unknown) => {
+    const r = req as ILaunchToolRequest
+    const args = substituteArgs(r.tool, {
+      leftPath: r.leftPath,
+      rightPath: r.rightPath,
+      basePath: r.basePath,
     })
     return new Promise<{ success: boolean; error?: string }>(resolve => {
       const [cmd, ...cmdArgs] = args
