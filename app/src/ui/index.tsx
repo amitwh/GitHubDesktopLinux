@@ -422,12 +422,18 @@ ipcRenderer.on('cli-action', (_, action) =>
 })(Grid.defaultProps, Grid.propTypes)
 
 import { MeldWindow } from './meld'
+import { IThreeWayState } from '../models/meld-merge'
+import { Repository } from '../models/repository'
 
 /** Parse the Meld window arguments from the URL hash, or null if not in meld mode. */
 function parseMeldArgsFromHash(): {
   readonly repositoryID: number
   readonly filePath: string
   readonly mode: 'working' | 'commit' | 'merge'
+  /** Phase 1c: SHA of the merge base (present only in 'merge' mode). */
+  readonly mergeBaseSha?: string
+  /** Phase 1c: SHA of the incoming branch tip (present only in 'merge' mode). */
+  readonly theirsSha?: string
 } | null {
   const hash = window.location.hash
   if (!hash.startsWith('#meld?')) {
@@ -443,27 +449,144 @@ function parseMeldArgsFromHash(): {
   if (Number.isNaN(repositoryID) || filePath === '') {
     return null
   }
-  return { repositoryID, filePath, mode }
+  const mergeBaseSha = params.get('mergeBaseSha') ?? undefined
+  const theirsSha = params.get('theirsSha') ?? undefined
+  return { repositoryID, filePath, mode, mergeBaseSha, theirsSha }
 }
 
-ReactDOM.render(
-  parseMeldArgsFromHash() ? (
+interface IMeldMergeLoaderProps {
+  readonly dispatcher: typeof dispatcher
+  readonly repositoryID: number
+  readonly filePath: string
+  readonly mergeBaseSha: string
+  readonly theirsSha: string
+}
+
+/**
+ * Fetches the IThreeWayState for a conflicted file in `componentDidMount`
+ * and renders <MeldWindow> with the loaded state. Renders a small
+ * "Loading merge state…" placeholder while the fetch is in flight.
+ *
+ * Phase 1c: keeps the async fetch out of MeldWindow itself, which
+ * remains purely a presentation component.
+ */
+class MeldMergeLoader extends React.Component<IMeldMergeLoaderProps, { readonly state: IThreeWayState | null; readonly error: string | null }> {
+  public constructor(props: IMeldMergeLoaderProps) {
+    super(props)
+    this.state = { state: null, error: null }
+  }
+
+  public componentDidMount() {
+    void this.load()
+  }
+
+  private async load() {
+    try {
+      const repo = appStore.getState().repositories.find(
+        r => r.id === this.props.repositoryID,
+      )
+      if (!repo || !(repo instanceof Repository)) {
+        this.setState({ error: 'Repository not found' })
+        return
+      }
+      // The dispatcher resolves the local/remote SHAs from
+      // `repositoryStateManager` and reads BASE/LOCAL/REMOTE from git.
+      const mergeState = await this.props.dispatcher.getThreeWayState(
+        repo,
+        this.props.filePath,
+      )
+      this.setState({ state: mergeState })
+    } catch (e) {
+      this.setState({
+        error: e instanceof Error ? e.message : 'Failed to load merge state',
+      })
+    }
+  }
+
+  public render() {
+    if (this.state.error) {
+      return (
+        <div className="meld-window">
+          <div className="meld-error-banner" role="alert">
+            {this.state.error}
+          </div>
+        </div>
+      )
+    }
+    if (!this.state.state) {
+      return (
+        <div className="meld-window">
+          <div className="meld-window-body meld-merge-loading">
+            <span>Loading merge state…</span>
+          </div>
+        </div>
+      )
+    }
+    // The loaded state is passed as `threeWayState`; the window handles
+    // the rest. The SHAs are still passed so the window can refresh.
+    return (
+      <MeldWindowContainer
+        repositoryID={this.props.repositoryID}
+        filePath={this.props.filePath}
+        threeWayState={this.state.state}
+        dispatcher={this.props.dispatcher}
+      />
+    )
+  }
+}
+
+/**
+ * A thin wrapper that re-renders <MeldWindow> with the dispatcher-
+ * driven callbacks (onAutoMerge, onMarkMergeResolved, onHunkResolved)
+ * plus the loaded threeWayState. Lives at the mount point so the
+ * index.tsx file stays focused on routing.
+ */
+function MeldWindowContainer(props: {
+  readonly repositoryID: number
+  readonly filePath: string
+  readonly threeWayState: IThreeWayState
+  readonly dispatcher: typeof dispatcher
+}) {
+  return (
     <MeldWindow
-      repositoryID={parseMeldArgsFromHash()!.repositoryID}
-      filePath={parseMeldArgsFromHash()!.filePath}
-      mode={parseMeldArgsFromHash()!.mode}
+      repositoryID={props.repositoryID}
+      filePath={props.filePath}
+      mode="merge"
       files={[]}
       availableTools={appStore._getExternalTools()}
-      onGetDiff={async (_id: number, filePath: string, _mode: 'working' | 'commit' | 'merge') => {
-        // Phase 1a stub: real implementation lives in app.tsx wiring
-        // (Task 18) and talks to git via the dispatcher.
+      threeWayState={props.threeWayState}
+      onGetDiff={async () => {
+        // In merge mode the diff is the MERGED content, but the window
+        // uses threeWayState directly. Return an empty TextDiff as a
+        // placeholder; the window's merge-mode branch bypasses this.
         return {
           kind: 0 as never,
-          text: `[Stub diff for ${filePath} — real wiring in Task 18]`,
+          text: '',
           hunks: [],
           maxLineNumber: 0,
           hasHiddenBidiChars: false,
         }
+      }}
+      onAutoMerge={async (repositoryID, filePath) => {
+        const repo = appStore.getState().repositories.find(
+          r => r.id === repositoryID,
+        )
+        if (!repo || !(repo instanceof Repository)) {
+          return { mergedContent: '', clean: false }
+        }
+        return props.dispatcher.autoMergeThreeWay(repo, filePath)
+      }}
+      onMarkMergeResolved={async (repositoryID, filePath, mergedContent) => {
+        const repo = appStore.getState().repositories.find(
+          r => r.id === repositoryID,
+        )
+        if (!repo || !(repo instanceof Repository)) {
+          return { success: false, error: 'Repository not found' }
+        }
+        return props.dispatcher.markMergeResolved(repo, filePath, mergedContent)
+      }}
+      onHunkResolved={(_repositoryID, _filePath, _hunkIndex, _side) => {
+        // No-op: the window handles state update internally.
       }}
       onLaunchExternalTool={async (tool, left, right, base) => {
         return new Promise<{ success: boolean; error?: string }>(resolve => {
@@ -491,6 +614,78 @@ ReactDOM.render(
       }}
       onClose={() => window.close()}
     />
+  )
+}
+
+ReactDOM.render(
+  parseMeldArgsFromHash() ? (
+    (() => {
+      const args = parseMeldArgsFromHash()!
+      // Phase 1c: in merge mode, mount a loader that fetches the
+      // three-way state via dispatcher.getThreeWayState and then
+      // renders MeldWindow with the loaded state. The loader also
+      // dispatches auto-merge and mark-resolved through the dispatcher.
+      if (
+        args.mode === 'merge' &&
+        args.mergeBaseSha !== undefined &&
+        args.theirsSha !== undefined
+      ) {
+        return (
+          <MeldMergeLoader
+            dispatcher={dispatcher}
+            repositoryID={args.repositoryID}
+            filePath={args.filePath}
+            mergeBaseSha={args.mergeBaseSha}
+            theirsSha={args.theirsSha}
+          />
+        )
+      }
+      return (
+        <MeldWindow
+          repositoryID={args.repositoryID}
+          filePath={args.filePath}
+          mode={args.mode}
+          files={[]}
+          availableTools={appStore._getExternalTools()}
+          onGetDiff={async (_id: number, filePath: string, _mode: 'working' | 'commit' | 'merge') => {
+            // Phase 1a stub: real implementation lives in app.tsx wiring
+            // (Task 18) and talks to git via the dispatcher.
+            return {
+              kind: 0 as never,
+              text: `[Stub diff for ${filePath} — real wiring in Task 18]`,
+              hunks: [],
+              maxLineNumber: 0,
+              hasHiddenBidiChars: false,
+            }
+          }}
+          onLaunchExternalTool={async (tool, left, right, base) => {
+            return new Promise<{ success: boolean; error?: string }>(resolve => {
+              const w = window as unknown as {
+                electron?: { ipcRenderer?: { invoke: (channel: string, ...args: unknown[]) => Promise<unknown> } }
+              }
+              const ipcRenderer = w.electron?.ipcRenderer
+              if (!ipcRenderer) {
+                resolve({ success: false, error: 'IPC unavailable' })
+                return
+              }
+              ipcRenderer
+                .invoke('meld:launch-external-tool', {
+                  tool,
+                  leftPath: left,
+                  rightPath: right,
+                  basePath: base,
+                })
+                .then(
+                  (result: unknown) =>
+                    resolve(result as { success: boolean; error?: string }),
+                  (err: Error) => resolve({ success: false, error: err.message })
+                )
+            })
+          }}
+          onClose={() => window.close()}
+        />
+      )
+    })()
   ) : (
     <App
       dispatcher={dispatcher}
