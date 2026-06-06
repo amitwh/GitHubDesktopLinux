@@ -149,7 +149,7 @@ export class MeldEditorPane extends React.Component<
         {/* `originalContent` is consumed by the parent for `hasChanges`;
             unused at render time but read here to keep linter happy
             and document the prop's role. */}
-        <span hidden data-original-length={originalContent.length} />
+        <span hidden={true} data-original-length={originalContent.length} />
       </div>
     )
   }

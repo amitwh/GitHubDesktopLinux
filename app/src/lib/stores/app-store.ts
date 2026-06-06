@@ -5760,7 +5760,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
    * clicks Save (after writing + staging) or Discard.
    */
   public _clearMeldPendingEdit(sessionID: string): void {
-    if (!this.meldPendingEdits.has(sessionID)) return
+    if (!this.meldPendingEdits.has(sessionID)) {
+      return
+    }
     const next = new Map(this.meldPendingEdits)
     next.delete(sessionID)
     this.meldPendingEdits = next

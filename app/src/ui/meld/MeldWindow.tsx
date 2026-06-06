@@ -62,8 +62,6 @@ interface IMeldWindowState {
   readonly errorMessage: string | null
   readonly editState: IMeldEditState | null
   readonly fileChangedSinceLoad: boolean
-  /** Mtime of the file at load time, in ms since epoch. */
-  readonly loadedMtime: number | null
 }
 
 /**
@@ -74,7 +72,9 @@ interface IMeldWindowState {
  * sides from git directly.
  */
 function editStateFromDiff(diff: IDiff | null): IMeldEditState | null {
-  if (diff === null) return null
+  if (diff === null) {
+    return null
+  }
   let text = ''
   if (diff.kind === DiffType.Text) {
     text = (diff as ITextDiff).text
@@ -105,7 +105,6 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
       errorMessage: null,
       editState: null,
       fileChangedSinceLoad: false,
-      loadedMtime: null,
     }
   }
 
@@ -170,14 +169,18 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
   }
 
   private onEditorChange = (side: 'left' | 'right', value: string) => {
-    if (this.state.editState === null) return
+    if (this.state.editState === null) {
+      return
+    }
     this.setState({
       editState: applyEdit(this.state.editState, side, value),
     })
   }
 
   private onEditorSave = async (side: 'left' | 'right') => {
-    if (this.state.editState === null) return
+    if (this.state.editState === null) {
+      return
+    }
     if (!this.props.onSaveEdit) {
       this.setState({ errorMessage: 'Save handler is not configured' })
       return
@@ -226,7 +229,9 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
   }
 
   private onEditorDiscard = (side: 'left' | 'right') => {
-    if (this.state.editState === null) return
+    if (this.state.editState === null) {
+      return
+    }
     this.setState({ editState: revertEdits(this.state.editState) })
     if (this.props.onDiscardEdit) {
       void this.props.onDiscardEdit(
@@ -241,7 +246,9 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
     hunkIndex: number,
     direction: 'left' | 'right'
   ) => {
-    if (this.state.editState === null) return
+    if (this.state.editState === null) {
+      return
+    }
     // Reuse copyHunk to swap a slice of text between the two panes.
     // For 1b we use the entire content as the source/target — a
     // simpler approximation of the per-hunk copy that will be
@@ -256,6 +263,9 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
     const next = copyHunk(source, target, range)
     this.onEditorChange(direction, next)
   }
+
+  private onCopyHunkLeftBound = (i: number) => this.onCopyHunk(i, 'left')
+  private onCopyHunkRightBound = (i: number) => this.onCopyHunk(i, 'right')
 
   private onReloadFromDisk = () => {
     void this.loadDiff(this.props.filePath)
@@ -324,8 +334,8 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
             onEditChange={this.onEditorChange}
             onEditSave={this.onEditorSave}
             onEditDiscard={this.onEditorDiscard}
-            onCopyHunkLeft={i => this.onCopyHunk(i, 'left')}
-            onCopyHunkRight={i => this.onCopyHunk(i, 'right')}
+            onCopyHunkLeft={this.onCopyHunkLeftBound}
+            onCopyHunkRight={this.onCopyHunkRightBound}
           />
         </div>
         <div className="meld-window-footer">

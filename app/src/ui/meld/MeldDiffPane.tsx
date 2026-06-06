@@ -50,7 +50,9 @@ function renderDiffText(diff: IDiff): string {
  * diff overlay is computed per-hunk from the lines that differ.
  */
 function splitHunksFromText(text: string): ReadonlyArray<string> {
-  if (text === '') return []
+  if (text === '') {
+    return []
+  }
   // Unified diff text starts each hunk with a `@@` line; split on that
   // and re-attach the header so each block is self-contained.
   const lines = text.split('\n')

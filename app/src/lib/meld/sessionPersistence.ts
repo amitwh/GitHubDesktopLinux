@@ -10,8 +10,6 @@ import { IMeldEditState } from '../../models/meld-edit'
  * without saving is treated as a Discard.
  */
 export class MeldSessionPersistence {
-  private readonly sessions = new Map<string, IMeldEditState>()
-
   /**
    * Compose the cache key for a given (repository, file, mode) tuple.
    * Exposed as a static method so callers (and tests) can compute the
@@ -24,6 +22,8 @@ export class MeldSessionPersistence {
   ): string {
     return `${repositoryID}:${filePath}:${mode}`
   }
+
+  private readonly sessions = new Map<string, IMeldEditState>()
 
   public getEditState(key: string): IMeldEditState | undefined {
     return this.sessions.get(key)
