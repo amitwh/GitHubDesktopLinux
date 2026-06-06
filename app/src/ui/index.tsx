@@ -448,8 +448,8 @@ ReactDOM.render(
       filePath={parseMeldArgsFromHash()!.filePath}
       mode={parseMeldArgsFromHash()!.mode}
       files={[]}
-      availableTools={appStore.getExternalTools()}
-      onGetDiff={async (_id, filePath, _mode) => {
+      availableTools={appStore._getExternalTools()}
+      onGetDiff={async (_id: number, filePath: string, _mode: 'working' | 'commit' | 'merge') => {
         // Phase 1a stub: real implementation lives in app.tsx wiring
         // (Task 18) and talks to git via the dispatcher.
         return {
