@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { IDiff, ITextDiff, DiffType } from '../../models/diff'
+import { IDiff, ITextDiff, ILargeTextDiff, DiffType } from '../../models/diff'
 
 export interface IMeldDiffPaneProps {
   readonly filePath: string
@@ -18,7 +18,7 @@ function renderDiffText(diff: IDiff): string {
     return (diff as ITextDiff).text
   }
   if (diff.kind === DiffType.LargeText) {
-    return (diff as ITextDiff).text
+    return (diff as ILargeTextDiff).text
   }
   return `[${diff.kind} diff — not rendered in Phase 1a]`
 }
