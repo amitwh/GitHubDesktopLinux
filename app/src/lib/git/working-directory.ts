@@ -1,4 +1,4 @@
-import { writeFile, mkdir } from 'fs/promises'
+import { writeFile, mkdir, readFile } from 'fs/promises'
 import { join, dirname } from 'path'
 import { Repository } from '../../models/repository'
 import { git } from './core'
@@ -51,4 +51,24 @@ export async function saveMeldEdit(
 ): Promise<void> {
   await writeWorkingDirectoryFile(repository, filePath, contents)
   await stageWorkingDirectoryFile(repository, filePath)
+}
+
+/**
+ * Read the current contents of a file in the working directory.
+ * Returns `undefined` if the file doesn't exist (e.g. it was deleted
+ * by an external process). Throws on any other I/O error.
+ */
+export async function readWorkingDirectoryFile(
+  repository: Repository,
+  filePath: string
+): Promise<string | undefined> {
+  const fullPath = join(repository.path, filePath)
+  try {
+    return await readFile(fullPath, 'utf8')
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === 'ENOENT') {
+      return undefined
+    }
+    throw e
+  }
 }

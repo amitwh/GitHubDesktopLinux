@@ -1672,6 +1672,28 @@ export class Dispatcher {
     return Promise.resolve()
   }
 
+  /**
+   * Phase 1b: returns `true` if the on-disk contents of `filePath`
+   * differ from the `originalContent` we last loaded into the Meld
+   * session. The window uses this to surface a "file changed"
+   * warning banner before allowing the user to save.
+   */
+  public async checkMeldFileChanged(
+    repository: Repository,
+    filePath: string,
+    originalContent: string
+  ): Promise<boolean> {
+    const { readWorkingDirectoryFile } = await import(
+      '../../lib/git/working-directory'
+    )
+    const current = await readWorkingDirectoryFile(repository, filePath)
+    if (current === undefined) {
+      // File was deleted on disk — definitely "changed".
+      return true
+    }
+    return current !== originalContent
+  }
+
   /** Add the pattern to the repository's gitignore. */
   public appendIgnoreRule(
     repository: Repository,

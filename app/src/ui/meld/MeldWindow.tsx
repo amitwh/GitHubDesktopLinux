@@ -39,6 +39,16 @@ export interface IMeldWindowProps {
     filePath: string,
     mode: IMeldWindowMode
   ) => Promise<void>
+  /**
+   * Optional Phase 1b check: returns true if the file on disk differs
+   * from the originally-loaded content. Used to surface a warning
+   * banner after the user starts editing. When omitted, the file-
+   * change banner is never shown.
+   */
+  readonly onCheckFileChanged?: (
+    repositoryID: number,
+    filePath: string
+  ) => Promise<boolean>
   readonly onClose: () => void
 }
 
@@ -51,6 +61,8 @@ interface IMeldWindowState {
   readonly errorMessage: string | null
   readonly editState: IMeldEditState | null
   readonly fileChangedSinceLoad: boolean
+  /** Mtime of the file at load time, in ms since epoch. */
+  readonly loadedMtime: number | null
 }
 
 /**
@@ -91,6 +103,7 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
       errorMessage: null,
       editState: null,
       fileChangedSinceLoad: false,
+      loadedMtime: null,
     }
   }
 
@@ -162,6 +175,24 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
     if (!this.props.onSaveEdit) {
       this.setState({ errorMessage: 'Save handler is not configured' })
       return
+    }
+    // Phase 1b: detect if the file on disk has changed since we
+    // loaded it. We delegate to the dispatcher (which can read the
+    // working directory file or query git status) and stash the
+    // result in state. The banner is already rendered conditionally
+    // on `fileChangedSinceLoad`.
+    if (this.props.onCheckFileChanged) {
+      try {
+        const changed = await this.props.onCheckFileChanged(
+          this.props.repositoryID,
+          this.props.filePath
+        )
+        if (changed) {
+          this.setState({ fileChangedSinceLoad: true })
+        }
+      } catch {
+        // Best-effort — fall through to the save.
+      }
     }
     const content = side === 'left'
       ? this.state.editState.leftContent

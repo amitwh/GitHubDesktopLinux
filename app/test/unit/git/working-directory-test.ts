@@ -6,6 +6,7 @@ import { join } from 'path'
 import { Repository } from '../../../src/models/repository'
 import {
   writeWorkingDirectoryFile,
+  readWorkingDirectoryFile,
 } from '../../../src/lib/git/working-directory'
 
 function makeFakeRepository(): Repository {
@@ -46,6 +47,38 @@ describe('git/working-directory', () => {
     try {
       await writeWorkingDirectoryFile(repo, 'empty.txt', '')
       assert.strictEqual(readFileSync(join(repo.path, 'empty.txt'), 'utf8'), '')
+    } finally {
+      rmSync(repo.path, { recursive: true, force: true })
+    }
+  })
+
+  it('readWorkingDirectoryFile returns the file contents', async () => {
+    const repo = makeFakeRepository()
+    try {
+      writeFileSync(join(repo.path, 'a.txt'), 'hello')
+      const content = await readWorkingDirectoryFile(repo, 'a.txt')
+      assert.strictEqual(content, 'hello')
+    } finally {
+      rmSync(repo.path, { recursive: true, force: true })
+    }
+  })
+
+  it('readWorkingDirectoryFile returns undefined for a missing file', async () => {
+    const repo = makeFakeRepository()
+    try {
+      const content = await readWorkingDirectoryFile(repo, 'nope.txt')
+      assert.strictEqual(content, undefined)
+    } finally {
+      rmSync(repo.path, { recursive: true, force: true })
+    }
+  })
+
+  it('readWorkingDirectoryFile round-trips with writeWorkingDirectoryFile', async () => {
+    const repo = makeFakeRepository()
+    try {
+      await writeWorkingDirectoryFile(repo, 'round.txt', 'round trip content')
+      const content = await readWorkingDirectoryFile(repo, 'round.txt')
+      assert.strictEqual(content, 'round trip content')
     } finally {
       rmSync(repo.path, { recursive: true, force: true })
     }
