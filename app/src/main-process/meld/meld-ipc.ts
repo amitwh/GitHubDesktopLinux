@@ -41,4 +41,16 @@ export function registerMeldIpcHandlers() {
       })
     })
   })
+
+  /**
+   * Phase 1b: thin forwarder for save-edits. The actual write + stage
+   * is performed in the renderer via the dispatcher, which has access
+   * to the AppStore and git helpers. This handler exists so the
+   * channel is registered and tests can spy on it; future phases
+   * (3-way merge) will move the write logic into the main process
+   * where it can hold the index lock across multiple file writes.
+   */
+  ipcMain.handle('meld:save-edits', async () => {
+    return { success: true }
+  })
 }

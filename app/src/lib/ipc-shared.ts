@@ -142,4 +142,5 @@ export type RequestResponseChannels = {
     error?: string
   }>
   'meld:open-window': (args: unknown) => Promise<{ sessionID: string }>
+  'meld:save-edits': () => Promise<{ success: boolean; error?: string }>
 }
