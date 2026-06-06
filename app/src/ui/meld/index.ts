@@ -13,6 +13,13 @@ export type {
   IMeldToolbarProps,
   IMeldFilter,
   IMeldMode,
+  IMeldEditMode,
 } from './MeldToolbar'
+export { MeldEditorPane } from './MeldEditorPane'
+export type { IMeldEditorPaneProps } from './MeldEditorPane'
+export { MeldCharDiff } from './MeldCharDiff'
+export type { IMeldCharDiffProps } from './MeldCharDiff'
+export { MeldCopyButtons } from './MeldCopyButtons'
+export type { IMeldCopyButtonsProps } from './MeldCopyButtons'
 export { ExternalToolsSettings } from './settings/ExternalToolsSettings'
 export type { IExternalToolsSettingsProps } from './settings/ExternalToolsSettings'
