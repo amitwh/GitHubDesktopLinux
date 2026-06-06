@@ -20,6 +20,26 @@ export interface IConflictHunk {
   readonly startLine: number
   /** Inclusive end line of the hunk (the line of `>>>>>>> ...`). */
   readonly endLine: number
+  /**
+   * The text that appears on the `||||||| <label>` line (the line
+   * immediately after `<<<<<<< HEAD` in a 4-marker conflict block).
+   * When this field is absent/undefined, the `|||||||` line was bare
+   * (`|||||||` with no trailing text) and the base content appears
+   * on the next line.
+   *
+   * Example: if the label line is `||||||| base`, then `baseLabel`
+   * is the string `"base"`. If the label line is `||||||| merged`,
+   * `baseLabel` is `"merged"`.
+   *
+   * This is needed to faithfully round-trip conflict markers.
+   */
+  readonly baseLabel?: string
+  /**
+   * The text that appears on the `>>>>>>> <label>` end marker line.
+   * Example: `>>>>>>> branch` → `endLabel = "branch"`.
+   * When absent, synthesised as `>>>>>>> HEAD` to match git default.
+   */
+  readonly endLabel?: string
 }
 
 /**
