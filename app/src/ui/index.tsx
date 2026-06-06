@@ -488,6 +488,7 @@ ReactDOM.render(
       aheadBehindStore={aheadBehindStore}
       notificationsDebugStore={notificationsDebugStore}
     startTime={startTime}
-  />,
+  />
+  ),
   document.getElementById('desktop-app-container')!
 )
