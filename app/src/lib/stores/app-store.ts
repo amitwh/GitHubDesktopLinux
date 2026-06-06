@@ -153,8 +153,11 @@ import {
   IConstrainedValue,
   ICompareState,
   CommitOptions,
+  IMeldSession,
 } from '../app-state'
 import type { ModelInfo } from '@github/copilot-sdk'
+import { IExternalTool } from '../../models/external-tool'
+import { getDefaultExternalTools } from '../meld'
 import {
   findEditorOrDefault,
   getAvailableEditors,
@@ -709,6 +712,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private selectedCopilotModels: CopilotModelSelections = {}
   private copilotModels: ReadonlyArray<ModelInfo> | null = null
   private byokProviders: ReadonlyArray<IBYOKProvider> = []
+  private meldSessions: ReadonlyArray<IMeldSession> = []
+  private externalTools: ReadonlyArray<IExternalTool> = getDefaultExternalTools()
 
   public constructor(
     private readonly gitHubUserStore: GitHubUserStore,
@@ -1150,6 +1155,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
       errorCount: this.popupManager.getPopupsOfType(PopupType.Error).length,
       showWelcomeFlow: this.showWelcomeFlow,
       focusCommitMessage: this.focusCommitMessage,
+      meldSessions: this.meldSessions,
+      externalTools: this.externalTools,
       emoji: this.emoji,
       sidebarWidth: this.sidebarWidth,
       branchDropdownWidth: this.branchDropdownWidth,

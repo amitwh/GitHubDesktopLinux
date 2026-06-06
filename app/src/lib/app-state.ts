@@ -10,6 +10,7 @@ import { Account } from '../models/account'
 import { CommitIdentity } from '../models/commit-identity'
 import { IDiff, ImageDiffType } from '../models/diff'
 import { Repository, ILocalRepositoryState } from '../models/repository'
+import { IExternalTool } from '../models/external-tool'
 import { Branch, IAheadBehind } from '../models/branch'
 import { Tip } from '../models/tip'
 import { Commit } from '../models/commit'
@@ -141,6 +142,19 @@ export interface IAppState {
   readonly appIsFocused: boolean
 
   readonly showWelcomeFlow: boolean
+
+  /**
+   * Open Meld window sessions. Each entry corresponds to a separate
+   * Electron BrowserWindow showing the Meld-style diff viewer.
+   */
+  readonly meldSessions: ReadonlyArray<IMeldSession>
+
+  /**
+   * Configured external diff tools (Meld, KDiff3, custom). Default
+   * built-in tools are seeded on app startup; user-added tools are
+   * appended.
+   */
+  readonly externalTools: ReadonlyArray<IExternalTool>
   readonly focusCommitMessage: boolean
   readonly currentPopup: Popup | null
   readonly allPopups: ReadonlyArray<Popup>
@@ -478,6 +492,15 @@ export type MergeConflictState = {
   readonly currentBranch: string
   readonly currentTip: string
   readonly manualResolutions: Map<string, ManualConflictResolution>
+}
+
+/** A live Meld window session. */
+export interface IMeldSession {
+  readonly id: string
+  readonly repositoryID: number
+  readonly filePath: string
+  readonly mode: 'working' | 'commit' | 'merge'
+  readonly baseRef?: string
 }
 
 /** Guard function for checking conflicts are from a merge  */
