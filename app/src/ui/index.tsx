@@ -420,15 +420,73 @@ ipcRenderer.on('cli-action', (_, action) =>
   })
 })(Grid.defaultProps, Grid.propTypes)
 
+import { MeldWindow } from './meld'
+
+/** Parse the Meld window arguments from the URL hash, or null if not in meld mode. */
+function parseMeldArgsFromHash(): {
+  readonly repositoryID: number
+  readonly filePath: string
+  readonly mode: 'working' | 'commit' | 'merge'
+} | null {
+  const hash = window.location.hash
+  if (!hash.startsWith('#meld?')) return null
+  const params = new URLSearchParams(hash.substring('#meld?'.length))
+  const repositoryID = Number(params.get('repositoryID'))
+  const filePath = params.get('filePath') || ''
+  const mode = (params.get('mode') || 'working') as
+    | 'working'
+    | 'commit'
+    | 'merge'
+  if (Number.isNaN(repositoryID) || filePath === '') return null
+  return { repositoryID, filePath, mode }
+}
+
 ReactDOM.render(
-  <App
-    dispatcher={dispatcher}
-    appStore={appStore}
-    repositoryStateManager={repositoryStateManager}
-    issuesStore={issuesStore}
-    gitHubUserStore={gitHubUserStore}
-    aheadBehindStore={aheadBehindStore}
-    notificationsDebugStore={notificationsDebugStore}
+  parseMeldArgsFromHash() ? (
+    <MeldWindow
+      repositoryID={parseMeldArgsFromHash()!.repositoryID}
+      filePath={parseMeldArgsFromHash()!.filePath}
+      mode={parseMeldArgsFromHash()!.mode}
+      files={[]}
+      availableTools={appStore.getExternalTools()}
+      onGetDiff={async (_id, filePath, _mode) => {
+        // Phase 1a stub: real implementation lives in app.tsx wiring
+        // (Task 18) and talks to git via the dispatcher.
+        return {
+          kind: 0 as never,
+          text: `[Stub diff for ${filePath} — real wiring in Task 18]`,
+          hunks: [],
+          maxLineNumber: 0,
+          hasHiddenBidiChars: false,
+        }
+      }}
+      onLaunchExternalTool={async (tool, left, right, base) => {
+        return new Promise(resolve => {
+          const ipcRenderer = window.electron?.ipcRenderer
+          if (!ipcRenderer) {
+            resolve({ success: false, error: 'IPC unavailable' })
+            return
+          }
+          ipcRenderer.invoke(
+            'meld:launch-external-tool',
+            { tool, leftPath: left, rightPath: right, basePath: base }
+          ).then(
+            result => resolve(result as { success: boolean; error?: string }),
+            err => resolve({ success: false, error: err.message })
+          )
+        })
+      }}
+      onClose={() => window.close()}
+    />
+  ) : (
+    <App
+      dispatcher={dispatcher}
+      appStore={appStore}
+      repositoryStateManager={repositoryStateManager}
+      issuesStore={issuesStore}
+      gitHubUserStore={gitHubUserStore}
+      aheadBehindStore={aheadBehindStore}
+      notificationsDebugStore={notificationsDebugStore}
     startTime={startTime}
   />,
   document.getElementById('desktop-app-container')!
