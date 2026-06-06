@@ -406,6 +406,13 @@ export function buildDefaultMenuTemplate({
         id: 'export-commit-history',
         click: emit('export-commit-history'),
       },
+      { type: 'separator' },
+      {
+        label: __DARWIN__ ? 'Open Current File in Meld Window' : 'Open current file in &Meld window',
+        id: 'open-current-file-in-meld-window',
+        accelerator: 'CmdOrCtrl+Shift+D',
+        click: emit('open-current-file-in-meld-window'),
+      },
       {
         label: __DARWIN__ ? 'View Reflog' : 'View &reflog',
         id: 'view-reflog',

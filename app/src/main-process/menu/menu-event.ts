@@ -26,6 +26,7 @@ export type MenuEvent =
   | 'rebase-branch'
   | 'show-repository-settings'
   | 'export-commit-history'
+  | 'open-current-file-in-meld-window'
   | 'view-reflog'
   | 'view-blame'
   | 'view-stashes'
