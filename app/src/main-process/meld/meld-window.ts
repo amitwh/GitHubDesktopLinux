@@ -5,6 +5,17 @@ export interface IOpenMeldWindowArgs {
   readonly repositoryID: number
   readonly filePath: string
   readonly mode: 'working' | 'commit' | 'merge'
+  /**
+   * Phase 1c merge mode: SHA of the common ancestor (BASE). Optional
+   * because working/commit modes don't need it. The renderer uses
+   * this to call `readThreeWayContents` on mount.
+   */
+  readonly mergeBaseSha?: string
+  /**
+   * Phase 1c merge mode: SHA of the incoming branch tip (THEIRS).
+   * Optional for the same reason as `mergeBaseSha`.
+   */
+  readonly theirsSha?: string
 }
 
 const openWindows = new Map<string, BrowserWindow>()
@@ -33,11 +44,18 @@ export function openMeldWindow(args: IOpenMeldWindowArgs): string {
   })
 
   // Build the URL hash with query string for the renderer to pick up
-  const query = new URLSearchParams({
+  const queryParams: Record<string, string> = {
     repositoryID: String(args.repositoryID),
     filePath: args.filePath,
     mode: args.mode,
-  }).toString()
+  }
+  if (args.mergeBaseSha !== undefined) {
+    queryParams.mergeBaseSha = args.mergeBaseSha
+  }
+  if (args.theirsSha !== undefined) {
+    queryParams.theirsSha = args.theirsSha
+  }
+  const query = new URLSearchParams(queryParams).toString()
 
   // Load the existing app's index.html with a special hash route.
   // The renderer (Task 17) detects the hash and mounts <MeldWindow>.

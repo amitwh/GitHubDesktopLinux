@@ -1,8 +1,13 @@
 import * as ipcMain from '../ipc-main'
 import { spawn } from 'child_process'
+import { writeFile, mkdtemp, rm, readFile } from 'fs/promises'
+import { join } from 'path'
+import { tmpdir } from 'os'
 import { getDefaultExternalTools } from '../../lib/meld/default-tools'
 import { substituteArgs } from '../../lib/meld/external-tool-args'
 import { IExternalTool } from '../../models/external-tool'
+import { gitMergeFile } from '../../lib/git/merge-file'
+import { Repository } from '../../models/repository'
 import { openMeldWindow, IOpenMeldWindowArgs } from './meld-window'
 
 interface ILaunchToolRequest {
@@ -10,6 +15,13 @@ interface ILaunchToolRequest {
   readonly leftPath: string
   readonly rightPath: string
   readonly basePath?: string
+}
+
+interface IAutoMergeRequest {
+  readonly repositoryPath: string
+  readonly baseContent: string
+  readonly localContent: string
+  readonly remoteContent: string
 }
 
 export function registerMeldIpcHandlers() {
@@ -52,5 +64,51 @@ export function registerMeldIpcHandlers() {
    */
   ipcMain.handle('meld:save-edits', async () => {
     return { success: true }
+  })
+
+  /**
+   * Phase 1c: run `git merge-file` in the main process. The renderer
+   * sends the three sides of a 3-way merge and gets back the merged
+   * content. We write the three inputs to a temp dir, invoke the
+   * existing `gitMergeFile` helper, and clean up.
+   *
+   * Keeping the git call in the main process means the renderer never
+   * has to spawn `git` directly, and tests can mock the IPC channel.
+   */
+  ipcMain.handle('meld:auto-merge', async (_event, req: unknown) => {
+    const r = req as IAutoMergeRequest
+    const repository: Repository = {
+      id: -1,
+      name: '',
+      path: r.repositoryPath,
+      hash: '',
+      lastFetched: null,
+    } as unknown as Repository
+
+    const tmpDir = await mkdtemp(join(tmpdir(), 'ghd-meld-merge-'))
+    const basePath = join(tmpDir, 'BASE')
+    const oursPath = join(tmpDir, 'OURS')
+    const theirsPath = join(tmpDir, 'THEIRS')
+
+    try {
+      await Promise.all([
+        writeFile(basePath, r.baseContent, 'utf8'),
+        writeFile(oursPath, r.localContent, 'utf8'),
+        writeFile(theirsPath, r.remoteContent, 'utf8'),
+      ])
+
+      const result = await gitMergeFile(repository, basePath, oursPath, theirsPath)
+
+      // git merge-file writes the merged result to basePath in place.
+      const mergedContent = await readFile(basePath, 'utf8')
+
+      return {
+        mergedContent,
+        clean: result.clean,
+        conflictCount: result.conflictCount,
+      }
+    } finally {
+      void rm(tmpDir, { recursive: true, force: true })
+    }
   })
 }

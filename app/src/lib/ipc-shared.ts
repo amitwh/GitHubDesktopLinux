@@ -143,4 +143,10 @@ export type RequestResponseChannels = {
   }>
   'meld:open-window': (args: unknown) => Promise<{ sessionID: string }>
   'meld:save-edits': () => Promise<{ success: boolean; error?: string }>
+  // Phase 1c: three-way auto-merge via git merge-file
+  'meld:auto-merge': (req: unknown) => Promise<{
+    mergedContent: string
+    clean: boolean
+    conflictCount: number
+  }>
 }
