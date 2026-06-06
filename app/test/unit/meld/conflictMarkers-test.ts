@@ -117,15 +117,16 @@ describe('conflictMarkers/synthesizeMerge', () => {
   })
 
   it('round-trips with parseConflictMarkers (single conflict)', () => {
+    // baseLabel/endLabel are YAGNI — synthesizeMerge emits bare ||||||| and >>>>>>> HEAD
     const merged = [
       'pre',
       '<<<<<<< HEAD',
       'local',
-      '||||||| base',
+      '|||||||',
       'base',
       '=======',
       'remote',
-      '>>>>>>> branch',
+      '>>>>>>> HEAD',
       'post',
     ].join('\n')
     const regions = parseConflictMarkers(merged)
@@ -134,23 +135,24 @@ describe('conflictMarkers/synthesizeMerge', () => {
   })
 
   it('round-trips with parseConflictMarkers (multiple conflicts)', () => {
+    // baseLabel/endLabel are YAGNI — synthesizeMerge emits bare ||||||| and >>>>>>> HEAD
     const merged = [
       'start',
       '<<<<<<< HEAD',
       'L1',
-      '||||||| b',
+      '|||||||',
       'B1',
       '=======',
       'R1',
-      '>>>>>>> br',
+      '>>>>>>> HEAD',
       'middle',
       '<<<<<<< HEAD',
       'L2',
-      '||||||| b2',
+      '|||||||',
       'B2',
       '=======',
       'R2',
-      '>>>>>>> br',
+      '>>>>>>> HEAD',
       'end',
     ].join('\n')
     const regions = parseConflictMarkers(merged)
@@ -159,13 +161,14 @@ describe('conflictMarkers/synthesizeMerge', () => {
   })
 
   it('round-trips with parseConflictMarkers (3-marker variant)', () => {
+    // endLabel is YAGNI — synthesizeMerge always emits >>>>>>> HEAD
     const merged = [
       'start',
       '<<<<<<< HEAD',
       'local',
       '=======',
       'remote',
-      '>>>>>>> branch',
+      '>>>>>>> HEAD',
       'end',
     ].join('\n')
     const regions = parseConflictMarkers(merged)

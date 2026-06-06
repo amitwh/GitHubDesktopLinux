@@ -101,7 +101,6 @@ function parseConflictBlock(
 ): IConflictHunk {
   let localContent = ''
   let baseContent = ''
-  let baseLabel: string | undefined
   let remoteContent = ''
 
   let phase: 'local' | 'base' | 'remote' = 'local'
@@ -112,15 +111,7 @@ function parseConflictBlock(
 
     if (line.startsWith(MARKER_BASE)) {
       // `|||||||` — switch to base section.
-      // If the line has trailing text after `||||||| ` (e.g. `||||||| base`),
-      // that text is the base label. The actual base content follows on the
-      // NEXT line and is accumulated in the base phase.
-      // If the line is bare `|||||||`, baseLabel stays undefined and the
-      // base content (if any) is accumulated from the next line.
-      const afterMarker = line.slice(MARKER_BASE.length + 1)
-      if (afterMarker.length > 0) {
-        baseLabel = afterMarker
-      }
+      // Parse but discard any trailing label text on this line.
       phase = 'base'
       lineIdx++
       continue
@@ -135,16 +126,12 @@ function parseConflictBlock(
 
     if (line.startsWith(MARKER_END)) {
       // `>>>>>>> ...` — end of conflict block.
-      // Extract the end label (everything after `>>>>>>> `).
-      const endLabel = line.slice(MARKER_END.length)
       return {
         baseContent,
         localContent,
         remoteContent,
         startLine: startLineIdx,
         endLine: lineIdx,
-        baseLabel,
-        endLabel: endLabel.length > 0 ? endLabel : undefined,
       }
     }
 
@@ -167,7 +154,6 @@ function parseConflictBlock(
     remoteContent,
     startLine: startLineIdx,
     endLine: lineIdx,
-    baseLabel,
   }
 }
 
@@ -198,27 +184,19 @@ export function synthesizeMerge(
     if (region.kind === 'context') {
       parts.push(region.content)
     } else {
-      const { baseContent, localContent, remoteContent, baseLabel, endLabel } =
-        region.hunk
+      const { baseContent, localContent, remoteContent } = region.hunk
       parts.push('<<<<<<< HEAD')
       parts.push(localContent)
 
-      if (baseContent.length > 0 || baseLabel !== undefined) {
+      if (baseContent.length > 0) {
         // 4-marker variant: output the base label line then the base content
-        if (baseLabel !== undefined) {
-          // Labelled base: `||||||| <baseLabel>\n<baseContent>\n`
-          parts.push('||||||| ' + baseLabel)
-          parts.push(baseContent)
-        } else {
-          // Bare base marker: `|||||||\n<baseContent>\n`
-          parts.push('|||||||')
-          parts.push(baseContent)
-        }
+        parts.push('|||||||')
+        parts.push(baseContent)
       }
 
       parts.push('=======')
       parts.push(remoteContent)
-      parts.push('>>>>>>> ' + (endLabel ?? 'HEAD'))
+      parts.push('>>>>>>> HEAD')
     }
   }
 
