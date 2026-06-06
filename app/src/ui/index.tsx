@@ -461,19 +461,27 @@ ReactDOM.render(
         }
       }}
       onLaunchExternalTool={async (tool, left, right, base) => {
-        return new Promise(resolve => {
-          const ipcRenderer = window.electron?.ipcRenderer
+        return new Promise<{ success: boolean; error?: string }>(resolve => {
+          const w = window as unknown as {
+            electron?: { ipcRenderer?: { invoke: (channel: string, ...args: unknown[]) => Promise<unknown> } }
+          }
+          const ipcRenderer = w.electron?.ipcRenderer
           if (!ipcRenderer) {
             resolve({ success: false, error: 'IPC unavailable' })
             return
           }
-          ipcRenderer.invoke(
-            'meld:launch-external-tool',
-            { tool, leftPath: left, rightPath: right, basePath: base }
-          ).then(
-            result => resolve(result as { success: boolean; error?: string }),
-            err => resolve({ success: false, error: err.message })
-          )
+          ipcRenderer
+            .invoke('meld:launch-external-tool', {
+              tool,
+              leftPath: left,
+              rightPath: right,
+              basePath: base,
+            })
+            .then(
+              (result: unknown) =>
+                resolve(result as { success: boolean; error?: string }),
+              (err: Error) => resolve({ success: false, error: err.message })
+            )
         })
       }}
       onClose={() => window.close()}
