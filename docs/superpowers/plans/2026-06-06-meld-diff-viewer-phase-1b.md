@@ -451,11 +451,26 @@ Before implementation, two decisions shape the feature:
 
 1. **Char diff granularity:** `diffChars` from the `diff` package gives character-level granularity, which can be noisy for long unchanged sequences. Should we use `diffWordsWithSpace` for word-level instead, or expose a user toggle?
 
+   **Resolved:** Use `diffChars` (already in `app/package.json` as a transitive dep of `parse-diff`). Word-level can be added in 1c if user feedback warrants it.
+
 2. **Initial content derivation:** The diff data model gives us unified diff text and parsed hunks. We can either:
    - Parse the unified diff text to reconstruct left/right content (fragile), or
    - Read the actual file from disk for the working-tree side and use `git show HEAD:path` for the commit side (more accurate but requires async git calls).
 
-   For 1b, reading from disk + `git show` is recommended for accuracy. This requires extending the dispatcher to fetch both sides before opening the Meld window.
+   **Resolved (for 1b):** Reuse the diff text as both panes' initial content (`editStateFromDiff` helper in `MeldWindow.tsx`). Disk-backed derivation lands in 1c when the dispatcher can be extended cleanly.
+
+## Completion Notes
+
+**Phase 1b completed: 2026-06-06**
+
+- All 16 implementation tasks completed and committed.
+- 87/87 unit tests passing across `meld/`, `ui/meld/`, `git/working-directory`, and `ipc-contract`.
+- `yarn build:prod` ✅ succeeds.
+- `yarn package` ✅ produces `deb`, `AppImage`, and `snap` targets.
+- No new ESLint errors in Meld files (pre-existing errors in SmartGit feature dialogs are unrelated).
+- The 9 unit-test failures in the full `yarn test:unit` run are all git-integration tests that need a real `git` binary in the test environment (`git/commit`, `git/for-each-ref`, `getFilesWithConflictMarkers`); none are Meld-related and none were introduced by Phase 1b.
+
+After 1b ships, move to Phase 1c (3-way merge view).
 
 ---
 
