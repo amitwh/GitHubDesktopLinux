@@ -3,6 +3,7 @@ import { spawn } from 'child_process'
 import { getDefaultExternalTools } from '../../lib/meld/default-tools'
 import { substituteArgs } from '../../lib/meld/external-tool-args'
 import { IExternalTool } from '../../models/external-tool'
+import { openMeldWindow, IOpenMeldWindowArgs } from './meld-window'
 
 interface ILaunchToolRequest {
   readonly tool: IExternalTool
@@ -14,6 +15,11 @@ interface ILaunchToolRequest {
 export function registerMeldIpcHandlers() {
   ipcMain.handle('meld:list-tools', async () => {
     return getDefaultExternalTools()
+  })
+
+  ipcMain.handle('meld:open-window', async (_event, args: IOpenMeldWindowArgs) => {
+    const sessionID = openMeldWindow(args)
+    return { sessionID }
   })
 
   ipcMain.handle('meld:launch-external-tool', async (_event, req: ILaunchToolRequest) => {
