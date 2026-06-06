@@ -25,6 +25,12 @@ export interface IMeldMergedPaneProps {
  * The component uses `parseConflictMarkers` to identify context vs.
  * conflict regions in the MERGED text. Hunks are in the same order as
  * the `hunks` prop array.
+ *
+ * NOTE: The docstring above references `parseConflictMarkers`, but the
+ * implementation does not import or call it. The action bars are
+ * rendered as siblings below the textarea, and `hunks` is provided by
+ * the parent. If/when marker-based positioning is needed, this comment
+ * block should be updated to match the implementation.
  */
 export class MeldMergedPane extends React.Component<IMeldMergedPaneProps> {
   private static readonly DebounceMs = 200
@@ -67,7 +73,7 @@ export class MeldMergedPane extends React.Component<IMeldMergedPaneProps> {
   }
 
   public render() {
-    const { content, hunks, readOnly } = this.props
+    const { hunks, readOnly } = this.props
 
     const lineCount = Math.max(1, this.draft.split('\n').length)
     const lineNumbers = Array.from(

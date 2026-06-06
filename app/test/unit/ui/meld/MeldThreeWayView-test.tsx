@@ -95,13 +95,14 @@ describe('MeldThreeWayView', () => {
     const line4Rows = container.querySelectorAll('[data-line="3"]')
     assert.ok(line4Rows.length > 0, 'expected at least one row at line index 3')
     fireEvent.click(line4Rows[0])
-    assert.ok(capturedHunk !== null, 'expected onHunkClicked to be called')
+    assert.ok(capturedHunk, 'expected onHunkClicked to be called')
+    const hunk = capturedHunk as IConflictHunk
     // The hunk should contain line4 content
     assert.ok(
-      capturedHunk!.baseContent.includes('line4') ||
-        capturedHunk!.localContent.includes('line4') ||
-        capturedHunk!.remoteContent.includes('line4'),
-      `expected captured hunk to involve line4, got ${JSON.stringify(capturedHunk)}`
+      hunk.baseContent.includes('line4') ||
+        hunk.localContent.includes('line4') ||
+        hunk.remoteContent.includes('line4'),
+      `expected captured hunk to involve line4, got ${JSON.stringify(hunk)}`
     )
   })
 

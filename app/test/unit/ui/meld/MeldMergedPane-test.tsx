@@ -32,9 +32,11 @@ describe('MeldMergedPane', () => {
         onHunkResolved={() => undefined}
       />
     )
-    const textarea = container.querySelector('textarea[data-testid="merged-textarea"]')
+    const textarea = container.querySelector<HTMLTextAreaElement>(
+      'textarea[data-testid="merged-textarea"]'
+    )
     assert.ok(textarea !== null, 'expected a textarea')
-    assert.strictEqual(textarea.value, content)
+    assert.strictEqual(textarea!.value, content)
   })
 
   it('renders the title "Merged Output"', () => {
