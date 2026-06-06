@@ -4,15 +4,18 @@ import { IExternalTool } from '../../models/external-tool'
 
 export type IMeldFilter = 'all' | 'changes' | 'identical' | 'untracked'
 export type IMeldMode = 'side-by-side' | 'unified'
+export type IMeldEditMode = 'view' | 'edit'
 
 export interface IMeldToolbarProps {
   readonly repositoryName: string
   readonly filePath: string
   readonly filter: IMeldFilter
   readonly mode: IMeldMode
+  readonly editMode: IMeldEditMode
   readonly availableTools: ReadonlyArray<IExternalTool>
   readonly onFilterChanged: (filter: IMeldFilter) => void
   readonly onModeChanged: (mode: IMeldMode) => void
+  readonly onEditModeChanged: (mode: IMeldEditMode) => void
   readonly onExternalToolLaunched: (tool: IExternalTool) => void
 }
 
@@ -32,7 +35,7 @@ export class MeldToolbar extends React.Component<IMeldToolbarProps, IMeldToolbar
   }
 
   public render() {
-    const { repositoryName, filePath, filter, mode, availableTools } = this.props
+    const { repositoryName, filePath, filter, mode, editMode, availableTools } = this.props
     return (
       <div className="meld-toolbar" role="toolbar" aria-label="Meld toolbar">
         <span className="meld-toolbar-repository">{repositoryName}</span>
@@ -40,6 +43,28 @@ export class MeldToolbar extends React.Component<IMeldToolbarProps, IMeldToolbar
           /
         </span>
         <span className="meld-toolbar-file">{filePath}</span>
+
+        <div className="meld-toolbar-edit-toggle" role="radiogroup" aria-label="Edit mode">
+          <button
+            type="button"
+            role="radio"
+            aria-checked={editMode === 'view'}
+            onClick={() => this.props.onEditModeChanged('view')}
+            data-testid="edit-mode-view"
+          >
+            View
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-label="Edit"
+            aria-checked={editMode === 'edit'}
+            onClick={() => this.props.onEditModeChanged('edit')}
+            data-testid="edit-mode-edit"
+          >
+            Edit
+          </button>
+        </div>
 
         <label className="meld-toolbar-field">
           <span>Filter:</span>

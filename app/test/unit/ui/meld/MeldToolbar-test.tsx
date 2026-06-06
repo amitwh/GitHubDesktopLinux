@@ -16,9 +16,11 @@ describe('MeldToolbar', () => {
     filePath: 'src/example.ts',
     filter: 'all',
     mode: 'side-by-side',
+    editMode: 'view',
     availableTools: tools,
     onFilterChanged: () => {},
     onModeChanged: () => {},
+    onEditModeChanged: () => {},
     onExternalToolLaunched: () => {},
   }
 
@@ -63,5 +65,40 @@ describe('MeldToolbar', () => {
     fireEvent.click(screen.getByRole('button', { name: /external tool/i }))
     assert.ok(screen.getByText('Meld'))
     assert.ok(screen.getByText('KDiff3'))
+  })
+
+  it('calls onEditModeChanged with "edit" when Edit is clicked', () => {
+    let received: string | null = null
+    const { container } = render(
+      <MeldToolbar
+        {...defaultProps}
+        onEditModeChanged={m => {
+          received = m
+        }}
+      />
+    )
+    const editButton = container.querySelector(
+      'button[data-testid="edit-mode-edit"]'
+    ) as HTMLElement
+    fireEvent.click(editButton)
+    assert.strictEqual(received, 'edit')
+  })
+
+  it('calls onEditModeChanged with "view" when View is clicked', () => {
+    let received: string | null = null
+    const { container } = render(
+      <MeldToolbar
+        {...defaultProps}
+        editMode="edit"
+        onEditModeChanged={m => {
+          received = m
+        }}
+      />
+    )
+    const viewButton = container.querySelector(
+      'button[data-testid="edit-mode-view"]'
+    ) as HTMLElement
+    fireEvent.click(viewButton)
+    assert.strictEqual(received, 'view')
   })
 })

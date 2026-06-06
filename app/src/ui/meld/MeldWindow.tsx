@@ -4,7 +4,7 @@ import { IDiff, ITextDiff, ILargeTextDiff, DiffType } from '../../models/diff'
 import { IMeldEditState } from '../../models/meld-edit'
 import { MeldFileTree, IMeldFile } from './MeldFileTree'
 import { MeldDiffPane } from './MeldDiffPane'
-import { MeldToolbar, IMeldFilter, IMeldMode } from './MeldToolbar'
+import { MeldToolbar, IMeldFilter, IMeldMode, IMeldEditMode } from './MeldToolbar'
 import { applyEdit, revertEdits, copyHunk, IHunkRange } from '../../lib/meld/diffOperations'
 
 export type IMeldWindowMode = 'working' | 'commit' | 'merge'
@@ -58,6 +58,7 @@ interface IMeldWindowState {
   readonly diffLoading: boolean
   readonly filter: IMeldFilter
   readonly mode: IMeldMode
+  readonly editMode: IMeldEditMode
   readonly errorMessage: string | null
   readonly editState: IMeldEditState | null
   readonly fileChangedSinceLoad: boolean
@@ -100,6 +101,7 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
       diffLoading: true,
       filter: 'all',
       mode: 'side-by-side',
+      editMode: 'view',
       errorMessage: null,
       editState: null,
       fileChangedSinceLoad: false,
@@ -145,6 +147,10 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
 
   private onModeChanged = (mode: IMeldMode) => {
     this.setState({ mode })
+  }
+
+  private onEditModeChanged = (editMode: IMeldEditMode) => {
+    this.setState({ editMode })
   }
 
   private onExternalToolLaunched = async (tool: IExternalTool) => {
@@ -263,6 +269,7 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
       diffLoading,
       filter,
       mode,
+      editMode,
       errorMessage,
       editState,
       fileChangedSinceLoad,
@@ -274,9 +281,11 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
           filePath={selectedPath || filePath}
           filter={filter}
           mode={mode}
+          editMode={editMode}
           availableTools={availableTools}
           onFilterChanged={this.onFilterChanged}
           onModeChanged={this.onModeChanged}
+          onEditModeChanged={this.onEditModeChanged}
           onExternalToolLaunched={this.onExternalToolLaunched}
         />
         {errorMessage && (
@@ -311,6 +320,7 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
             diff={diff}
             loading={diffLoading}
             editState={editState}
+            readOnly={editMode === 'view'}
             onEditChange={this.onEditorChange}
             onEditSave={this.onEditorSave}
             onEditDiscard={this.onEditorDiscard}
