@@ -580,3 +580,29 @@ Phase 1c is done when:
 - All Meld unit tests pass.
 
 After 1c ships, move to Phase 2 (SmartGit Diff Integrations: blame gutter, stash mode, reflog wiring, submodule diffs).
+
+---
+
+## Phase 1c completion — 2026-06-06
+
+All 16 tasks shipped on the `linux` branch.
+
+**Test results:**
+- 131/131 Meld unit tests pass (22 suites across `app/test/unit/meld` and `app/test/unit/ui/meld`).
+- `yarn build:prod` succeeds.
+- `yarn package` produces AppImage, snap, and deb artifacts in `dist/`.
+
+**T9 fix:** Renamed props `mode` → `windowMode` in MeldWindow render to disambiguate from local state `mode` (IMeldMode vs IMeldWindowMode). Caught by tsl — would have shipped a confusing type bug.
+
+**T11/T12 wiring:** Extracted dispatcher `_resolveMergeShas` helper to share SHA resolution between `getThreeWayState` and `openInMeldWindowMergeMode`. The window's mergeBaseSha/theirsSha now flow through the URL hash so the renderer can fetch the three-way state on mount without an extra round-trip.
+
+**T15 note:** E2E test follows the existing `meld-basic-flow-test.ts` pattern but is named `meld-merge-flow.e2e.ts` (matching the `testMatch: '*.e2e.ts'` config) so Playwright actually picks it up. The test is `test.skip(...)` — requires a packaged app with a real in-progress merge.
+
+**Commits added in this phase (T9-T15):**
+- `ccaeceb201` feat(meld): wire mode: 'merge' into MeldWindow
+- `f8505eff41` feat(meld): extend meld:open-window and add meld:auto-merge IPC
+- `ed62a5acde` feat(meld): wire merge mode mount in React entry point
+- `b10e0281d7` feat(meld): add 'Open in Meld Window' button to merge-conflict dialog
+- `ebb13e16e0` style(meld): add SCSS for 3-way merge view
+- `48c4a2d159` feat(meld): export Phase 1c modules from barrels
+- `a614606e97` test(meld): add E2E test for merge flow
