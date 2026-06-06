@@ -512,6 +512,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showRepositorySettings()
       case 'export-commit-history':
         return this.showExportCommitHistoryDialog()
+      case 'open-current-file-in-meld-window':
+        return this.openCurrentFileInMeldWindow()
       case 'view-reflog':
         return this.showReflogDialog()
       case 'view-blame':
@@ -1345,6 +1347,31 @@ export class App extends React.Component<IAppProps, IAppState> {
       return
     }
     this.props.dispatcher.showExportCommitHistoryDialog(repository)
+  }
+
+  /**
+   * Open the currently focused file in a Meld window. Resolves the file
+   * path from the current selection state; falls back to the working
+   * directory diff if no specific file is selected.
+   */
+  private openCurrentFileInMeldWindow() {
+    const repository = this.getRepository()
+    if (!repository || repository instanceof CloningRepository) {
+      return
+    }
+    // Phase 1a: best-effort path resolution. Phase 1b will wire this to
+    // the focused file in the changes list / commit view.
+    const state = this.props.appStore.getState()
+    const sel = state.selectedState
+    if (sel && sel.type === SelectionType.WorkingDirectory) {
+      const file = sel.selectedFile
+      if (file) {
+        void this.props.dispatcher.openInMeldWindow(repository, file.path)
+        return
+      }
+    }
+    // Fall back: open a synthetic Meld session for the working dir
+    void this.props.dispatcher.openInMeldWindow(repository, '.')
   }
 
   private showReflogDialog() {
