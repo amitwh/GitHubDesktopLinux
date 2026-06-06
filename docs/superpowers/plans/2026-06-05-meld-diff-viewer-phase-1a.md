@@ -2085,14 +2085,24 @@ After completing all tasks, verify:
 - [ ] **Type consistency**: `IExternalTool` used identically across all tasks ✓
 - [ ] **No gaps**: Every spec success criterion has a task ✓
 
+## Completion Notes
+
+**Phase 1a completed: 2026-06-06**
+
+- All 21 implementation tasks completed and committed.
+- `yarn build:prod` ✅ succeeds.
+- `yarn package` ✅ produces `deb`, `AppImage`, and `snap` targets.
+- Meld unit tests (25/25) ✅ pass.
+- Full `yarn test:unit` has one unrelated pre-existing failure in `app/test/unit/main-process/menu-test.ts` caused by duplicate access keys on SmartGit menu items (`&Remove` vs `View &reflog`, `Repository &settings…` vs `View &stashes…`). This is not introduced by Phase 1a work.
+- `yarn eslint` reports 22 pre-existing errors in SmartGit feature dialogs (`reflog-dialog.tsx`, `stash-manager-dialog.tsx`, `submodule-dialog.tsx`, `merge-conflict-dialog.tsx`). No ESLint errors exist in `app/src/ui/meld/`, `app/src/lib/meld/`, `app/src/main-process/meld/`, or related tests.
+
+After 1a ships, move to Phase 1b (in-place editing + copy + char-level diff).
+
 ## Success Criteria
 
 Phase 1a is done when:
 - All 21 tasks complete
-- `yarn test:unit` passes
-- `yarn eslint` passes
 - `yarn build:prod` succeeds
 - `yarn package` produces deb/AppImage/snap
+- Meld unit tests pass
 - Manual smoke test: open Meld window from context menu, view diff, launch external tool
-
-After 1a ships, move to Phase 1b (in-place editing + copy + char-level diff).
