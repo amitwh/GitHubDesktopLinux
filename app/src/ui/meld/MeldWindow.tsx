@@ -5,18 +5,18 @@ import { MeldFileTree, IMeldFile } from './MeldFileTree'
 import { MeldDiffPane } from './MeldDiffPane'
 import { MeldToolbar, IMeldFilter, IMeldMode } from './MeldToolbar'
 
-export type IMeldMode = 'working' | 'commit' | 'merge'
+export type IMeldWindowMode = 'working' | 'commit' | 'merge'
 
 export interface IMeldWindowProps {
   readonly repositoryID: number
   readonly filePath: string
-  readonly mode: IMeldMode
+  readonly mode: IMeldWindowMode
   readonly files: ReadonlyArray<IMeldFile>
   readonly availableTools: ReadonlyArray<IExternalTool>
   readonly onGetDiff: (
     repositoryID: number,
     filePath: string,
-    mode: IMeldMode
+    mode: IMeldWindowMode
   ) => Promise<IDiff>
   readonly onLaunchExternalTool: (
     tool: IExternalTool,
