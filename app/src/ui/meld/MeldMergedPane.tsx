@@ -1,5 +1,4 @@
 import * as React from 'react'
-import { parseConflictMarkers } from '../../lib/meld/conflictMarkers'
 import { IConflictHunk } from '../../models/meld-merge'
 
 export interface IMeldMergedPaneProps {
