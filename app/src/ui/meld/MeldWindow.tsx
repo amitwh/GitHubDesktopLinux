@@ -2,10 +2,15 @@ import * as React from 'react'
 import { IExternalTool } from '../../models/external-tool'
 import { IDiff, ITextDiff, ILargeTextDiff, DiffType } from '../../models/diff'
 import { IMeldEditState } from '../../models/meld-edit'
+import { IThreeWayState, IConflictHunk } from '../../models/meld-merge'
 import { MeldFileTree, IMeldFile } from './MeldFileTree'
 import { MeldDiffPane } from './MeldDiffPane'
 import { MeldToolbar, IMeldFilter, IMeldMode, IMeldEditMode } from './MeldToolbar'
+import { MeldThreeWayView } from './MeldThreeWayView'
+import { MeldMergedPane } from './MeldMergedPane'
+import { MeldMergeControls } from './MeldMergeControls'
 import { applyEdit, revertEdits, copyHunk, IHunkRange } from '../../lib/meld/diffOperations'
+import { applyHunkResolution, buildConflictHunks } from '../../lib/meld/conflictMarkers'
 
 export type IMeldWindowMode = 'working' | 'commit' | 'merge'
 
@@ -50,6 +55,31 @@ export interface IMeldWindowProps {
     filePath: string
   ) => Promise<boolean>
   readonly onClose: () => void
+  /** Merge mode: three-way BASE/LOCAL/REMOTE state */
+  readonly threeWayState?: IThreeWayState
+  /** Merge mode: delegate to git merge-file for a clean auto-merge */
+  readonly onAutoMerge?: (
+    repositoryID: number,
+    filePath: string
+  ) => Promise<{ mergedContent: string; clean: boolean }>
+  /** Merge mode: write merged content + stage the file */
+  readonly onMarkMergeResolved?: (
+    repositoryID: number,
+    filePath: string,
+    mergedContent: string
+  ) => Promise<{ success: boolean; error?: string }>
+  /**
+   * Merge mode: per-hunk resolution callback.
+   * Called when the user clicks Accept LOCAL / Accept REMOTE / Use BASE
+   * in MeldMergedPane. The window handles the state update internally;
+   * this prop lets the parent persist or log if needed.
+   */
+  readonly onHunkResolved?: (
+    repositoryID: number,
+    filePath: string,
+    hunkIndex: number,
+    side: 'base' | 'local' | 'remote'
+  ) => void
 }
 
 interface IMeldWindowState {
@@ -62,6 +92,15 @@ interface IMeldWindowState {
   readonly errorMessage: string | null
   readonly editState: IMeldEditState | null
   readonly fileChangedSinceLoad: boolean
+  /** Merge mode: the current merged file content (updated as hunks are resolved) */
+  readonly mergedContent: string | null
+  /**
+   * Merge mode: the currently-selected hunk index in BASE-coord space.
+   * Derived from the MERGED-coord hunk index selected in MeldMergedPane
+   * by looking up the equivalent hunk in BASE/LOCAL/REMOTE content via
+   * computeBaseHunks(). null when no hunk is selected.
+   */
+  readonly activeHunkIndex: number | null
 }
 
 /**
@@ -105,6 +144,8 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
       errorMessage: null,
       editState: null,
       fileChangedSinceLoad: false,
+      mergedContent: props.threeWayState?.mergedContent ?? null,
+      activeHunkIndex: null,
     }
   }
 
@@ -271,8 +312,165 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
     void this.loadDiff(this.props.filePath)
   }
 
+  public componentDidUpdate(prevProps: IMeldWindowProps) {
+    // When threeWayState changes (e.g., initial load or external refresh),
+    // reset mergedContent so the UI reflects the latest state.
+    if (
+      this.props.threeWayState !== prevProps.threeWayState &&
+      this.props.threeWayState !== undefined
+    ) {
+      this.setState({
+        mergedContent: this.props.threeWayState.mergedContent,
+        activeHunkIndex: null,
+      })
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Merge-mode private helpers
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Replicate the same line-diff algorithm as MeldThreeWayView.computeHunks
+   * so we can derive a BASE-coord IConflictHunk from a MERGED-coord hunk index.
+   *
+   * Decision: we match by hunk index (not by line number), because the hunks
+   * appear in the same order across BASE/LOCAL/REMOTE. This is simpler and
+   * more robust than trying to translate MERGED-space line numbers to BASE-
+   * space (which would require accounting for conflict marker lines that
+   * exist only in the MERGED file).
+   */
+  private computeBaseHunks(baseLines: ReadonlyArray<string>, localLines: ReadonlyArray<string>, remoteLines: ReadonlyArray<string>): IConflictHunk[] {
+    const hunks: IConflictHunk[] = []
+    let i = 0
+
+    while (i < baseLines.length) {
+      const baseLine = baseLines[i]
+      const localLine = localLines[i] ?? ''
+      const remoteLine = remoteLines[i] ?? ''
+
+      const differs = baseLine !== localLine || baseLine !== remoteLine
+
+      if (differs) {
+        const runStart = i
+        let runEnd = runStart
+        while (
+          runEnd < baseLines.length &&
+          (baseLines[runEnd] !== (localLines[runEnd] ?? '') ||
+            baseLines[runEnd] !== (remoteLines[runEnd] ?? ''))
+        ) {
+          runEnd++
+        }
+
+        const runBaseContent = baseLines.slice(runStart, runEnd).join('\n')
+        const runLocalContent = localLines.slice(runStart, runEnd).join('\n')
+        const runRemoteContent = remoteLines.slice(runStart, runEnd).join('\n')
+
+        hunks.push({
+          baseContent: runBaseContent,
+          localContent: runLocalContent,
+          remoteContent: runRemoteContent,
+          startLine: runStart,
+          endLine: runEnd - 1,
+        })
+
+        i = runEnd
+      } else {
+        i++
+      }
+    }
+
+    return hunks
+  }
+
+  /**
+   * Given a MERGED-coord hunk index, find the equivalent IConflictHunk in
+   * BASE-coord space by computing hunks in BASE/LOCAL/REMOTE and matching by
+   * index. Returns null if the index is out of range.
+   */
+  private getActiveHunk(hunkIndex: number): IConflictHunk | null {
+    const { threeWayState } = this.props
+    if (!threeWayState) return null
+
+    const baseLines = threeWayState.baseContent.split('\n')
+    const localLines = threeWayState.localContent.split('\n')
+    const remoteLines = threeWayState.remoteContent.split('\n')
+
+    const baseHunks = this.computeBaseHunks(baseLines, localLines, remoteLines)
+    return baseHunks[hunkIndex] ?? null
+  }
+
+  private onMergeHunkResolved = (hunkIndex: number, side: 'base' | 'local' | 'remote') => {
+    const { mergedContent } = this.state
+    if (!mergedContent) return
+
+    const updated = applyHunkResolution(mergedContent, hunkIndex, side)
+    this.setState({ mergedContent: updated })
+
+    // Notify parent so it can persist / log if needed
+    if (this.props.onHunkResolved) {
+      this.props.onHunkResolved(
+        this.props.repositoryID,
+        this.props.filePath,
+        hunkIndex,
+        side,
+      )
+    }
+  }
+
+  private onMergeAutoMerge = async () => {
+    if (!this.props.onAutoMerge) return
+    try {
+      const result = await this.props.onAutoMerge(
+        this.props.repositoryID,
+        this.props.filePath,
+      )
+      this.setState({ mergedContent: result.mergedContent })
+    } catch (e) {
+      this.setState({
+        errorMessage: e instanceof Error ? e.message : 'Auto-merge failed',
+      })
+    }
+  }
+
+  private onMergeMarkResolved = async () => {
+    const { mergedContent } = this.state
+    if (!mergedContent || !this.props.onMarkMergeResolved) return
+
+    const result = await this.props.onMarkMergeResolved(
+      this.props.repositoryID,
+      this.props.filePath,
+      mergedContent,
+    )
+    if (!result.success) {
+      this.setState({ errorMessage: result.error || 'Failed to mark as resolved' })
+    }
+  }
+
+  private onMergeContentChange = (content: string) => {
+    this.setState({ mergedContent: content })
+  }
+
+  private onMergeHunkClicked = (hunk: IConflictHunk) => {
+    // Find the index of this hunk in BASE-coord space by matching startLine/endLine.
+    // (The hunk was produced by computeBaseHunks so we can use index lookup.)
+    const { threeWayState } = this.props
+    if (!threeWayState) return
+
+    const baseLines = threeWayState.baseContent.split('\n')
+    const localLines = threeWayState.localContent.split('\n')
+    const remoteLines = threeWayState.remoteContent.split('\n')
+    const baseHunks = this.computeBaseHunks(baseLines, localLines, remoteLines)
+    const idx = baseHunks.findIndex(h => h.startLine === hunk.startLine && h.endLine === hunk.endLine)
+    this.setState({ activeHunkIndex: idx >= 0 ? idx : null })
+  }
+
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
+
   public render() {
-    const { files, availableTools, filePath } = this.props
+    const { files, availableTools, filePath, mode: windowMode } = this.props
     const {
       selectedPath,
       diff,
@@ -283,42 +481,127 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
       errorMessage,
       editState,
       fileChangedSinceLoad,
+      mergedContent,
+      activeHunkIndex,
     } = this.state
+
+    const toolbar = (
+      <MeldToolbar
+        repositoryName={`Repository ${this.props.repositoryID}`}
+        filePath={selectedPath || filePath}
+        filter={filter}
+        mode={mode}
+        editMode={editMode}
+        availableTools={availableTools}
+        onFilterChanged={this.onFilterChanged}
+        onModeChanged={this.onModeChanged}
+        onEditModeChanged={this.onEditModeChanged}
+        onExternalToolLaunched={this.onExternalToolLaunched}
+      />
+    )
+
+    const errorBanner = errorMessage && (
+      <div className="meld-error-banner" role="alert">
+        {errorMessage}
+      </div>
+    )
+
+    const fileChangedBanner = fileChangedSinceLoad && (
+      <div
+        className="meld-file-changed-warning"
+        role="alert"
+        data-testid="file-changed-warning"
+      >
+        The file has changed on disk since the diff was loaded.{' '}
+        <button
+          type="button"
+          onClick={this.onReloadFromDisk}
+          aria-label="Reload from disk"
+        >
+          Reload from disk
+        </button>
+      </div>
+    )
+
+    const footer = (
+      <div className="meld-window-footer">
+        <button
+          type="button"
+          onClick={this.props.onClose}
+          aria-label="Close Meld window"
+        >
+          Close
+        </button>
+      </div>
+    )
+
+    // -----------------------------------------------------------------------
+    // Merge mode: three-way BASE/LOCAL/REMOTE + editable MERGED pane
+    // -----------------------------------------------------------------------
+    if (windowMode === 'merge') {
+      const { threeWayState } = this.props
+
+      if (!threeWayState) {
+        return (
+          <div className="meld-window">
+            {toolbar}
+            {errorBanner}
+            <div className="meld-window-body meld-merge-loading">
+              <span>Loading merge state…</span>
+            </div>
+            {footer}
+          </div>
+        )
+      }
+
+      // Derive the BASE-coord active hunk from the MERGED-coord activeHunkIndex.
+      // computeBaseHunks produces hunks in the same order across all three panes,
+      // so we match by index rather than translating MERGED line coords to BASE.
+      const activeHunk =
+        activeHunkIndex !== null ? this.getActiveHunk(activeHunkIndex) : null
+
+      // Recompute conflict hunks in MERGED space for the action bars.
+      const mergedHunks = buildConflictHunks(mergedContent ?? threeWayState.mergedContent)
+      const hasUnresolvedConflicts = mergedHunks.length > 0
+
+      return (
+        <div className="meld-window">
+          {toolbar}
+          {errorBanner}
+          <div className="meld-window-body meld-merge-body">
+            <MeldThreeWayView
+              baseContent={threeWayState.baseContent}
+              localContent={threeWayState.localContent}
+              remoteContent={threeWayState.remoteContent}
+              activeHunk={activeHunk}
+              onHunkClicked={this.onMergeHunkClicked}
+            />
+            <MeldMergedPane
+              content={mergedContent ?? threeWayState.mergedContent}
+              hunks={mergedHunks}
+              readOnly={false}
+              onContentChange={this.onMergeContentChange}
+              onHunkResolved={this.onMergeHunkResolved}
+            />
+            <MeldMergeControls
+              hasUnresolvedConflicts={hasUnresolvedConflicts}
+              onAutoMerge={this.onMergeAutoMerge}
+              onMarkResolved={this.onMergeMarkResolved}
+            />
+          </div>
+          {footer}
+        </div>
+      )
+    }
+
+    // -----------------------------------------------------------------------
+    // Working / commit mode: file tree + diff pane (existing layout)
+    // -----------------------------------------------------------------------
     return (
       <div className="meld-window">
-        <MeldToolbar
-          repositoryName={`Repository ${this.props.repositoryID}`}
-          filePath={selectedPath || filePath}
-          filter={filter}
-          mode={mode}
-          editMode={editMode}
-          availableTools={availableTools}
-          onFilterChanged={this.onFilterChanged}
-          onModeChanged={this.onModeChanged}
-          onEditModeChanged={this.onEditModeChanged}
-          onExternalToolLaunched={this.onExternalToolLaunched}
-        />
-        {errorMessage && (
-          <div className="meld-error-banner" role="alert">
-            {errorMessage}
-          </div>
-        )}
-        {fileChangedSinceLoad && (
-          <div
-            className="meld-file-changed-warning"
-            role="alert"
-            data-testid="file-changed-warning"
-          >
-            The file has changed on disk since the diff was loaded.{' '}
-            <button
-              type="button"
-              onClick={this.onReloadFromDisk}
-              aria-label="Reload from disk"
-            >
-              Reload from disk
-            </button>
-          </div>
-        )}
+        {toolbar}
+        {errorBanner}
+        {fileChangedBanner}
         <div className="meld-window-body">
           <MeldFileTree
             files={files}
@@ -338,15 +621,7 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
             onCopyHunkRight={this.onCopyHunkRightBound}
           />
         </div>
-        <div className="meld-window-footer">
-          <button
-            type="button"
-            onClick={this.props.onClose}
-            aria-label="Close Meld window"
-          >
-            Close
-          </button>
-        </div>
+        {footer}
       </div>
     )
   }
