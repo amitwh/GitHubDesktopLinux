@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron'
 import { spawn } from 'child_process'
 import { getDefaultExternalTools } from '../../lib/meld/default-tools'
-import { substituteArgs, ISubstituteArgsInput } from '../../lib/meld/external-tool-args'
+import { substituteArgs } from '../../lib/meld/external-tool-args'
 import { IExternalTool } from '../../models/external-tool'
 
 interface ILaunchToolRequest {
