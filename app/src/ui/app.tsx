@@ -1365,13 +1365,13 @@ export class App extends React.Component<IAppProps, IAppState> {
     const sel = state.selectedState
     if (sel && sel.type === SelectionType.Repository) {
       const repoState = sel.state
-      const changesSelection = repoState.changesState
+      const selection = repoState.changesState.selection
       if (
-        changesSelection.kind === 'workingDirectory' &&
-        changesSelection.selectedFileIDs.length > 0
+        selection.kind === ChangesSelectionKind.WorkingDirectory &&
+        selection.selectedFileIDs.length > 0
       ) {
-        const id = changesSelection.selectedFileIDs[0]
-        const file = changesSelection.workingDirectory.find(
+        const id = selection.selectedFileIDs[0]
+        const file = repoState.changesState.workingDirectory.files.find(
           f => f.id === id
         )
         if (file) {
