@@ -72,6 +72,7 @@ import { FetchType } from '../../models/fetch'
 import { GitHubRepository } from '../../models/github-repository'
 import { ManualConflictResolution } from '../../models/manual-conflict-resolution'
 import { IExternalTool } from '../../models/external-tool'
+import { IThreeWayState } from '../../models/meld-merge'
 import { Popup, PopupType } from '../../models/popup'
 import { invoke } from '../../lib/ipc-renderer'
 import {
@@ -1692,6 +1693,241 @@ export class Dispatcher {
       return true
     }
     return current !== originalContent
+  }
+
+  /**
+   * Phase 1c: open a Meld window in merge mode for the given conflicted file.
+   * Tracks the session with `mode: 'merge'` so the window knows to render
+   * the three-way view (BASE / LOCAL / REMOTE panes + MERGED pane).
+   */
+  public openInMeldWindowMergeMode(
+    repository: Repository,
+    filePath: string
+  ): Promise<void> {
+    const sessionID = `${repository.id}:${filePath}:merge`
+    void this.appStore._addMeldSession({
+      id: sessionID,
+      repositoryID: repository.id,
+      filePath,
+      mode: 'merge',
+    })
+    return (invoke as (channel: string, ...args: unknown[]) => Promise<void>)(
+      'meld:open-window',
+      {
+        repositoryID: repository.id,
+        filePath,
+        mode: 'merge',
+      }
+    )
+  }
+
+  /**
+   * Phase 1c: build and cache the three-way merge state for a conflicted file.
+   * Returns the full `IThreeWayState` (BASE / LOCAL / REMOTE + parsed hunks)
+   * and caches it under `${repository.id}:${filePath}:merge`.
+   */
+  public async getThreeWayState(
+    repository: Repository,
+    filePath: string
+  ): Promise<IThreeWayState> {
+    const sessionID = `${repository.id}:${filePath}:merge`
+
+    // Lazy-import git helpers so unit tests that only touch the dispatcher
+    // don't spawn git subprocesses.
+    const [mergeModule, threeWayModule, conflictMarkersModule] = await Promise.all([
+      import('../../lib/git/merge'),
+      import('../../lib/git/three-way-resolve'),
+      import('../../lib/meld/conflictMarkers'),
+    ])
+
+    const { getMergeBase } = mergeModule
+    const { readThreeWayContents } = threeWayModule
+    const { buildConflictHunks } = conflictMarkersModule
+
+    // Resolve current branch tip and merge-base.
+    const repositoryState = this.repositoryStateManager.get(repository)
+    const { tip } = repositoryState.branchesState
+
+    let localSha: string
+    if (tip.kind === TipState.Valid) {
+      localSha = tip.branch.tip.sha
+    } else if (tip.kind === TipState.Detached) {
+      localSha = tip.currentSha
+    } else {
+      throw new Error('Cannot determine current branch tip for three-way merge')
+    }
+
+    // The remote branch tip is stored in .git/MERGE_HEAD during an active merge.
+    // Fall back to localSha (pure add-add with no common ancestor) if
+    // MERGE_HEAD cannot be resolved.
+    let theirsSha: string = localSha
+    const { conflictState } = repositoryState.changesState
+    if (conflictState !== null && conflictState.kind === 'merge') {
+      try {
+        const { git } = await import('../../lib/git/core')
+        const result = await git(
+          ['rev-parse', 'MERGE_HEAD'],
+          repository.path,
+          'getMergeHead',
+          { successExitCodes: new Set([0]) }
+        )
+        theirsSha = result.stdout.trim()
+      } catch {
+        // MERGE_HEAD not available — fall through to localSha
+      }
+    }
+
+    const mergeBaseSha = await getMergeBase(repository, localSha, theirsSha)
+
+    // Read the three sides of the conflict.
+    const { baseContent, localContent, remoteContent } = await readThreeWayContents(
+      repository,
+      filePath,
+      mergeBaseSha ?? '',
+      theirsSha
+    )
+
+    // The MERGED content is read from the working tree (it contains conflict
+    // markers if the file is still unresolved).
+    const { readWorkingDirectoryFile } = await import(
+      '../../lib/git/working-directory'
+    )
+    const mergedContent = (await readWorkingDirectoryFile(repository, filePath)) ?? ''
+
+    // Parse conflict hunks from the MERGED file.
+    const hunks = buildConflictHunks(mergedContent)
+
+    const state: IThreeWayState = {
+      repositoryID: repository.id,
+      filePath,
+      baseContent,
+      localContent,
+      remoteContent,
+      mergedContent,
+      hunks,
+    }
+
+    // Cache so subsequent calls (e.g. from the merge-mode Meld window)
+    // don't re-compute.
+    this.appStore._setThreeWayState(sessionID, state)
+
+    return state
+  }
+
+  /**
+   * Phase 1c: attempt an automatic three-way merge using `git merge-file`.
+   * Writes BASE / OURS / THEIRS to temporary files, runs `git merge-file`,
+   * then cleans up the temp files. Returns the merged content and a `clean`
+   * flag indicating whether any conflict markers remain.
+   */
+  public async autoMergeThreeWay(
+    repository: Repository,
+    filePath: string
+  ): Promise<{ mergedContent: string; clean: boolean }> {
+    // Get the same SHA resolution as getThreeWayState.
+    const [mergeModule, threeWayModule] = await Promise.all([
+      import('../../lib/git/merge'),
+      import('../../lib/git/three-way-resolve'),
+    ])
+
+    const { getMergeBase } = mergeModule
+    const { readThreeWayContents } = threeWayModule
+
+    const repositoryState = this.repositoryStateManager.get(repository)
+    const { tip } = repositoryState.branchesState
+
+    let localSha: string
+    if (tip.kind === TipState.Valid) {
+      localSha = tip.branch.tip.sha
+    } else if (tip.kind === TipState.Detached) {
+      localSha = tip.currentSha
+    } else {
+      throw new Error('Cannot determine current branch tip for auto-merge')
+    }
+
+    let theirsSha: string = localSha
+    const { conflictState } = repositoryState.changesState
+    if (conflictState !== null && conflictState.kind === 'merge') {
+      try {
+        const { git } = await import('../../lib/git/core')
+        const result = await git(
+          ['rev-parse', 'MERGE_HEAD'],
+          repository.path,
+          'getMergeHead',
+          { successExitCodes: new Set([0]) }
+        )
+        theirsSha = result.stdout.trim()
+      } catch {
+        // MERGE_HEAD not available — fall through to localSha
+      }
+    }
+
+    const mergeBaseSha = await getMergeBase(repository, localSha, theirsSha)
+    const { baseContent, localContent, remoteContent } = await readThreeWayContents(
+      repository,
+      filePath,
+      mergeBaseSha ?? '',
+      theirsSha
+    )
+
+    // Write the three sides to temp files for `git merge-file`.
+    const { writeFile, mkdtemp, rm } = await import('fs/promises')
+    const { join } = await import('path')
+    const os = await import('os')
+
+    const tmpDir = await mkdtemp(join(os.tmpdir(), 'ghd-merge-'))
+    const basePath = join(tmpDir, 'BASE')
+    const oursPath = join(tmpDir, 'OURS')
+    const theirsPath = join(tmpDir, 'THEIRS')
+
+    try {
+      await Promise.all([
+        writeFile(basePath, baseContent, 'utf8'),
+        writeFile(oursPath, localContent, 'utf8'),
+        writeFile(theirsPath, remoteContent, 'utf8'),
+      ])
+
+      const { gitMergeFile } = await import('../../lib/git/merge-file')
+      // gitMergeFile writes merged output to basePath in place.
+      const result = await gitMergeFile(repository, basePath, oursPath, theirsPath)
+
+      // Read back the merged result from basePath (git merge-file writes in-place).
+      const { readFile } = await import('fs/promises')
+      const mergedContent = await readFile(basePath, 'utf8')
+
+      return { mergedContent, clean: result.clean }
+    } finally {
+      // Clean up temp files.
+      void rm(tmpDir, { recursive: true, force: true })
+    }
+  }
+
+  /**
+   * Phase 1c: mark a three-way merge as resolved by writing the final
+   * merged content to the working directory and staging the file, then
+   * clearing the pending edit and refreshing the repository.
+   */
+  public async markMergeResolved(
+    repository: Repository,
+    filePath: string,
+    mergedContent: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const sessionID = `${repository.id}:${filePath}:merge`
+    try {
+      const { writeWorkingDirectoryFile, stageWorkingDirectoryFile } = await import(
+        '../../lib/git/working-directory'
+      )
+      await writeWorkingDirectoryFile(repository, filePath, mergedContent)
+      await stageWorkingDirectoryFile(repository, filePath)
+      this.appStore._clearMeldPendingEdit(sessionID)
+      this.appStore._refreshRepository(repository)
+      return { success: true }
+    } catch (e) {
+      return {
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      }
+    }
   }
 
   /** Add the pattern to the repository's gitignore. */

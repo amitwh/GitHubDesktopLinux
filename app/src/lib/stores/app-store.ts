@@ -157,6 +157,7 @@ import {
 } from '../app-state'
 import type { ModelInfo } from '@github/copilot-sdk'
 import { IExternalTool } from '../../models/external-tool'
+import { IThreeWayState } from '../../models/meld-merge'
 import { getDefaultExternalTools } from '../meld'
 import {
   findEditorOrDefault,
@@ -715,6 +716,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private meldSessions: ReadonlyArray<IMeldSession> = []
   private externalTools: ReadonlyArray<IExternalTool> = getDefaultExternalTools()
   private meldPendingEdits: ReadonlyMap<string, string> = new Map()
+  private meldThreeWayStates: ReadonlyMap<string, IThreeWayState> = new Map()
 
   public constructor(
     private readonly gitHubUserStore: GitHubUserStore,
@@ -1159,6 +1161,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       meldSessions: this.meldSessions,
       externalTools: this.externalTools,
       meldPendingEdits: this.meldPendingEdits,
+      meldThreeWayStates: this.meldThreeWayStates,
       emoji: this.emoji,
       sidebarWidth: this.sidebarWidth,
       branchDropdownWidth: this.branchDropdownWidth,
@@ -5767,6 +5770,24 @@ export class AppStore extends TypedBaseStore<IAppState> {
     next.delete(sessionID)
     this.meldPendingEdits = next
     this.emitUpdate()
+  }
+
+  /**
+   * Cache a resolved three-way merge state for a Meld merge-mode session.
+   * The key must match the session id format `${repository.id}:${filePath}:merge`.
+   */
+  public _setThreeWayState(key: string, state: IThreeWayState): void {
+    const next = new Map(this.meldThreeWayStates)
+    next.set(key, state)
+    this.meldThreeWayStates = next
+    this.emitUpdate()
+  }
+
+  /**
+   * Retrieve the cached three-way merge state for a session, if any.
+   */
+  public _getThreeWayState(key: string): IThreeWayState | undefined {
+    return this.meldThreeWayStates.get(key)
   }
 
   public _resetSidebarWidth(): Promise<void> {

@@ -11,6 +11,7 @@ import { CommitIdentity } from '../models/commit-identity'
 import { IDiff, ImageDiffType } from '../models/diff'
 import { Repository, ILocalRepositoryState } from '../models/repository'
 import { IExternalTool } from '../models/external-tool'
+import type { IThreeWayState } from '../models/meld-merge'
 import { Branch, IAheadBehind } from '../models/branch'
 import { Tip } from '../models/tip'
 import { Commit } from '../models/commit'
@@ -164,6 +165,14 @@ export interface IAppState {
    * saving/discarding is treated as a Discard.
    */
   readonly meldPendingEdits: ReadonlyMap<string, string>
+
+  /**
+   * In-memory cache of resolved three-way merge states. Keyed by the
+   * Meld session id (`${repositoryID}:${filePath}:merge`). Populated
+   * by `dispatcher.getThreeWayState()` and consumed by the merge-mode
+   * Meld window to render BASE / LOCAL / REMOTE panes.
+   */
+  readonly meldThreeWayStates: ReadonlyMap<string, IThreeWayState>
   readonly focusCommitMessage: boolean
   readonly currentPopup: Popup | null
   readonly allPopups: ReadonlyArray<Popup>
