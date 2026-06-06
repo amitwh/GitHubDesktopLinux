@@ -49,6 +49,7 @@ import {
   showNotification,
 } from 'desktop-notifications'
 import { initializeDesktopNotifications } from './notifications'
+import { registerMeldIpcHandlers } from './meld'
 import parseCommandLineArgs from 'minimist'
 import { CLIAction } from '../lib/cli-action'
 
@@ -322,6 +323,8 @@ app.on('ready', () => {
   readyTime = now() - launchTime
 
   possibleProtocols.forEach(protocol => setAsDefaultProtocolClient(protocol))
+
+  registerMeldIpcHandlers()
 
   createWindow()
 
