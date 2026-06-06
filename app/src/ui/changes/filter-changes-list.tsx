@@ -830,6 +830,16 @@ export class FilterChangesList extends React.Component<
         label: OpenWithDefaultProgramLabel,
         action: () => this.props.onOpenItem(path),
         enabled: enabled && isSafeExtension,
+      },
+      { type: 'separator' },
+      {
+        label: 'Open in Meld Window',
+        action: () => {
+          const repo = this.props.repository
+          if (repo) {
+            void this.props.dispatcher.openInMeldWindow(repo, file.path)
+          }
+        },
       }
     )
 
