@@ -1700,7 +1700,7 @@ export class Dispatcher {
    * Tracks the session with `mode: 'merge'` so the window knows to render
    * the three-way view (BASE / LOCAL / REMOTE panes + MERGED pane).
    */
-  public openInMeldWindowMergeMode(
+  public async openInMeldWindowMergeMode(
     repository: Repository,
     filePath: string
   ): Promise<void> {
@@ -1711,12 +1711,17 @@ export class Dispatcher {
       filePath,
       mode: 'merge',
     })
+    // Resolve SHAs so the renderer can fetch the three-way state on mount
+    // without having to round-trip back through this dispatcher.
+    const { mergeBaseSha, theirsSha } = await this._resolveMergeShas(repository)
     return (invoke as (channel: string, ...args: unknown[]) => Promise<void>)(
       'meld:open-window',
       {
         repositoryID: repository.id,
         filePath,
         mode: 'merge',
+        mergeBaseSha: mergeBaseSha ?? undefined,
+        theirsSha,
       }
     )
   }
@@ -1734,50 +1739,18 @@ export class Dispatcher {
 
     // Lazy-import git helpers so unit tests that only touch the dispatcher
     // don't spawn git subprocesses.
-    const [mergeModule, threeWayModule, conflictMarkersModule] = await Promise.all([
-      import('../../lib/git/merge'),
+    const [threeWayModule, conflictMarkersModule] = await Promise.all([
       import('../../lib/git/three-way-resolve'),
       import('../../lib/meld/conflictMarkers'),
     ])
 
-    const { getMergeBase } = mergeModule
     const { readThreeWayContents } = threeWayModule
     const { buildConflictHunks } = conflictMarkersModule
 
-    // Resolve current branch tip and merge-base.
-    const repositoryState = this.repositoryStateManager.get(repository)
-    const { tip } = repositoryState.branchesState
-
-    let localSha: string
-    if (tip.kind === TipState.Valid) {
-      localSha = tip.branch.tip.sha
-    } else if (tip.kind === TipState.Detached) {
-      localSha = tip.currentSha
-    } else {
-      throw new Error('Cannot determine current branch tip for three-way merge')
-    }
-
-    // The remote branch tip is stored in .git/MERGE_HEAD during an active merge.
-    // Fall back to localSha (pure add-add with no common ancestor) if
-    // MERGE_HEAD cannot be resolved.
-    let theirsSha: string = localSha
-    const { conflictState } = repositoryState.changesState
-    if (conflictState !== null && conflictState.kind === 'merge') {
-      try {
-        const { git } = await import('../../lib/git/core')
-        const result = await git(
-          ['rev-parse', 'MERGE_HEAD'],
-          repository.path,
-          'getMergeHead',
-          { successExitCodes: new Set([0]) }
-        )
-        theirsSha = result.stdout.trim()
-      } catch {
-        // MERGE_HEAD not available — fall through to localSha
-      }
-    }
-
-    const mergeBaseSha = await getMergeBase(repository, localSha, theirsSha)
+    // Resolve the local / theirs / merge-base SHAs via the shared helper.
+    const { theirsSha, mergeBaseSha } = await this._resolveMergeShas(
+      repository
+    )
 
     // Read the three sides of the conflict.
     const { baseContent, localContent, remoteContent } = await readThreeWayContents(
@@ -1812,6 +1785,54 @@ export class Dispatcher {
     this.appStore._setThreeWayState(sessionID, state)
 
     return state
+  }
+
+  /**
+   * Phase 1c: resolve the (local, theirs, merge-base) SHAs that describe
+   * an in-progress merge. Used by `getThreeWayState` (to read the three
+   * sides) and by `openInMeldWindowMergeMode` (to pass them to the
+   * renderer via the URL hash, so the window can fetch the state on
+   * mount without needing another round-trip through the dispatcher).
+   */
+  private async _resolveMergeShas(
+    repository: Repository
+  ): Promise<{ localSha: string; theirsSha: string; mergeBaseSha: string | null }> {
+    const { getMergeBase } = await import('../../lib/git/merge')
+
+    const repositoryState = this.repositoryStateManager.get(repository)
+    const { tip } = repositoryState.branchesState
+
+    let localSha: string
+    if (tip.kind === TipState.Valid) {
+      localSha = tip.branch.tip.sha
+    } else if (tip.kind === TipState.Detached) {
+      localSha = tip.currentSha
+    } else {
+      throw new Error('Cannot determine current branch tip for three-way merge')
+    }
+
+    // The remote branch tip is stored in .git/MERGE_HEAD during an active merge.
+    // Fall back to localSha (pure add-add with no common ancestor) if
+    // MERGE_HEAD cannot be resolved.
+    let theirsSha: string = localSha
+    const { conflictState } = repositoryState.changesState
+    if (conflictState !== null && conflictState.kind === 'merge') {
+      try {
+        const { git } = await import('../../lib/git/core')
+        const result = await git(
+          ['rev-parse', 'MERGE_HEAD'],
+          repository.path,
+          'getMergeHead',
+          { successExitCodes: new Set([0]) }
+        )
+        theirsSha = result.stdout.trim()
+      } catch {
+        // MERGE_HEAD not available — fall through to localSha
+      }
+    }
+
+    const mergeBaseSha = await getMergeBase(repository, localSha, theirsSha)
+    return { localSha, theirsSha, mergeBaseSha }
   }
 
   /**

@@ -80,6 +80,22 @@ export class MergeConflictDialog extends React.Component<
     })
   }
 
+  /**
+   * Phase 1c: open this conflicted file in the Meld window in merge mode.
+   * The dispatcher resolves the BASE/THEIRS SHAs and the renderer fetches
+   * the three-way state on mount. The merge-conflict dialog stays open
+   * (per the spec) so the user can mark additional files resolved via
+   * the legacy buttons.
+   */
+  private onOpenInMeldWindow = (path: string) => {
+    const file = this.conflictedFiles.find(f => f.path === path)
+    if (!file) return
+    void this.props.dispatcher.openInMeldWindowMergeMode(
+      this.props.repository,
+      file.path,
+    )
+  }
+
   public render() {
     const files = this.conflictedFiles
     const { resolvedFiles } = this.state
@@ -110,6 +126,12 @@ export class MergeConflictDialog extends React.Component<
                     </Button>
                     <Button onClick={() => this.onMarkResolved(file.path)}>
                       Resolved
+                    </Button>
+                    <Button
+                      onClick={() => this.onOpenInMeldWindow(file.path)}
+                      className="button-primary"
+                    >
+                      Open in Meld Window
                     </Button>
                   </div>
                 )}
