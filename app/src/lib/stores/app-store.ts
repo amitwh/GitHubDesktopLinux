@@ -5686,6 +5686,53 @@ export class AppStore extends TypedBaseStore<IAppState> {
     return Promise.resolve()
   }
 
+  /** Read the configured list of external diff tools. */
+  public _getExternalTools(): ReadonlyArray<IExternalTool> {
+    return this.externalTools
+  }
+
+  /**
+   * Add a user-configured external tool. If a custom (non-built-in) tool
+   * with the same name already exists, it is replaced.
+   */
+  public async _configureExternalTool(
+    partial: Omit<IExternalTool, 'id' | 'builtIn'>
+  ): Promise<void> {
+    const newTool: IExternalTool = {
+      ...partial,
+      id: `custom-${Date.now()}`,
+      builtIn: false,
+    }
+    const existing = this.externalTools
+    const filtered = existing.filter(
+      t => !(t.name === newTool.name && !t.builtIn)
+    )
+    this.externalTools = [...filtered, newTool]
+    this.emitUpdate()
+  }
+
+  /** Remove a user-configured tool. Throws if the tool is built-in. */
+  public async _removeExternalTool(toolID: string): Promise<void> {
+    const target = this.externalTools.find(t => t.id === toolID)
+    if (target?.builtIn) {
+      throw new Error('Cannot remove a built-in tool')
+    }
+    this.externalTools = this.externalTools.filter(t => t.id !== toolID)
+    this.emitUpdate()
+  }
+
+  /** Add a Meld window session (called from main-process IPC handler). */
+  public _addMeldSession(session: IMeldSession): void {
+    this.meldSessions = [...this.meldSessions, session]
+    this.emitUpdate()
+  }
+
+  /** Remove a Meld window session when the BrowserWindow is closed. */
+  public _removeMeldSession(sessionID: string): void {
+    this.meldSessions = this.meldSessions.filter(s => s.id !== sessionID)
+    this.emitUpdate()
+  }
+
   public _resetSidebarWidth(): Promise<void> {
     this.sidebarWidth = { ...this.sidebarWidth, value: defaultSidebarWidth }
     localStorage.removeItem(sidebarWidthConfigKey)

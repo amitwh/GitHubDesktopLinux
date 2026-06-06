@@ -71,6 +71,7 @@ import { DiffSelection, ImageDiffType, ITextDiff } from '../../models/diff'
 import { FetchType } from '../../models/fetch'
 import { GitHubRepository } from '../../models/github-repository'
 import { ManualConflictResolution } from '../../models/manual-conflict-resolution'
+import { IExternalTool } from '../../models/external-tool'
 import { Popup, PopupType } from '../../models/popup'
 import {
   PullRequest,
@@ -1563,6 +1564,40 @@ export class Dispatcher {
   /** Open the URL in a browser */
   public openInBrowser(url: string): Promise<boolean> {
     return this.appStore._openInBrowser(url)
+  }
+
+  /** Open the Meld-style diff viewer for the given file. */
+  public openInMeldWindow(repository: Repository, filePath: string): Promise<void> {
+    // Main-process side opens the BrowserWindow via IPC; we just track the
+    // session in app-state for persistence across app restarts.
+    return this.appStore._addMeldSession({
+      id: `${repository.id}:${filePath}:working`,
+      repositoryID: repository.id,
+      filePath,
+      mode: 'working',
+    }) as unknown as Promise<void>
+  }
+
+  /** Close a Meld window session. */
+  public closeMeldWindow(sessionID: string): Promise<void> {
+    return this.appStore._removeMeldSession(sessionID) as unknown as Promise<void>
+  }
+
+  /** Read the configured list of external diff tools. */
+  public listExternalTools(): ReadonlyArray<IExternalTool> {
+    return this.appStore._getExternalTools()
+  }
+
+  /** Add or replace a user-configured external tool. */
+  public async configureExternalTool(
+    tool: Omit<IExternalTool, 'id' | 'builtIn'>
+  ): Promise<void> {
+    return this.appStore._configureExternalTool(tool)
+  }
+
+  /** Remove a user-configured tool. Throws if the tool is built-in. */
+  public async removeExternalTool(toolID: string): Promise<void> {
+    return this.appStore._removeExternalTool(toolID)
   }
 
   /** Add the pattern to the repository's gitignore. */
