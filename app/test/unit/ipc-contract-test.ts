@@ -98,6 +98,9 @@ describe('IPC channel contract', () => {
     'show-notification',
     'get-notifications-permission',
     'request-notifications-permission',
+    'meld:list-tools',
+    'meld:launch-external-tool',
+    'meld:open-window',
   ] as const
 
   describe('RequestChannels', () => {
