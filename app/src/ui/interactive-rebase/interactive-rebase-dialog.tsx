@@ -10,11 +10,34 @@ import { Select } from '../lib/select'
 import { Button } from '../lib/button'
 import * as Path from 'path'
 import * as Fs from 'fs/promises'
+import { MeldRebasePreview } from '../meld/MeldRebasePreview'
+import { IRebaseCommitStats } from '../../lib/meld/rebasePreview'
 
 interface IInteractiveRebaseDialogProps {
   readonly repository: Repository
   readonly branchName: string
   readonly onDismissed: () => void
+
+  /**
+   * Phase 3 (MeldRebasePreview): aggregate shortstat results keyed
+   * by commit SHA. The parent populates this after calling
+   * `meld:get-rebase-commit-stats`. When omitted, the preview still
+   * mounts but shows "Loading stats…" indicators for every row.
+   */
+  readonly stats?: { readonly [sha: string]: IRebaseCommitStats | undefined }
+
+  /**
+   * Phase 3: per-commit loading flag set, keyed by SHA. The parent
+   * can flip a SHA's flag to `true` while a stats fetch is in flight.
+   */
+  readonly loading?: { readonly [sha: string]: boolean | undefined }
+
+  /**
+   * Phase 3: invoked when the user clicks a commit row's "View diff"
+   * button. The parent should open a Meld window in commit mode for
+   * the given SHA.
+   */
+  readonly onViewDiff?: (sha: string) => void
 }
 
 interface ICommitAction {
@@ -112,6 +135,17 @@ export class InteractiveRebaseDialog extends React.Component<
     }
   }
 
+  private onViewDiff = (sha: string) => {
+    if (this.props.onViewDiff) {
+      this.props.onViewDiff(sha)
+    }
+  }
+
+  private isDropped(sha: string): boolean {
+    const commit = this.state.commits.find(c => c.sha === sha)
+    return commit !== undefined && commit.action === 'drop'
+  }
+
   public render() {
     const { commits, loading, rebasing } = this.state
 
@@ -146,6 +180,25 @@ export class InteractiveRebaseDialog extends React.Component<
                 <Button onClick={this.onMoveDown} data-index={index} disabled={index === commits.length - 1}>↓</Button>
               </Row>
             ))}
+          {/* Phase 3: per-commit diff preview (insertions/deletions
+              stats + "View diff" link). Reuses MeldRebasePreview. The
+              preview re-renders live as the user reorders the rows
+              above (the same `commits` state is fed in), so squash,
+              reword, fixup and drop all reflect immediately. */}
+          {!loading && commits.length > 0 && (
+            <Row className="rebase-preview-row">
+              <MeldRebasePreview
+                commits={commits.map(c => ({
+                  sha: c.sha,
+                  summary: c.summary,
+                }))}
+                stats={this.props.stats ?? {}}
+                loading={this.props.loading}
+                isDropped={sha => this.isDropped(sha)}
+                onViewDiff={this.onViewDiff}
+              />
+            </Row>
+          )}
         </DialogContent>
         <DialogFooter>
           <OkCancelButtonGroup
