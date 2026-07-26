@@ -26,7 +26,11 @@ export function getExecutableName() {
   if (process.platform === 'win32') {
     return `${getWindowsIdentifierName()}${suffix}`
   } else if (process.platform === 'linux') {
-    return 'desktop'
+    // Must match the `executableName` value in `electron-builder.yml`.
+    // If these drift, electron-builder will generate a postinst that
+    // references a binary path that doesn't exist in the .deb, causing
+    // `update-alternatives` to fail at install time.
+    return `GithubDesktopLinux${suffix}`
   } else {
     return productName
   }

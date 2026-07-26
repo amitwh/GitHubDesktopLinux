@@ -163,19 +163,16 @@ function packageWindows() {
 }
 
 function packageLinux() {
-  // Rename the executable to avoid conflict with the system `desktop` command.
-  // electron-builder uses executableName from electron-builder.yml, so the
-  // binary inside the prepackaged directory must match.
-  const oldExec = path.join(distPath, 'desktop')
-  const newExec = path.join(distPath, 'GithubDesktopLinux')
-  if (existsSync(oldExec)) {
-    console.log('Renaming executable to GithubDesktopLinux…')
-    cp.execSync(`mv "${oldExec}" "${newExec}"`)
-  }
+  // The prepackaged binary inside `distPath` is already named
+  // `GithubDesktopLinux` (via `getExecutableName()`), so no rename is needed.
+  // Previously we hardcoded `desktop` and renamed it post-prepack — that
+  // rename was easy to skip when invoking electron-builder directly via the
+  // `package:linux` npm script, which produced .deb files whose postinst
+  // referenced a non-existent binary path.
 
   console.log('Packaging for Linux with electron-builder…')
   cp.execSync(
-    'yarn electron-builder --linux deb AppImage snap --prepackaged dist/desktop-linux-x64 --publish never',
+    `yarn electron-builder --linux deb AppImage snap --prepackaged ${distPath} --publish never`,
     { stdio: 'inherit' }
   )
 

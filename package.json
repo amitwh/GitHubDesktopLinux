@@ -48,7 +48,7 @@
     "draft-release:format": "prettier --check --write changelog.json app/package.json && yarn validate-changelog",
     "draft-release:pr": "ts-node -P script/tsconfig.json script/draft-release/draft-pull-request.ts",
     "validate-changelog": "ts-node -P script/tsconfig.json script/validate-changelog.ts",
-    "package:linux": "electron-builder --linux --prepackaged dist/desktop-linux-x64 --publish never"
+    "package:linux": "electron-builder --linux --prepackaged dist/GithubDesktopLinux-linux-x64 --publish never"
   },
   "author": {
     "name": "GitHub, Inc.",
