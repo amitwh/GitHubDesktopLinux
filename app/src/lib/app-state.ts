@@ -478,6 +478,46 @@ export interface IAppState {
   readonly openShellOnRepoOpen: boolean
   readonly customShellPath: string | null
 
+  /**
+   * Whether the user has asked Electron to start with hardware acceleration
+   * disabled on the next launch. Defaults to `false`; persisted via the
+   * Performance preferences tab. The disable flag is consumed during the
+   * pre-app boot path, so changing this preference requires a restart for it
+   * to take effect.
+   */
+  readonly disableHardwareAcceleration: boolean
+
+  /**
+   * Whether the renderer should attempt to keep list rows mounted across a
+   * scroll gesture. Defaults to `true`; persisted via the Performance
+   * preferences tab. The actual scroll virtualization is wired in a
+   * follow-up slice; this preference is already persisted.
+   */
+  readonly enableSmoothScrolling: boolean
+
+  /**
+   * Whether the Git operation queue should cap concurrent git processes to
+   * a small number (e.g. 4) to keep large multi-repo workspaces responsive.
+   * Defaults to `true`; persisted via the Performance preferences tab.
+   */
+  readonly limitConcurrentGitOps: boolean
+
+  /**
+   * Background fetch interval in minutes. Controls how often the background
+   * fetcher wakes up to refresh the selected repository. Persisted as a
+   * number via the Performance preferences tab; the UI only exposes a
+   * curated set of choices (5/15/30/60) but the value is loosely typed so
+   * legacy entries survive an upgrade.
+   */
+  readonly maxBackgroundFetchInterval: number
+
+  /**
+   * Whether performance tracing is enabled in the renderer. Defaults to
+   * `false`; persisted via the Performance preferences tab. The tracing
+   * categories are wired in a follow-up slice.
+   */
+  readonly enablePerfTracing: boolean
+
   /** Account-scoped Copilot model selections. */
   readonly selectedCopilotModelsByAccount: CopilotModelSelectionsByAccount
 

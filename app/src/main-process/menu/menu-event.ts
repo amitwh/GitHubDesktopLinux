@@ -65,6 +65,8 @@ export type MenuEvent =
   | 'toggle-changes-filter'
   // Linux File menu items
   | 'close-repository'
+  // Linux Tools menu items
+  | 'reveal-diag-folder'
   | TestMenuEvent
 
 /**

@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { clipboard } from 'electron'
 import { Account, isDotComAccount } from '../../models/account'
 import { PreferencesTab } from '../../models/preferences'
 import { Dispatcher } from '../dispatcher'
@@ -44,6 +45,8 @@ import { Notifications } from './notifications'
 import { Accessibility } from './accessibility'
 import MeldTools from './meld-tools'
 import ShellPreferences from './shell'
+import { Performance } from './performance'
+import { Diagnostics } from './diagnostics'
 import { CopilotPreferences } from './copilot'
 import type {
   CopilotFeature,
@@ -132,6 +135,11 @@ interface IPreferencesProps {
   readonly confirmShellOpen: boolean
   readonly openShellOnRepoOpen: boolean
   readonly customShellPath: string | null
+  readonly disableHardwareAcceleration: boolean
+  readonly enableSmoothScrolling: boolean
+  readonly limitConcurrentGitOps: boolean
+  readonly maxBackgroundFetchInterval: number
+  readonly enablePerfTracing: boolean
 }
 
 interface IPreferencesState {
@@ -204,6 +212,11 @@ interface IPreferencesState {
   readonly confirmShellOpen: boolean
   readonly openShellOnRepoOpen: boolean
   readonly customShellPath: string | null
+  readonly disableHardwareAcceleration: boolean
+  readonly enableSmoothScrolling: boolean
+  readonly limitConcurrentGitOps: boolean
+  readonly maxBackgroundFetchInterval: number
+  readonly enablePerfTracing: boolean
   readonly selectedDateFormat?: DateFormat
   readonly selectedTimeFormat?: TimeFormat
   readonly selectedNumberFormat?: INumberFormat
@@ -283,6 +296,11 @@ export class Preferences extends React.Component<
       confirmShellOpen: this.props.confirmShellOpen,
       openShellOnRepoOpen: this.props.openShellOnRepoOpen,
       customShellPath: this.props.customShellPath,
+      disableHardwareAcceleration: this.props.disableHardwareAcceleration,
+      enableSmoothScrolling: this.props.enableSmoothScrolling,
+      limitConcurrentGitOps: this.props.limitConcurrentGitOps,
+      maxBackgroundFetchInterval: this.props.maxBackgroundFetchInterval,
+      enablePerfTracing: this.props.enablePerfTracing,
       selectedDateFormat: getDateFormatPreference(),
       selectedTimeFormat: getTimeFormatPreference(),
       selectedNumberFormat: getNumberFormatPreference(),
@@ -459,6 +477,14 @@ export class Preferences extends React.Component<
               <Octicon className="icon" symbol={octicons.terminal} />
               Shell
             </span>
+            <span id={this.getTabId(PreferencesTab.Performance)}>
+              <Octicon className="icon" symbol={octicons.pulse} />
+              Performance
+            </span>
+            <span id={this.getTabId(PreferencesTab.Diagnostics)}>
+              <Octicon className="icon" symbol={octicons.bug} />
+              Diagnostics
+            </span>
           </TabBar>
 
           {this.renderActiveTab()}
@@ -503,6 +529,12 @@ export class Preferences extends React.Component<
         break
       case PreferencesTab.Shell:
         suffix = 'shell'
+        break
+      case PreferencesTab.Performance:
+        suffix = 'performance'
+        break
+      case PreferencesTab.Diagnostics:
+        suffix = 'diagnostics'
         break
       default:
         return assertNever(tab, `Unknown tab type: ${tab}`)
@@ -824,6 +856,43 @@ export class Preferences extends React.Component<
           />
         )
         break
+      case PreferencesTab.Performance:
+        View = (
+          <Performance
+            disableHardwareAcceleration={
+              this.state.disableHardwareAcceleration
+            }
+            enableSmoothScrolling={this.state.enableSmoothScrolling}
+            limitConcurrentGitOps={this.state.limitConcurrentGitOps}
+            maxBackgroundFetchInterval={
+              this.state.maxBackgroundFetchInterval
+            }
+            enablePerfTracing={this.state.enablePerfTracing}
+            onDisableHardwareAccelerationChanged={
+              this.onDisableHardwareAccelerationChanged
+            }
+            onEnableSmoothScrollingChanged={
+              this.onEnableSmoothScrollingChanged
+            }
+            onLimitConcurrentGitOpsChanged={
+              this.onLimitConcurrentGitOpsChanged
+            }
+            onMaxBackgroundFetchIntervalChanged={
+              this.onMaxBackgroundFetchIntervalChanged
+            }
+            onEnablePerfTracingChanged={this.onEnablePerfTracingChanged}
+          />
+        )
+        break
+      case PreferencesTab.Diagnostics:
+        View = (
+          <Diagnostics
+            gitBinaryPath="git"
+            onOpenLogsFolder={this.onOpenDiagnosticsFolder}
+            onCopyValue={this.onCopyDiagnosticsValue}
+          />
+        )
+        break
       default:
         return assertNever(index, `Unknown tab index: ${index}`)
     }
@@ -966,6 +1035,50 @@ export class Preferences extends React.Component<
 
   private onCustomShellPathChanged = (customShellPath: string) => {
     this.setState({ customShellPath })
+  }
+
+  private onDisableHardwareAccelerationChanged = (
+    disableHardwareAcceleration: boolean
+  ) => {
+    this.setState({ disableHardwareAcceleration })
+  }
+
+  private onEnableSmoothScrollingChanged = (enableSmoothScrolling: boolean) => {
+    this.setState({ enableSmoothScrolling })
+  }
+
+  private onLimitConcurrentGitOpsChanged = (limitConcurrentGitOps: boolean) => {
+    this.setState({ limitConcurrentGitOps })
+  }
+
+  private onMaxBackgroundFetchIntervalChanged = (
+    maxBackgroundFetchInterval: number
+  ) => {
+    this.setState({ maxBackgroundFetchInterval })
+  }
+
+  private onEnablePerfTracingChanged = (enablePerfTracing: boolean) => {
+    this.setState({ enablePerfTracing })
+  }
+
+  private onOpenDiagnosticsFolder = async (path: string) => {
+    try {
+      await this.props.dispatcher.openInFileManager(path)
+    } catch {
+      // Swallow openInFileManager errors here — the Diagnostics tab is a
+      // best-effort surface, and a missing folder manager shouldn't break
+      // the preferences dialog. The error is propagated up to Electron's
+      // shell internals via the underlying shell.openPath call.
+    }
+  }
+
+  private onCopyDiagnosticsValue = (value: string) => {
+    // Use Electron's clipboard directly the same way `ui/copy-button.tsx`
+    // does — there is no dispatcher indirection needed for a best-effort
+    // copy from a read-only diagnostics surface, and we keep the dispatcher
+    // surface focused on state mutations rather than ephemeral clipboard
+    // writes.
+    clipboard.writeText(value)
   }
 
   private onUseSSHDefaultChanged = (useSSHDefault: boolean) => {
@@ -1241,6 +1354,32 @@ export class Preferences extends React.Component<
     }
     if (this.props.customShellPath !== this.state.customShellPath) {
       dispatcher.setCustomShellPath(this.state.customShellPath)
+    }
+
+    if (
+      this.props.disableHardwareAcceleration !==
+      this.state.disableHardwareAcceleration
+    ) {
+      dispatcher.setDisableHardwareAcceleration(
+        this.state.disableHardwareAcceleration
+      )
+    }
+    if (this.props.enableSmoothScrolling !== this.state.enableSmoothScrolling) {
+      dispatcher.setEnableSmoothScrolling(this.state.enableSmoothScrolling)
+    }
+    if (this.props.limitConcurrentGitOps !== this.state.limitConcurrentGitOps) {
+      dispatcher.setLimitConcurrentGitOps(this.state.limitConcurrentGitOps)
+    }
+    if (
+      this.props.maxBackgroundFetchInterval !==
+      this.state.maxBackgroundFetchInterval
+    ) {
+      dispatcher.setMaxBackgroundFetchInterval(
+        this.state.maxBackgroundFetchInterval
+      )
+    }
+    if (this.props.enablePerfTracing !== this.state.enablePerfTracing) {
+      dispatcher.setEnablePerfTracing(this.state.enablePerfTracing)
     }
 
     await dispatcher.setConfirmRepoRemovalSetting(

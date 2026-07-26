@@ -701,6 +701,10 @@ export function buildDefaultMenuTemplate({
           label: 'Open Logs Folder',
           click: emit('open-logs-folder'),
         },
+        {
+          label: 'Reveal Diagnostics Folder',
+          click: emit('reveal-diag-folder'),
+        },
         separator,
         { label: 'Reload Window', role: 'forceReload' },
         { label: 'Toggle Developer Tools', role: 'toggleDevTools' },

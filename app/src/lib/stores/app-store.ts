@@ -310,6 +310,16 @@ import {
   openShellOnRepoOpenDefault,
   customShellPathKey,
   customShellPathDefault,
+  disableHardwareAccelerationKey,
+  disableHardwareAccelerationDefault,
+  enableSmoothScrollingKey,
+  enableSmoothScrollingDefault,
+  limitConcurrentGitOpsKey,
+  limitConcurrentGitOpsDefault,
+  maxBackgroundFetchIntervalKey,
+  maxBackgroundFetchIntervalDefault,
+  enablePerfTracingKey,
+  enablePerfTracingDefault,
 } from '../preferences-keys'
 import { ExternalEditorError, suggestedExternalEditor } from '../editors/shared'
 import { ApiRepositoriesStore } from './api-repositories-store'
@@ -800,6 +810,44 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private confirmShellOpen: boolean = confirmShellOpenDefault
   private openShellOnRepoOpen: boolean = openShellOnRepoOpenDefault
   private customShellPath: string | null = customShellPathDefault
+
+  /**
+   * Whether the user has asked Electron to start with hardware acceleration
+   * disabled on the next launch. Defaults to `false`; persisted via the
+   * Performance preferences tab. Requires a restart for the disable flag to
+   * take effect.
+   */
+  private disableHardwareAcceleration: boolean =
+    disableHardwareAccelerationDefault
+
+  /**
+   * Whether the renderer should attempt to keep list rows mounted across a
+   * scroll gesture. Defaults to `true`; persisted via the Performance
+   * preferences tab.
+   */
+  private enableSmoothScrolling: boolean = enableSmoothScrollingDefault
+
+  /**
+   * Whether the Git operation queue should cap concurrent git processes to
+   * a small number. Defaults to `true`; persisted via the Performance
+   * preferences tab. The actual concurrency limiter is wired in a follow-up
+   * slice.
+   */
+  private limitConcurrentGitOps: boolean = limitConcurrentGitOpsDefault
+
+  /**
+   * Background fetch interval in minutes. Defaults to 15; persisted via the
+   * Performance preferences tab.
+   */
+  private maxBackgroundFetchInterval: number =
+    maxBackgroundFetchIntervalDefault
+
+  /**
+   * Whether performance tracing is enabled in the renderer. Defaults to
+   * `false`; persisted via the Performance preferences tab. The tracing
+   * categories are wired in a follow-up slice.
+   */
+  private enablePerfTracing: boolean = enablePerfTracingDefault
 
   private selectedCopilotModelsByAccount: CopilotModelSelectionsByAccount =
     new Map()
@@ -1449,6 +1497,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
       confirmShellOpen: this.confirmShellOpen,
       openShellOnRepoOpen: this.openShellOnRepoOpen,
       customShellPath: this.customShellPath,
+      disableHardwareAcceleration: this.disableHardwareAcceleration,
+      enableSmoothScrolling: this.enableSmoothScrolling,
+      limitConcurrentGitOps: this.limitConcurrentGitOps,
+      maxBackgroundFetchInterval: this.maxBackgroundFetchInterval,
+      enablePerfTracing: this.enablePerfTracing,
       selectedCopilotModelsByAccount: this.selectedCopilotModelsByAccount,
       copilotModelsByAccount: this.copilotModelsByAccount,
       copilotQuotaSnapshotsByAccount: this.copilotQuotaSnapshotsByAccount,
@@ -2774,6 +2827,27 @@ export class AppStore extends TypedBaseStore<IAppState> {
     )
     this.customShellPath =
       localStorage.getItem(customShellPathKey) ?? customShellPathDefault
+
+    this.disableHardwareAcceleration = getBoolean(
+      disableHardwareAccelerationKey,
+      disableHardwareAccelerationDefault
+    )
+    this.enableSmoothScrolling = getBoolean(
+      enableSmoothScrollingKey,
+      enableSmoothScrollingDefault
+    )
+    this.limitConcurrentGitOps = getBoolean(
+      limitConcurrentGitOpsKey,
+      limitConcurrentGitOpsDefault
+    )
+    this.maxBackgroundFetchInterval = getNumber(
+      maxBackgroundFetchIntervalKey,
+      maxBackgroundFetchIntervalDefault
+    )
+    this.enablePerfTracing = getBoolean(
+      enablePerfTracingKey,
+      enablePerfTracingDefault
+    )
 
     this.selectedCopilotModelsByAccount =
       this.loadCopilotModelSelectionsByAccount()
@@ -10555,6 +10629,78 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.customShellPath = value
     localStorage.setItem(customShellPathKey, value ?? '')
     this.emitUpdate()
+  }
+
+  /**
+   * Toggle (or explicitly set) whether Electron should start with hardware
+   * acceleration disabled on the next launch. Persisted to local storage so
+   * it survives app restarts; the actual disable flag is consumed during the
+   * pre-app boot path, so changing this preference requires a restart for it
+   * to take effect.
+   */
+  public _setDisableHardwareAcceleration(value: boolean) {
+    if (value !== this.disableHardwareAcceleration) {
+      this.disableHardwareAcceleration = value
+      setBoolean(disableHardwareAccelerationKey, value)
+      this.emitUpdate()
+    }
+  }
+
+  /**
+   * Toggle (or explicitly set) whether the renderer should attempt to keep
+   * list rows mounted across a scroll gesture. Persisted to local storage so
+   * it survives app restarts. The actual scroll virtualization is wired in a
+   * follow-up slice; this preference is already persisted.
+   */
+  public _setEnableSmoothScrolling(value: boolean) {
+    if (value !== this.enableSmoothScrolling) {
+      this.enableSmoothScrolling = value
+      setBoolean(enableSmoothScrollingKey, value)
+      this.emitUpdate()
+    }
+  }
+
+  /**
+   * Toggle (or explicitly set) whether the Git operation queue should cap
+   * concurrent git processes to a small fixed number (4) to keep large
+   * multi-repo workspaces responsive. Persisted to local storage so it
+   * survives app restarts. The concurrency limiter is wired in a follow-up
+   * slice; this preference is already persisted.
+   */
+  public _setLimitConcurrentGitOps(value: boolean) {
+    if (value !== this.limitConcurrentGitOps) {
+      this.limitConcurrentGitOps = value
+      setBoolean(limitConcurrentGitOpsKey, value)
+      this.emitUpdate()
+    }
+  }
+
+  /**
+   * Set the background fetch interval (in minutes). Persisted to local
+   * storage so it survives app restarts. The UI exposes a curated set of
+   * choices (5/15/30/60) but arbitrary positive integers are accepted and
+   * stored as-is so legacy entries survive an upgrade.
+   */
+  public _setMaxBackgroundFetchInterval(value: number) {
+    const coerced = Math.max(1, Math.floor(value))
+    if (coerced !== this.maxBackgroundFetchInterval) {
+      this.maxBackgroundFetchInterval = coerced
+      setNumber(maxBackgroundFetchIntervalKey, coerced)
+      this.emitUpdate()
+    }
+  }
+
+  /**
+   * Toggle (or explicitly set) whether performance tracing is enabled in
+   * the renderer. Persisted to local storage so it survives app restarts.
+   * The tracing categories are wired in a follow-up slice.
+   */
+  public _setEnablePerfTracing(value: boolean) {
+    if (value !== this.enablePerfTracing) {
+      this.enablePerfTracing = value
+      setBoolean(enablePerfTracingKey, value)
+      this.emitUpdate()
+    }
   }
 
   /**

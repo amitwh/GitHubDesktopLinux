@@ -3504,6 +3504,52 @@ export class Dispatcher {
     this.appStore._setCustomShellPath(value)
   }
 
+  /**
+   * Set whether Electron should start with hardware acceleration disabled on
+   * the next launch. The actual disable flag is consumed during the pre-app
+   * boot path, so changing this preference requires a restart for it to
+   * take effect.
+   */
+  public setDisableHardwareAcceleration(value: boolean) {
+    this.appStore._setDisableHardwareAcceleration(value)
+  }
+
+  /**
+   * Set whether the renderer should attempt to keep list rows mounted across
+   * a scroll gesture. The actual scroll virtualization is wired in a
+   * follow-up slice; this preference is already persisted.
+   */
+  public setEnableSmoothScrolling(value: boolean) {
+    this.appStore._setEnableSmoothScrolling(value)
+  }
+
+  /**
+   * Set whether the Git operation queue should cap concurrent git processes
+   * to a small fixed number (4) to keep large multi-repo workspaces
+   * responsive. The concurrency limiter is wired in a follow-up slice; this
+   * preference is already persisted.
+   */
+  public setLimitConcurrentGitOps(value: boolean) {
+    this.appStore._setLimitConcurrentGitOps(value)
+  }
+
+  /**
+   * Set the background fetch interval (in minutes). The UI exposes a curated
+   * set of choices (5/15/30/60) but arbitrary positive integers are accepted
+   * and stored as-is so legacy entries survive an upgrade.
+   */
+  public setMaxBackgroundFetchInterval(value: number) {
+    this.appStore._setMaxBackgroundFetchInterval(value)
+  }
+
+  /**
+   * Set whether performance tracing is enabled in the renderer. The tracing
+   * categories are wired in a follow-up slice.
+   */
+  public setEnablePerfTracing(value: boolean) {
+    this.appStore._setEnablePerfTracing(value)
+  }
+
   public setCommitSpellcheckEnabled(commitSpellcheckEnabled: boolean) {
     this.appStore._setCommitSpellcheckEnabled(commitSpellcheckEnabled)
   }

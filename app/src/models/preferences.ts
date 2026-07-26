@@ -10,4 +10,6 @@ export enum PreferencesTab {
   Accessibility,
   MeldTools,
   Shell,
+  Performance,
+  Diagnostics,
 }

@@ -570,6 +570,14 @@ export class App extends React.Component<IAppProps, IAppState> {
         return getPath('userData').then(path =>
           this.props.dispatcher.openInFileManager(Path.join(path, 'logs'))
         )
+      case 'reveal-diag-folder':
+        return getPath('userData').then(path => {
+          // Tools ▸ Reveal Diagnostics Folder. We point at the userData root
+          // (not a subdirectory) so users see the full set of on-disk
+          // artifacts regardless of which subfolder (`logs/`, `IndexedDB/`,
+          // `Cache/`, etc.) Desktop has populated.
+          this.props.dispatcher.openInFileManager(path)
+        })
       case 'clone-repository':
         return this.showCloneRepo()
       case 'show-about':
@@ -2017,6 +2025,15 @@ export class App extends React.Component<IAppProps, IAppState> {
             confirmShellOpen={this.state.confirmShellOpen}
             openShellOnRepoOpen={this.state.openShellOnRepoOpen}
             customShellPath={this.state.customShellPath}
+            disableHardwareAcceleration={
+              this.state.disableHardwareAcceleration
+            }
+            enableSmoothScrolling={this.state.enableSmoothScrolling}
+            limitConcurrentGitOps={this.state.limitConcurrentGitOps}
+            maxBackgroundFetchInterval={
+              this.state.maxBackgroundFetchInterval
+            }
+            enablePerfTracing={this.state.enablePerfTracing}
             onEditGlobalGitConfig={this.editGlobalGitConfig}
             underlineLinks={this.state.underlineLinks}
             showDiffCheckMarks={this.state.showDiffCheckMarks}
