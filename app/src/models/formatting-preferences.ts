@@ -1,8 +1,19 @@
 import { format } from 'date-fns'
 import { enableFormattingPreferences } from '../lib/feature-flag'
 
+// `location` and `localStorage` are only available in the renderer process.
+// This module is also imported by the main process (via app-store → format-date
+// chain), so guard each browser-global lookup with `typeof` checks to avoid
+// crashing the main process at module load time.
 const localeCountryCode =
-  new URL(location.href).hash.match(/lc=([A-Z]{2})/)?.[1] ?? null
+  typeof location !== 'undefined'
+    ? new URL(location.href).hash.match(/lc=([A-Z]{2})/)?.[1] ?? null
+    : null
+
+/** Safe accessor for the browser's localStorage. Returns null in the main process. */
+function getLocalStorage(): Storage | null {
+  return typeof localStorage !== 'undefined' ? localStorage : null
+}
 
 /**
  * Countries that predominantly use 12-hour time format.
@@ -283,37 +294,37 @@ const numberFormatKey = 'numberFormat'
 
 /** Get the user's preferred date format from localStorage. */
 export function getDateFormatPreference(): DateFormat {
-  const stored = localStorage.getItem(dateFormatKey)
+  const stored = getLocalStorage()?.getItem(dateFormatKey)
   const match = dateFormats.find(f => f.pattern === stored)
   return match?.pattern ?? defaultDateFormat
 }
 
 /** Get the user's preferred time format from localStorage. */
 export function getTimeFormatPreference(): TimeFormat {
-  const stored = localStorage.getItem(timeFormatKey)
+  const stored = getLocalStorage()?.getItem(timeFormatKey)
   const match = timeFormats.find(f => f.pattern === stored)
   return match?.pattern ?? defaultTimeFormat
 }
 
 /** Get the user's preferred number format from localStorage. */
 export function getNumberFormatPreference(): INumberFormat {
-  const key = localStorage.getItem(numberFormatKey)
+  const key = getLocalStorage()?.getItem(numberFormatKey)
   return key ? numberFormatFromKey(key) : defaultNumberFormat
 }
 
 /** Set the user's preferred date format in localStorage. */
 export function setDateFormatPreference(format: DateFormat): void {
-  localStorage.setItem(dateFormatKey, format)
+  getLocalStorage()?.setItem(dateFormatKey, format)
 }
 
 /** Set the user's preferred time format in localStorage. */
 export function setTimeFormatPreference(format: TimeFormat): void {
-  localStorage.setItem(timeFormatKey, format)
+  getLocalStorage()?.setItem(timeFormatKey, format)
 }
 
 /** Set the user's preferred number format in localStorage. */
 export function setNumberFormatPreference(format: INumberFormat): void {
-  localStorage.setItem(numberFormatKey, numberFormatToKey(format))
+  getLocalStorage()?.setItem(numberFormatKey, numberFormatToKey(format))
 }
 
 /**
@@ -344,9 +355,9 @@ export function getPreferAbsoluteDates(): boolean {
     return false
   }
 
-  return localStorage.getItem(preferAbsoluteDatesKey) === '1'
+  return getLocalStorage()?.getItem(preferAbsoluteDatesKey) === '1'
 }
 
 export function setPreferAbsoluteDates(value: boolean): void {
-  localStorage.setItem(preferAbsoluteDatesKey, value ? '1' : '0')
+  getLocalStorage()?.setItem(preferAbsoluteDatesKey, value ? '1' : '0')
 }

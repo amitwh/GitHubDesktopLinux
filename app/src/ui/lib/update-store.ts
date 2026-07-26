@@ -375,4 +375,10 @@ class UpdateStore {
 }
 
 /** The store which contains the current state of the auto updater. */
-export const updateStore = new UpdateStore()
+// This module is also reachable from the main process (via app-store →
+// notifications → alive-store → accounts-store → stores barrel). The
+// `UpdateStore` constructor reads from `localStorage` and subscribes to
+// `ipcRenderer` events that don't exist in the main process, so only
+// instantiate the singleton in the renderer.
+export const updateStore =
+  typeof window !== 'undefined' ? new UpdateStore() : (undefined as unknown as UpdateStore)

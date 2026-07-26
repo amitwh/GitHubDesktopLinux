@@ -10,6 +10,13 @@ class ThemeChangeMonitor {
   private readonly emitter = new Emitter()
 
   public constructor() {
+    // This module is imported by both the renderer and the main process (via
+    // app-store → notifications → alive-store → accounts-store → stores barrel).
+    // `ipcRenderer` only exists in the renderer, so skip the subscription when
+    // running in the main process.
+    if (typeof window === 'undefined') {
+      return
+    }
     this.subscribe()
   }
 
