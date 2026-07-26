@@ -21,7 +21,7 @@ import {
   underlineLinksKey,
   useCustomEditorKey,
   useCustomShellKey,
-} from '../stores'
+} from '../preferences-keys'
 import { assertNever } from '../fatal-error'
 import {
   getNumber,
