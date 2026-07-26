@@ -104,6 +104,16 @@ describe('IPC channel contract', () => {
     'meld:save-edits',
     'meld:auto-merge',
     'meld:get-blame',
+    // Phase 2 (T2, MeldStashView): list stashes and files for a stash
+    'meld:list-stashes',
+    'meld:get-stash-files',
+    // Phase 2 (T3, MeldSubmoduleView): list submodules and their diffs
+    'meld:list-submodules',
+    'meld:get-submodule-diff',
+    // Phase 3 (Rebase Preview): per-commit stats + diff
+    'meld:get-rebase-commit-stats',
+    'meld:get-rebase-commit-diff',
+    'worktree:compute-sizes',
   ] as const
 
   describe('RequestChannels', () => {

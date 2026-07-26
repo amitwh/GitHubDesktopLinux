@@ -151,4 +151,27 @@ export type RequestResponseChannels = {
   }>
   // Phase 2 (T1, BlameGutter): fetch blame information for a file
   'meld:get-blame': (req: unknown) => Promise<ReadonlyArray<unknown>>
+  // Phase 2 (T2, MeldStashView): list all stashes and the files in a stash
+  'meld:list-stashes': (req: unknown) => Promise<ReadonlyArray<unknown>>
+  'meld:get-stash-files': (req: unknown) => Promise<ReadonlyArray<unknown>>
+  // Phase 2 (T3, MeldSubmoduleView): list submodules and their diffs
+  'meld:list-submodules': (req: unknown) => Promise<ReadonlyArray<unknown>>
+  'meld:get-submodule-diff': (req: unknown) => Promise<string>
+  // Phase 3 (Rebase Preview): per-commit stats + diff for the
+  // interactive-rebase planner. Both return zero/empty on failure so
+  // the dialog never blocks waiting on git.
+  'meld:get-rebase-commit-stats': (req: unknown) => Promise<{
+    readonly filesChanged: number
+    readonly insertions: number
+    readonly deletions: number
+  }>
+  'meld:get-rebase-commit-diff': (req: unknown) => Promise<string>
+  // Worktree Phase 1: compute disk usage for a set of worktree paths so
+  // the renderer never blocks the list rendering on the file-system walk.
+  // The handler is best-effort — missing paths yield `null` entries.
+  'worktree:compute-sizes': (req: {
+    paths: ReadonlyArray<string>
+  }) => Promise<{
+    sizes: ReadonlyArray<{ path: string; size: number } | null>
+  }>
 }

@@ -9,10 +9,11 @@ import { MeldToolbar, IMeldFilter, IMeldMode, IMeldEditMode } from './MeldToolba
 import { MeldThreeWayView } from './MeldThreeWayView'
 import { MeldMergedPane } from './MeldMergedPane'
 import { MeldMergeControls } from './MeldMergeControls'
+import { MeldStashView } from './MeldStashView'
 import { applyEdit, revertEdits, copyHunk, IHunkRange } from '../../lib/meld/diffOperations'
 import { applyHunkResolution, buildConflictHunks } from '../../lib/meld/conflictMarkers'
 
-export type IMeldWindowMode = 'working' | 'commit' | 'merge'
+export type IMeldWindowMode = 'working' | 'commit' | 'merge' | 'stash'
 
 export interface IMeldWindowProps {
   readonly repositoryID: number
@@ -100,6 +101,31 @@ export interface IMeldWindowProps {
     repositoryID: number,
     filePath: string,
     commitSha: string
+  ) => Promise<void>
+  /**
+   * Phase 2 (T2, MeldStashView): fetch the list of stashes for the
+   * current repository. Only required when `mode === 'stash'`.
+   */
+  readonly onGetStashes?: (
+    repositoryID: number
+  ) => Promise<ReadonlyArray<import('../../lib/git/stash').IAllStashEntry>>
+  /**
+   * Phase 2 (T2, MeldStashView): fetch the files in a specific stash
+   * entry. Only required when `mode === 'stash'`.
+   */
+  readonly onGetStashFiles?: (
+    repositoryID: number,
+    stashSha: string
+  ) => Promise<ReadonlyArray<import('../../models/status').CommittedFileChange>>
+  /**
+   * Phase 2 (T2, MeldStashView): invoked when the user selects a file
+   * inside a stash node. The parent resolves this into a normal
+   * `openInMeldWindowCommitMode` against the stash's parent SHA.
+   */
+  readonly onStashFileSelected?: (
+    repositoryID: number,
+    stashSha: string,
+    filePath: string
   ) => Promise<void>
 }
 
@@ -666,6 +692,50 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
               hasUnresolvedConflicts={hasUnresolvedConflicts}
               onAutoMerge={this.onMergeAutoMerge}
               onMarkResolved={this.onMergeMarkResolved}
+            />
+          </div>
+          {footer}
+        </div>
+      )
+    }
+
+    // -----------------------------------------------------------------------
+    // Working / commit mode: file tree + diff pane (existing layout)
+    // -----------------------------------------------------------------------
+    if (windowMode === 'stash') {
+      const getStashes = this.props.onGetStashes
+      const getStashFiles = this.props.onGetStashFiles
+      const onStashFileSelected = this.props.onStashFileSelected
+      if (
+        getStashes === undefined ||
+        getStashFiles === undefined ||
+        onStashFileSelected === undefined
+      ) {
+        return (
+          <div className="meld-window">
+            {toolbar}
+            {errorBanner}
+            <div className="meld-window-body meld-stash-missing">
+              Stash view requires onGetStashes, onGetStashFiles, and
+              onStashFileSelected to be provided by the mount point.
+            </div>
+            {footer}
+          </div>
+        )
+      }
+      return (
+        <div className="meld-window">
+          {toolbar}
+          {errorBanner}
+          <div className="meld-window-body meld-stash-body">
+            <MeldStashView
+              onGetStashes={async () => getStashes(this.props.repositoryID)}
+              onGetStashFiles={async sha =>
+                getStashFiles(this.props.repositoryID, sha)
+              }
+              onFileSelected={async (sha, filePath) =>
+                onStashFileSelected(this.props.repositoryID, sha, filePath)
+              }
             />
           </div>
           {footer}

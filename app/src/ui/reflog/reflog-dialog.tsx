@@ -5,10 +5,20 @@ import { Repository } from '../../models/repository'
 import { IReflogEntry, getReflog } from '../../lib/git/reflog'
 import { Ref } from '../lib/ref'
 import { Row } from '../lib/row'
+import { Button } from '../lib/button'
+import { Dispatcher } from '../dispatcher'
 
 interface IReflogDialogProps {
   readonly repository: Repository
   readonly onDismissed: () => void
+  /**
+   * Phase 2 (T2, ReflogWiring): dispatcher used to open the Meld
+   * window for the commit referenced by a reflog entry. Optional
+   * for backward compatibility with existing tests that mount
+   * the dialog without a dispatcher; when omitted, the per-row
+   * "Open in Meld" button is hidden.
+   */
+  readonly dispatcher?: Dispatcher
 }
 
 interface IReflogDialogState {
@@ -30,8 +40,23 @@ export class ReflogDialog extends React.Component<
     this.setState({ entries, loading: false })
   }
 
+  /**
+   * Phase 2 (T2, ReflogWiring): open the Meld window for the
+   * commit referenced by a reflog entry. Delegates to the
+   * dispatcher's `openReflogInMeld` helper so the dialog stays
+   * free of Meld-specific knowledge.
+   */
+  private onOpenInMeld = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const sha = event.currentTarget.getAttribute('data-reflog-sha')
+    if (sha === null || this.props.dispatcher === undefined) {
+      return
+    }
+    void this.props.dispatcher.openReflogInMeld(this.props.repository, sha)
+  }
+
   public render() {
     const { entries, loading } = this.state
+    const showOpenInMeld = this.props.dispatcher !== undefined
 
     return (
       <Dialog
@@ -52,7 +77,16 @@ export class ReflogDialog extends React.Component<
                 <span className="reflog-subject"><Ref>{entry.subject}</Ref></span>{' '}
                 <span className="reflog-meta">
                   <Ref>{entry.author} · {entry.timestamp.toLocaleString()}</Ref>
-                </span>
+                </span>{' '}
+                {showOpenInMeld && (
+                  <Button
+                    onClick={this.onOpenInMeld}
+                    data-reflog-sha={entry.sha}
+                    className="reflog-open-in-meld"
+                  >
+                    Open in Meld
+                  </Button>
+                )}
               </Row>
             ))}
         </DialogContent>

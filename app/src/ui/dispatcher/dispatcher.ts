@@ -37,6 +37,7 @@ import {
   getRebaseSnapshot,
   getRepositoryType,
   listWorktrees,
+  type WorktreeDirtyState,
 } from '../../lib/git'
 import { isGitOnPath } from '../../lib/is-git-on-path'
 import {
@@ -1071,13 +1072,66 @@ export class Dispatcher {
 
   /**
    * Request deletion of a worktree, showing a confirmation dialog if the
-   * user's preferences require it.
+   * user's preferences require it. The dialog will warn about any
+   * modified or untracked files detected in the worktree.
    */
   public requestDeleteWorktree(
     repository: Repository,
     worktreePath: string
   ): void {
-    this.appStore._requestDeleteWorktree(repository, worktreePath)
+    this.appStore
+      ._requestDeleteWorktree(repository, worktreePath)
+      .catch(e => this.postError(e))
+  }
+
+  /**
+   * Lock a worktree, optionally with a human-readable reason. The reason
+   * is shown by `git worktree list` and prevents accidental pruning of
+   * linked worktrees.
+   */
+  public async lockWorktree(
+    repository: Repository,
+    worktreePath: string,
+    reason?: string
+  ): Promise<void> {
+    await this.appStore
+      ._lockWorktree(repository, worktreePath, reason)
+      .catch(e => this.postError(e))
+  }
+
+  /** Unlock a previously-locked worktree. */
+  public async unlockWorktree(
+    repository: Repository,
+    worktreePath: string
+  ): Promise<void> {
+    await this.appStore
+      ._unlockWorktree(repository, worktreePath)
+      .catch(e => this.postError(e))
+  }
+
+  /**
+   * Run `git worktree prune` to remove stale admin entries (typically
+   * worktrees whose directories were deleted outside of GitHub Desktop).
+   */
+  public async pruneWorktrees(repository: Repository): Promise<void> {
+    await this.appStore
+      ._pruneWorktrees(repository)
+      .catch(e => this.postError(e))
+  }
+
+  /**
+   * Compute the dirty state of a worktree's working directory. Returns
+   * zero counts on error so the UI can fall back to its default behavior.
+   */
+  public async getWorktreeDirtyState(
+    worktreePath: string
+  ): Promise<WorktreeDirtyState> {
+    return this.appStore._getWorktreeDirtyState(worktreePath)
+  }
+
+  /** Set the user's preference for automatic worktree pruning. */
+  public setAutoPruneWorktreesOnOpenSetting(value: boolean): Promise<void> {
+    return this.appStore._setAutoPruneWorktreesOnOpenSetting(value)
   }
 
   /**
@@ -1790,6 +1844,44 @@ export class Dispatcher {
         baseRef: commitSha,
       }
     )
+  }
+
+  /**
+   * Phase 2 (T2, MeldStashView): open the Meld window in stash mode.
+   * The renderer mounts `MeldStashView` and the user can browse stash
+   * entries and drill into file diffs.
+   */
+  public openInMeldWindowStashMode(
+    repository: Repository
+  ): Promise<void> {
+    const sessionID = `${repository.id}:stash:list`
+    void this.appStore._addMeldSession({
+      id: sessionID,
+      repositoryID: repository.id,
+      filePath: '.',
+      mode: 'stash',
+    })
+    return (invoke as (channel: string, ...args: unknown[]) => Promise<void>)(
+      'meld:open-window',
+      {
+        repositoryID: repository.id,
+        filePath: '.',
+        mode: 'stash',
+      }
+    )
+  }
+
+  /**
+   * Phase 2 (T2, ReflogWiring): open the Meld window in commit mode
+   * for the commit referenced by a reflog entry. Thin wrapper over
+   * `openInMeldWindowCommitMode` that the `reflog-dialog` calls from
+   * its per-row "Open in Meld" button.
+   */
+  public openReflogInMeld(
+    repository: Repository,
+    sha: string
+  ): Promise<void> {
+    return this.openInMeldWindowCommitMode(repository, '.', sha)
   }
 
   /**

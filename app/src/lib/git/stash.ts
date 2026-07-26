@@ -343,3 +343,28 @@ export async function getStashedFiles(
 
   return parseRawLogWithNumstat(stdout, stashSha, `${stashSha}^`).files
 }
+
+/**
+ * Phase 2 (T2, MeldStashView): list all stash entries in the
+ * repository, including non-Desktop ones. Thin alias over
+ * `getAllStashes` with a more descriptive name for use by the
+ * Meld window. Returns an empty array when the repository has no
+ * stash reflog.
+ */
+export async function getStashList(
+  repository: Repository
+): Promise<ReadonlyArray<IAllStashEntry>> {
+  return getAllStashes(repository)
+}
+
+/**
+ * Phase 2 (T2, MeldStashView): get the files changed in a specific
+ * stash entry. Thin alias over `getStashedFiles` that the Meld
+ * window calls per stash when expanding a node in the tree.
+ */
+export async function getStashFiles(
+  repository: Repository,
+  stashSha: string
+): Promise<ReadonlyArray<CommittedFileChange>> {
+  return getStashedFiles(repository, stashSha)
+}

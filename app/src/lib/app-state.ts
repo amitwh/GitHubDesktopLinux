@@ -295,6 +295,13 @@ export interface IAppState {
   /** Should the app prompt the user to confirm worktree removal? */
   readonly askForConfirmationOnWorktreeRemoval: boolean
 
+  /**
+   * Whether the app should automatically run `git worktree prune` when a
+   * repository is opened. Defaults to `false`; opt-in via Advanced
+   * preferences. Failures are logged but never block repository open.
+   */
+  readonly autoPruneWorktreesOnOpen: boolean
+
   /** How the app should handle uncommitted changes when switching branches */
   readonly uncommittedChangesStrategy: UncommittedChangesStrategy
 
@@ -518,7 +525,7 @@ export interface IMeldSession {
   readonly id: string
   readonly repositoryID: number
   readonly filePath: string
-  readonly mode: 'working' | 'commit' | 'merge'
+  readonly mode: 'working' | 'commit' | 'merge' | 'stash'
   readonly baseRef?: string
 }
 

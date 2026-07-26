@@ -267,3 +267,112 @@ export async function syncSubmodule(
     'syncSubmodule'
   )
 }
+
+/**
+ * Phase 2 (T3, MeldSubmoduleView): a coarse-grained status indicator
+ * for a submodule entry. The status is derived from the leading
+ * character in `git submodule status`:
+ *
+ *   - " " (space) → clean: HEAD matches the SHA recorded in the parent
+ *     repository's index and the submodule working tree is clean.
+ *   - "+" → modified: HEAD matches the parent's index SHA but the
+ *     submodule working tree has uncommitted changes (the index and
+ *     the working tree differ).
+ *   - "-" → uninitialized: the submodule directory exists but is not
+ *     initialized (`git submodule update --init` has not been run).
+ *   - "U" → conflicted: merge conflicts inside the submodule.
+ *
+ * Anything else (including the absent-status case) falls through to
+ * `clean` so the UI can always render a deterministic badge.
+ */
+export type ISubmoduleCoarseStatus = 'clean' | 'modified' | 'uninitialized'
+
+export interface ISubmoduleStatusEntry {
+  readonly path: string
+  readonly sha: string
+  readonly status: ISubmoduleCoarseStatus
+}
+
+/**
+ * Phase 2 (T3, MeldSubmoduleView): list submodules with a coarse
+ * status indicator suitable for the Meld file tree. Wraps
+ * `git submodule status` and returns an empty array on a non-zero
+ * exit (no submodules, unborn HEAD, or not-a-git-repo).
+ *
+ * The status indicator is intentionally simple: clean / modified /
+ * uninitialized. The richer per-submodule status that the existing
+ * `listSubmodules` parser produces (with `describe` output and
+ * 40-char SHAs) is too noisy for the file-tree sidebar.
+ */
+export async function getSubmoduleStatus(
+  repository: Repository
+): Promise<ReadonlyArray<ISubmoduleStatusEntry>> {
+  const result = await git(
+    ['submodule', 'status'],
+    repository.path,
+    'getSubmoduleStatus',
+    { successExitCodes: new Set([0, 128]) }
+  )
+
+  if (result.exitCode === 128 || result.stdout.trim() === '') {
+    return []
+  }
+
+  const entries: ISubmoduleStatusEntry[] = []
+  for (const rawLine of result.stdout.split('\n')) {
+    const line = rawLine.trimEnd()
+    if (line === '') {
+      continue
+    }
+    const first = line.charAt(0)
+    let status: ISubmoduleCoarseStatus
+    if (first === '+') {
+      status = 'modified'
+    } else if (first === '-') {
+      status = 'uninitialized'
+    } else {
+      // " " (clean), "U" (conflict), or anything else — render as
+      // clean. The tree badge is purely visual.
+      status = 'clean'
+    }
+    // Strip leading marker char to get the 40-char SHA, then the path.
+    const remainder = line.substring(1).trimStart()
+    const parts = remainder.split(/\s+/)
+    const sha = parts[0] ?? ''
+    const path = parts[1] ?? ''
+    if (sha === '' || path === '') {
+      continue
+    }
+    entries.push({ path, sha, status })
+  }
+
+  return entries
+}
+
+/**
+ * Phase 2 (T3, MeldSubmoduleView): get the unified diff for a single
+ * submodule against the parent's recorded SHA. Returns the empty
+ * string when the submodule has no diff or git could not produce one
+ * (e.g. uninitialized submodule — `git diff` would otherwise throw).
+ *
+ * The output is the standard unified diff format produced by
+ * `git diff --submodule=log` for textual content (submodules with
+ * tracked files). For binary-only submodules the diff is empty by
+ * design — the file tree already shows the status badge so the user
+ * knows the submodule is dirty.
+ */
+export async function getSubmoduleDiff(
+  repository: Repository,
+  submodulePath: string
+): Promise<string> {
+  try {
+    const result = await git(
+      ['diff', '--submodule=log', '--', submodulePath],
+      repository.path,
+      'getSubmoduleDiff'
+    )
+    return result.stdout
+  } catch {
+    return ''
+  }
+}

@@ -429,7 +429,7 @@ import { Repository } from '../models/repository'
 function parseMeldArgsFromHash(): {
   readonly repositoryID: number
   readonly filePath: string
-  readonly mode: 'working' | 'commit' | 'merge'
+  readonly mode: 'working' | 'commit' | 'merge' | 'stash'
   /** Phase 1c: SHA of the merge base (present only in 'merge' mode). */
   readonly mergeBaseSha?: string
   /** Phase 1c: SHA of the incoming branch tip (present only in 'merge' mode). */
@@ -446,6 +446,7 @@ function parseMeldArgsFromHash(): {
     | 'working'
     | 'commit'
     | 'merge'
+    | 'stash'
   if (Number.isNaN(repositoryID) || filePath === '') {
     return null
   }
@@ -667,6 +668,92 @@ function MeldWindowContainer(props: {
             )
         })
       }}
+      onGetStashes={async repositoryID => {
+        const repo = appStore.getState().repositories.find(
+          r => r.id === repositoryID,
+        )
+        if (!repo || !(repo instanceof Repository)) {
+          return []
+        }
+        return new Promise<
+          ReadonlyArray<import('../lib/git/stash').IAllStashEntry>
+        >(resolve => {
+          const w = window as unknown as {
+            electron?: { ipcRenderer?: { invoke: (channel: string, ...args: unknown[]) => Promise<unknown> } }
+          }
+          const ipcRenderer = w.electron?.ipcRenderer
+          if (!ipcRenderer) {
+            resolve([])
+            return
+          }
+          ipcRenderer
+            .invoke('meld:list-stashes', {
+              repositoryPath: repo.path,
+            })
+            .then(
+              (result: unknown) =>
+                resolve(
+                  result as ReadonlyArray<
+                    import('../lib/git/stash').IAllStashEntry
+                  >
+                ),
+              (err: Error) => {
+                console.warn('[meld:list-stashes] failed:', err.message)
+                resolve([])
+              }
+            )
+        })
+      }}
+      onGetStashFiles={async (repositoryID, stashSha) => {
+        const repo = appStore.getState().repositories.find(
+          r => r.id === repositoryID,
+        )
+        if (!repo || !(repo instanceof Repository)) {
+          return []
+        }
+        return new Promise<
+          ReadonlyArray<import('../models/status').CommittedFileChange>
+        >(resolve => {
+          const w = window as unknown as {
+            electron?: { ipcRenderer?: { invoke: (channel: string, ...args: unknown[]) => Promise<unknown> } }
+          }
+          const ipcRenderer = w.electron?.ipcRenderer
+          if (!ipcRenderer) {
+            resolve([])
+            return
+          }
+          ipcRenderer
+            .invoke('meld:get-stash-files', {
+              repositoryPath: repo.path,
+              stashSha,
+            })
+            .then(
+              (result: unknown) =>
+                resolve(
+                  result as ReadonlyArray<
+                    import('../models/status').CommittedFileChange
+                  >
+                ),
+              (err: Error) => {
+                console.warn('[meld:get-stash-files] failed:', err.message)
+                resolve([])
+              }
+            )
+        })
+      }}
+      onStashFileSelected={async (repositoryID, stashSha, filePath) => {
+        const repo = appStore.getState().repositories.find(
+          r => r.id === repositoryID,
+        )
+        if (!repo || !(repo instanceof Repository)) {
+          return
+        }
+        return props.dispatcher.openInMeldWindowCommitMode(
+          repo,
+          filePath,
+          stashSha
+        )
+      }}
       onClose={() => window.close()}
     />
   )
@@ -700,7 +787,7 @@ ReactDOM.render(
           mode={args.mode}
           files={[]}
           availableTools={appStore._getExternalTools()}
-          onGetDiff={async (_id: number, filePath: string, _mode: 'working' | 'commit' | 'merge') => {
+          onGetDiff={async (_id: number, filePath: string, _mode: 'working' | 'commit' | 'merge' | 'stash') => {
             // Phase 1a stub: real implementation lives in app.tsx wiring
             // (Task 18) and talks to git via the dispatcher.
             return {
@@ -787,6 +874,103 @@ ReactDOM.render(
                   }
                 )
             })
+          }}
+          onGetStashes={async repositoryID => {
+            // Phase 2 (T2, MeldStashView): fetch all stash entries for
+            // the current repository via the `meld:list-stashes` IPC
+            // channel registered in the main process.
+            const repo = appStore.getState().repositories.find(
+              r => r.id === repositoryID,
+            )
+            if (!repo || !(repo instanceof Repository)) {
+              return []
+            }
+            return new Promise<
+              ReadonlyArray<import('../lib/git/stash').IAllStashEntry>
+            >(resolve => {
+              const w = window as unknown as {
+                electron?: { ipcRenderer?: { invoke: (channel: string, ...args: unknown[]) => Promise<unknown> } }
+              }
+              const ipcRenderer = w.electron?.ipcRenderer
+              if (!ipcRenderer) {
+                resolve([])
+                return
+              }
+              ipcRenderer
+                .invoke('meld:list-stashes', {
+                  repositoryPath: repo.path,
+                })
+                .then(
+                  (result: unknown) =>
+                    resolve(
+                      result as ReadonlyArray<
+                        import('../lib/git/stash').IAllStashEntry
+                      >
+                    ),
+                  (err: Error) => {
+                    console.warn('[meld:list-stashes] failed:', err.message)
+                    resolve([])
+                  }
+                )
+            })
+          }}
+          onGetStashFiles={async (repositoryID, stashSha) => {
+            // Phase 2 (T2, MeldStashView): fetch the list of files
+            // changed in a specific stash entry via the
+            // `meld:get-stash-files` IPC channel.
+            const repo = appStore.getState().repositories.find(
+              r => r.id === repositoryID,
+            )
+            if (!repo || !(repo instanceof Repository)) {
+              return []
+            }
+            return new Promise<
+              ReadonlyArray<import('../models/status').CommittedFileChange>
+            >(resolve => {
+              const w = window as unknown as {
+                electron?: { ipcRenderer?: { invoke: (channel: string, ...args: unknown[]) => Promise<unknown> } }
+              }
+              const ipcRenderer = w.electron?.ipcRenderer
+              if (!ipcRenderer) {
+                resolve([])
+                return
+              }
+              ipcRenderer
+                .invoke('meld:get-stash-files', {
+                  repositoryPath: repo.path,
+                  stashSha,
+                })
+                .then(
+                  (result: unknown) =>
+                    resolve(
+                      result as ReadonlyArray<
+                        import('../models/status').CommittedFileChange
+                      >
+                    ),
+                  (err: Error) => {
+                    console.warn(
+                      '[meld:get-stash-files] failed:',
+                      err.message
+                    )
+                    resolve([])
+                  }
+                )
+            })
+          }}
+          onStashFileSelected={async (repositoryID, stashSha, filePath) => {
+            // Phase 2 (T2, MeldStashView): open the stash's commit
+            // version of the file in a new Meld window.
+            const repo = appStore.getState().repositories.find(
+              r => r.id === repositoryID,
+            )
+            if (!repo || !(repo instanceof Repository)) {
+              return
+            }
+            return dispatcher.openInMeldWindowCommitMode(
+              repo,
+              filePath,
+              stashSha
+            )
           }}
         />
       )

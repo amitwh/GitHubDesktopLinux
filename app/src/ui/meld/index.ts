@@ -1,5 +1,8 @@
 export { MeldWindow } from './MeldWindow'
 export type { IMeldWindowProps, IMeldWindowMode } from './MeldWindow'
+// Phase 2 (T2, MeldStashView): list of stashes as expandable tree nodes
+export { MeldStashView } from './MeldStashView'
+export type { IMeldStashViewProps } from './MeldStashView'
 export { MeldFileTree } from './MeldFileTree'
 export type {
   IMeldFile,
