@@ -28,3 +28,16 @@ export const useSSHDefaultDefault = false
 
 export const autoFetchOnFocusKey = 'auto-fetch-on-focus'
 export const autoFetchOnFocusDefault = false
+
+export const useMeldForDiffKey = 'use-meld-for-diff'
+export const useMeldForDiffDefault = false
+export const useMeldForMergeKey = 'use-meld-for-merge'
+export const useMeldForMergeDefault = true
+export const fallbackToInlineDiffKey = 'fallback-to-inline-diff'
+export const fallbackToInlineDiffDefault = true
+export const confirmShellOpenKey = 'confirm-shell-open'
+export const confirmShellOpenDefault = false
+export const openShellOnRepoOpenKey = 'open-shell-on-repo-open'
+export const openShellOnRepoOpenDefault = false
+export const customShellPathKey = 'custom-shell-path'
+export const customShellPathDefault = ''

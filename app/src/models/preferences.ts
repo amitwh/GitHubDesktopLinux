@@ -8,4 +8,6 @@ export enum PreferencesTab {
   Prompts,
   Advanced,
   Accessibility,
+  MeldTools,
+  Shell,
 }

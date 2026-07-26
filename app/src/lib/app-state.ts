@@ -471,6 +471,12 @@ export interface IAppState {
    * the window regains focus. Defaults to false.
    */
   readonly autoFetchOnFocus: boolean
+  readonly useMeldForDiff: boolean
+  readonly useMeldForMerge: boolean
+  readonly fallbackToInlineDiff: boolean
+  readonly confirmShellOpen: boolean
+  readonly openShellOnRepoOpen: boolean
+  readonly customShellPath: string | null
 
   /** Account-scoped Copilot model selections. */
   readonly selectedCopilotModelsByAccount: CopilotModelSelectionsByAccount

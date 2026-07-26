@@ -2161,6 +2161,13 @@ export class Dispatcher {
     }
   }
 
+  public async openInFileManager(path: string): Promise<void> {
+    const error = await shell.openPath(path)
+    if (error.length > 0) {
+      throw new Error(error)
+    }
+  }
+
   /**
    * Opens a path in the external editor selected by the user.
    */
@@ -3471,6 +3478,30 @@ export class Dispatcher {
    */
   public setAutoFetchOnFocus(autoFetchOnFocus: boolean) {
     this.appStore._setAutoFetchOnFocus(autoFetchOnFocus)
+  }
+
+  public setUseMeldForDiff(value: boolean) {
+    this.appStore._setUseMeldForDiff(value)
+  }
+
+  public setUseMeldForMerge(value: boolean) {
+    this.appStore._setUseMeldForMerge(value)
+  }
+
+  public setFallbackToInlineDiff(value: boolean) {
+    this.appStore._setFallbackToInlineDiff(value)
+  }
+
+  public setConfirmShellOpen(value: boolean) {
+    this.appStore._setConfirmShellOpen(value)
+  }
+
+  public setOpenShellOnRepoOpen(value: boolean) {
+    this.appStore._setOpenShellOnRepoOpen(value)
+  }
+
+  public setCustomShellPath(value: string | null) {
+    this.appStore._setCustomShellPath(value)
   }
 
   public setCommitSpellcheckEnabled(commitSpellcheckEnabled: boolean) {

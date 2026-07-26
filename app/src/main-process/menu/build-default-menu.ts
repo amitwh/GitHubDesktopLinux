@@ -689,6 +689,25 @@ export function buildDefaultMenuTemplate({
     submenu: branchSubmenu,
   })
 
+  if (__LINUX__) {
+    template.push({
+      label: '&Tools',
+      submenu: [
+        {
+          label: 'Open Configuration Folder',
+          click: emit('open-config-folder'),
+        },
+        {
+          label: 'Open Logs Folder',
+          click: emit('open-logs-folder'),
+        },
+        separator,
+        { label: 'Reload Window', role: 'forceReload' },
+        { label: 'Toggle Developer Tools', role: 'toggleDevTools' },
+      ],
+    })
+  }
+
   if (__DARWIN__) {
     template.push({
       role: 'window',

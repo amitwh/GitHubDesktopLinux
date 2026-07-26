@@ -21,6 +21,7 @@ import { FetchType } from '../models/fetch'
 import { shouldRenderApplicationMenu } from './lib/features'
 import { matchExistingRepository } from '../lib/repository-matching'
 import { getVersion, getName } from './lib/app-proxy'
+import { getPath } from './main-process-proxy'
 import {
   getOS,
   isOSNoLongerSupportedByElectron,
@@ -561,6 +562,14 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.openIssueCreationOnGitHub()
       case 'open-in-shell':
         return this.openCurrentRepositoryInShell()
+      case 'open-config-folder':
+        return getPath('userData').then(path =>
+          this.props.dispatcher.openInFileManager(path)
+        )
+      case 'open-logs-folder':
+        return getPath('userData').then(path =>
+          this.props.dispatcher.openInFileManager(Path.join(path, 'logs'))
+        )
       case 'clone-repository':
         return this.showCloneRepo()
       case 'show-about':
@@ -2002,6 +2011,12 @@ export class App extends React.Component<IAppProps, IAppState> {
             autoPruneWorktreesOnOpen={this.state.autoPruneWorktreesOnOpen}
             autoFetchOnFocus={this.state.autoFetchOnFocus}
             useSSHDefault={this.state.useSSHDefault}
+            useMeldForDiff={this.state.useMeldForDiff}
+            useMeldForMerge={this.state.useMeldForMerge}
+            fallbackToInlineDiff={this.state.fallbackToInlineDiff}
+            confirmShellOpen={this.state.confirmShellOpen}
+            openShellOnRepoOpen={this.state.openShellOnRepoOpen}
+            customShellPath={this.state.customShellPath}
             onEditGlobalGitConfig={this.editGlobalGitConfig}
             underlineLinks={this.state.underlineLinks}
             showDiffCheckMarks={this.state.showDiffCheckMarks}

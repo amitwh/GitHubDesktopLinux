@@ -42,6 +42,8 @@ import { Prompts } from './prompts'
 import { Repository } from '../../models/repository'
 import { Notifications } from './notifications'
 import { Accessibility } from './accessibility'
+import MeldTools from './meld-tools'
+import ShellPreferences from './shell'
 import { CopilotPreferences } from './copilot'
 import type {
   CopilotFeature,
@@ -124,6 +126,12 @@ interface IPreferencesProps {
   readonly copilotQuotaSnapshotsByAccount: CopilotQuotaSnapshotsByAccount
   readonly byokProviders: ReadonlyArray<IBYOKProvider>
   readonly alwaysUseCopilotForConflictResolution: boolean
+  readonly useMeldForDiff: boolean
+  readonly useMeldForMerge: boolean
+  readonly fallbackToInlineDiff: boolean
+  readonly confirmShellOpen: boolean
+  readonly openShellOnRepoOpen: boolean
+  readonly customShellPath: string | null
 }
 
 interface IPreferencesState {
@@ -190,6 +198,12 @@ interface IPreferencesState {
 
   readonly selectedCopilotModelsByAccount: CopilotModelSelectionsByAccount
   readonly alwaysUseCopilotForConflictResolution: boolean
+  readonly useMeldForDiff: boolean
+  readonly useMeldForMerge: boolean
+  readonly fallbackToInlineDiff: boolean
+  readonly confirmShellOpen: boolean
+  readonly openShellOnRepoOpen: boolean
+  readonly customShellPath: string | null
   readonly selectedDateFormat?: DateFormat
   readonly selectedTimeFormat?: TimeFormat
   readonly selectedNumberFormat?: INumberFormat
@@ -263,6 +277,12 @@ export class Preferences extends React.Component<
       selectedCopilotModelsByAccount: this.props.selectedCopilotModelsByAccount,
       alwaysUseCopilotForConflictResolution:
         this.props.alwaysUseCopilotForConflictResolution,
+      useMeldForDiff: this.props.useMeldForDiff,
+      useMeldForMerge: this.props.useMeldForMerge,
+      fallbackToInlineDiff: this.props.fallbackToInlineDiff,
+      confirmShellOpen: this.props.confirmShellOpen,
+      openShellOnRepoOpen: this.props.openShellOnRepoOpen,
+      customShellPath: this.props.customShellPath,
       selectedDateFormat: getDateFormatPreference(),
       selectedTimeFormat: getTimeFormatPreference(),
       selectedNumberFormat: getNumberFormatPreference(),
@@ -431,6 +451,14 @@ export class Preferences extends React.Component<
               <Octicon className="icon" symbol={octicons.accessibility} />
               Accessibility
             </span>
+            <span id={this.getTabId(PreferencesTab.MeldTools)}>
+              <Octicon className="icon" symbol={octicons.diff} />
+              Meld / Diff Tools
+            </span>
+            <span id={this.getTabId(PreferencesTab.Shell)}>
+              <Octicon className="icon" symbol={octicons.terminal} />
+              Shell
+            </span>
           </TabBar>
 
           {this.renderActiveTab()}
@@ -469,6 +497,12 @@ export class Preferences extends React.Component<
         break
       case PreferencesTab.Accessibility:
         suffix = 'accessibility'
+        break
+      case PreferencesTab.MeldTools:
+        suffix = 'meld-tools'
+        break
+      case PreferencesTab.Shell:
+        suffix = 'shell'
         break
       default:
         return assertNever(tab, `Unknown tab type: ${tab}`)
@@ -763,6 +797,33 @@ export class Preferences extends React.Component<
           />
         )
         break
+      case PreferencesTab.MeldTools:
+        View = (
+          <MeldTools
+            useMeldForDiff={this.state.useMeldForDiff}
+            useMeldForMerge={this.state.useMeldForMerge}
+            fallbackToInlineDiff={this.state.fallbackToInlineDiff}
+            onUseMeldForDiffChanged={this.onUseMeldForDiffChanged}
+            onUseMeldForMergeChanged={this.onUseMeldForMergeChanged}
+            onFallbackToInlineDiffChanged={this.onFallbackToInlineDiffChanged}
+          />
+        )
+        break
+      case PreferencesTab.Shell:
+        View = (
+          <ShellPreferences
+            availableShells={this.state.availableShells}
+            selectedShell={this.state.selectedShell}
+            confirmShellOpen={this.state.confirmShellOpen}
+            openShellOnRepoOpen={this.state.openShellOnRepoOpen}
+            customShellPath={this.state.customShellPath}
+            onSelectedShellChanged={this.onSelectedShellChanged}
+            onConfirmShellOpenChanged={this.onConfirmShellOpenChanged}
+            onOpenShellOnRepoOpenChanged={this.onOpenShellOnRepoOpenChanged}
+            onCustomShellPathChanged={this.onCustomShellPathChanged}
+          />
+        )
+        break
       default:
         return assertNever(index, `Unknown tab index: ${index}`)
     }
@@ -881,6 +942,30 @@ export class Preferences extends React.Component<
 
   private onCommitterEmailChanged = (committerEmail: string) => {
     this.setState({ committerEmail })
+  }
+
+  private onUseMeldForDiffChanged = (useMeldForDiff: boolean) => {
+    this.setState({ useMeldForDiff })
+  }
+
+  private onUseMeldForMergeChanged = (useMeldForMerge: boolean) => {
+    this.setState({ useMeldForMerge })
+  }
+
+  private onFallbackToInlineDiffChanged = (fallbackToInlineDiff: boolean) => {
+    this.setState({ fallbackToInlineDiff })
+  }
+
+  private onConfirmShellOpenChanged = (confirmShellOpen: boolean) => {
+    this.setState({ confirmShellOpen })
+  }
+
+  private onOpenShellOnRepoOpenChanged = (openShellOnRepoOpen: boolean) => {
+    this.setState({ openShellOnRepoOpen })
+  }
+
+  private onCustomShellPathChanged = (customShellPath: string) => {
+    this.setState({ customShellPath })
   }
 
   private onUseSSHDefaultChanged = (useSSHDefault: boolean) => {
@@ -1135,6 +1220,27 @@ export class Preferences extends React.Component<
 
     if (this.props.useSSHDefault !== this.state.useSSHDefault) {
       await dispatcher.setUseSSHDefault(this.state.useSSHDefault)
+    }
+
+    if (this.props.useMeldForDiff !== this.state.useMeldForDiff) {
+      dispatcher.setUseMeldForDiff(this.state.useMeldForDiff)
+    }
+    if (this.props.useMeldForMerge !== this.state.useMeldForMerge) {
+      dispatcher.setUseMeldForMerge(this.state.useMeldForMerge)
+    }
+    if (
+      this.props.fallbackToInlineDiff !== this.state.fallbackToInlineDiff
+    ) {
+      dispatcher.setFallbackToInlineDiff(this.state.fallbackToInlineDiff)
+    }
+    if (this.props.confirmShellOpen !== this.state.confirmShellOpen) {
+      dispatcher.setConfirmShellOpen(this.state.confirmShellOpen)
+    }
+    if (this.props.openShellOnRepoOpen !== this.state.openShellOnRepoOpen) {
+      dispatcher.setOpenShellOnRepoOpen(this.state.openShellOnRepoOpen)
+    }
+    if (this.props.customShellPath !== this.state.customShellPath) {
+      dispatcher.setCustomShellPath(this.state.customShellPath)
     }
 
     await dispatcher.setConfirmRepoRemovalSetting(

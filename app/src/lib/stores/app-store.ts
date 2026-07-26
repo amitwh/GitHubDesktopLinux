@@ -297,6 +297,20 @@ import {
   setObject,
   getFloatNumber,
 } from '../local-storage'
+import {
+  useMeldForDiffKey,
+  useMeldForDiffDefault,
+  useMeldForMergeKey,
+  useMeldForMergeDefault,
+  fallbackToInlineDiffKey,
+  fallbackToInlineDiffDefault,
+  confirmShellOpenKey,
+  confirmShellOpenDefault,
+  openShellOnRepoOpenKey,
+  openShellOnRepoOpenDefault,
+  customShellPathKey,
+  customShellPathDefault,
+} from '../preferences-keys'
 import { ExternalEditorError, suggestedExternalEditor } from '../editors/shared'
 import { ApiRepositoriesStore } from './api-repositories-store'
 import {
@@ -780,6 +794,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
    * follow-up slice; this preference is already persisted.
    */
   private autoFetchOnFocus: boolean = autoFetchOnFocusDefault
+  private useMeldForDiff: boolean = useMeldForDiffDefault
+  private useMeldForMerge: boolean = useMeldForMergeDefault
+  private fallbackToInlineDiff: boolean = fallbackToInlineDiffDefault
+  private confirmShellOpen: boolean = confirmShellOpenDefault
+  private openShellOnRepoOpen: boolean = openShellOnRepoOpenDefault
+  private customShellPath: string | null = customShellPathDefault
 
   private selectedCopilotModelsByAccount: CopilotModelSelectionsByAccount =
     new Map()
@@ -1423,6 +1443,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
       showLineNumbers: this.showLineNumbers,
       useSSHDefault: this.useSSHDefault,
       autoFetchOnFocus: this.autoFetchOnFocus,
+      useMeldForDiff: this.useMeldForDiff,
+      useMeldForMerge: this.useMeldForMerge,
+      fallbackToInlineDiff: this.fallbackToInlineDiff,
+      confirmShellOpen: this.confirmShellOpen,
+      openShellOnRepoOpen: this.openShellOnRepoOpen,
+      customShellPath: this.customShellPath,
       selectedCopilotModelsByAccount: this.selectedCopilotModelsByAccount,
       copilotModelsByAccount: this.copilotModelsByAccount,
       copilotQuotaSnapshotsByAccount: this.copilotQuotaSnapshotsByAccount,
@@ -2732,6 +2758,22 @@ export class AppStore extends TypedBaseStore<IAppState> {
       autoFetchOnFocusKey,
       autoFetchOnFocusDefault
     )
+    this.useMeldForDiff = getBoolean(useMeldForDiffKey, useMeldForDiffDefault)
+    this.useMeldForMerge = getBoolean(useMeldForMergeKey, useMeldForMergeDefault)
+    this.fallbackToInlineDiff = getBoolean(
+      fallbackToInlineDiffKey,
+      fallbackToInlineDiffDefault
+    )
+    this.confirmShellOpen = getBoolean(
+      confirmShellOpenKey,
+      confirmShellOpenDefault
+    )
+    this.openShellOnRepoOpen = getBoolean(
+      openShellOnRepoOpenKey,
+      openShellOnRepoOpenDefault
+    )
+    this.customShellPath =
+      localStorage.getItem(customShellPathKey) ?? customShellPathDefault
 
     this.selectedCopilotModelsByAccount =
       this.loadCopilotModelSelectionsByAccount()
@@ -10477,6 +10519,42 @@ export class AppStore extends TypedBaseStore<IAppState> {
       setBoolean(autoFetchOnFocusKey, autoFetchOnFocus)
       this.emitUpdate()
     }
+  }
+
+  public _setUseMeldForDiff(value: boolean) {
+    this.useMeldForDiff = value
+    setBoolean(useMeldForDiffKey, value)
+    this.emitUpdate()
+  }
+
+  public _setUseMeldForMerge(value: boolean) {
+    this.useMeldForMerge = value
+    setBoolean(useMeldForMergeKey, value)
+    this.emitUpdate()
+  }
+
+  public _setFallbackToInlineDiff(value: boolean) {
+    this.fallbackToInlineDiff = value
+    setBoolean(fallbackToInlineDiffKey, value)
+    this.emitUpdate()
+  }
+
+  public _setConfirmShellOpen(value: boolean) {
+    this.confirmShellOpen = value
+    setBoolean(confirmShellOpenKey, value)
+    this.emitUpdate()
+  }
+
+  public _setOpenShellOnRepoOpen(value: boolean) {
+    this.openShellOnRepoOpen = value
+    setBoolean(openShellOnRepoOpenKey, value)
+    this.emitUpdate()
+  }
+
+  public _setCustomShellPath(value: string | null) {
+    this.customShellPath = value
+    localStorage.setItem(customShellPathKey, value ?? '')
+    this.emitUpdate()
   }
 
   /**
