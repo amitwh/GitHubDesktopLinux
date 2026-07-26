@@ -27,6 +27,18 @@ Download the official installer for your operating system:
 
 Linux is not officially supported; however, you can find installers created for Linux from a fork of GitHub Desktop in the [Community Releases](https://github.com/desktop/desktop#community-releases) section.
 
+## What's different from upstream GitHub Desktop?
+
+[GitHub Desktop Linux](https://github.com/amitwh/GitHubDesktop) is an unofficial, community-maintained Linux fork maintained by [Amit Haridas](https://github.com/amitwh). It is not affiliated with or endorsed by GitHub, Inc. All credit for the original GitHub Desktop application goes to GitHub, Inc. and the upstream contributors.
+
+This fork adds the following enhancements on top of upstream GitHub Desktop:
+
+- **Native Linux packaging** — `.deb`, AppImage, Snap, and Flatpak targets. The `.deb` and AppImage build out of the box; Flatpak requires the `flatpak` CLI on the build host to produce a usable artifact.
+- **Meld-style diff viewer** — a standalone `BrowserWindow` with side-by-side, unified, and 3-way merge views, in-place editing, character-level word diff, copy-left/copy-right controls, and conflict resolution. Phases 1a (read-only), 1b (editable), 1c (3-way merge), 2 (stash/reflog/submodule views), and 3 (rebase preview) have shipped.
+- **Worktree housekeeping and safety** — lock/unlock, prune, dirty-state warnings on delete, disk-usage display, and an auto-prune preference, built on top of upstream worktree support.
+- **Commit history export** — export the commit history of any repository to Markdown, then convert it with [pandoc](https://pandoc.org/) to PDF, DOCX, HTML, and other formats.
+- **Linux font and UX** — JetBrains Mono is the default monospace font, and platform-gated features have been audited for Linux.
+
 ### Beta Channel
 
 Want to test out new features and get fixes before everyone else? Install the
