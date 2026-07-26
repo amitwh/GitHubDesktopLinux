@@ -5,11 +5,13 @@ import { Dispatcher } from '../dispatcher'
 import { Row } from '../lib/row'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { Commit } from '../../models/commit'
+import { GitResetMode } from '../../lib/git'
 
 interface IWarningBeforeResetProps {
   readonly dispatcher: Dispatcher
   readonly repository: Repository
   readonly commit: Commit
+  readonly mode: GitResetMode
   readonly onDismissed: () => void
 }
 
@@ -60,11 +62,11 @@ export class WarningBeforeReset extends React.Component<
   }
 
   private onSubmit = async () => {
-    const { dispatcher, repository, commit, onDismissed } = this.props
+    const { dispatcher, repository, commit, mode, onDismissed } = this.props
     this.setState({ isLoading: true })
 
     try {
-      await dispatcher.resetToCommit(repository, commit, false)
+      await dispatcher.resetToCommit(repository, commit, mode, false)
     } finally {
       this.setState({ isLoading: false })
     }

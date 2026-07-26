@@ -67,4 +67,12 @@ export type MenuLabelsEvent = {
    * says "Show changes filter" or "Hide changes filter".
    */
   readonly isChangesFilterVisible?: boolean
+
+  /**
+   * Whether the current repository has at least one parent commit (i.e. is not
+   * in the initial-commit / empty-repo state). Used to enable the
+   * "Revert HEAD Commit" Repository menu item, which has no valid target when
+   * HEAD has no parent to invert.
+   */
+  readonly hasMultipleCommits?: boolean
 }

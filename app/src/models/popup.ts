@@ -25,7 +25,7 @@ import { UnreachableCommitsTab } from '../ui/history/unreachable-commits-dialog'
 import { IAPIComment } from '../lib/api'
 import { ISecretScanResult } from '../ui/secret-scanning/push-protection-error-dialog'
 import { BypassReasonType } from '../ui/secret-scanning/bypass-push-protection-dialog'
-import { TerminalOutput, TerminalOutputListener } from '../lib/git'
+import { TerminalOutput, TerminalOutputListener, GitResetMode } from '../lib/git'
 import type { IBYOKModel, IBYOKProvider } from '../lib/copilot/byok'
 import { WorktreeEntry } from './worktree'
 
@@ -380,6 +380,7 @@ export type PopupDetail =
       type: PopupType.WarningBeforeReset
       repository: Repository
       commit: Commit
+      mode: GitResetMode
     }
   | {
       type: PopupType.InvalidatedToken

@@ -3116,6 +3116,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
     const askForConfirmationWhenStashingAllChanges =
       changesState.stashEntry !== null
 
+    // Compute whether HEAD has a parent commit. The Repository menu's
+    // "Revert HEAD Commit" and "Reset to HEAD…" items are gated on this so
+    // that empty/initial-commit repositories don't expose menu items that
+    // would no-op or error.
+    const hasMultipleCommits = this.commitHasParent(state)
+
     updatePreferredAppMenuItemLabels({
       ...labels,
       contributionTargetDefaultBranch,
@@ -3124,7 +3130,32 @@ export class AppStore extends TypedBaseStore<IAppState> {
       hasCurrentPullRequest: currentPullRequest !== null,
       askForConfirmationWhenStashingAllChanges,
       isChangesFilterVisible: this.showChangesFilter,
+      hasMultipleCommits,
     })
+  }
+
+  /**
+   * Returns true when the current repository has a HEAD commit with at
+   * least one non-empty parent SHA, i.e. it's past the initial commit.
+   *
+   * Mirrors the logic in `tutorial-assessor.hasMultipleCommits` but is
+   * local to AppStore so the menu-builder can consult it without a
+   * circular dependency on the helper module.
+   */
+  private commitHasParent(state: IRepositoryState): boolean {
+    const { branchesState, commitLookup } = state
+    const { tip } = branchesState
+
+    if (tip.kind !== TipState.Valid) {
+      return false
+    }
+
+    const commit = commitLookup.get(tip.branch.tip.sha)
+    if (commit === undefined) {
+      return false
+    }
+
+    return commit.parentSHAs.some(x => x.length > 0)
   }
 
   private updateRepositorySelectionAfterRepositoriesChanged() {
@@ -6023,7 +6054,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
   public async _resetToCommit(
     repository: Repository,
     commit: Commit,
-    showConfirmationDialog: boolean
+    mode: GitResetMode,
+    showConfirmationDialog: boolean = true
   ): Promise<void> {
     const gitStore = this.gitStoreCache.get(repository)
     const repositoryState = this.repositoryStateCache.get(repository)
@@ -6037,6 +6069,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
         type: PopupType.WarningBeforeReset,
         repository,
         commit,
+        mode,
       })
     }
 
@@ -6047,7 +6080,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     )
 
     await gitStore.performFailableOperation(() =>
-      reset(repository, GitResetMode.Mixed, commit.sha)
+      reset(repository, mode, commit.sha)
     )
 
     // this.statsStore.recordCommitUndone(isWorkingDirectoryClean)

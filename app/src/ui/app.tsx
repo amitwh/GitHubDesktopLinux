@@ -176,7 +176,7 @@ import { generateRepositoryListContextMenu } from './repositories-list/repositor
 import * as ipcRenderer from '../lib/ipc-renderer'
 import { DiscardChangesRetryDialog } from './discard-changes/discard-changes-retry-dialog'
 import { PullRequestReview } from './notifications/pull-request-review'
-import { getRepositoryType } from '../lib/git'
+import { getRepositoryType, GitResetMode, getCommit } from '../lib/git'
 import { SSHUserPassword } from './ssh/ssh-user-password'
 import { showContextualMenu } from '../lib/menu-item'
 import { UnreachableCommitsDialog } from './history/unreachable-commits-dialog'
@@ -625,6 +625,18 @@ export class App extends React.Component<IAppProps, IAppState> {
       case 'discard-all-working-tree-changes':
       case 'clean-untracked-files':
         return
+      case 'reset-head-soft':
+        void this._resetHeadToParent(GitResetMode.Soft)
+        return
+      case 'reset-head-mixed':
+        void this._resetHeadToParent(GitResetMode.Mixed)
+        return
+      case 'reset-head-hard':
+        void this._resetHeadToParent(GitResetMode.Hard)
+        return
+      case 'revert-head-commit':
+        void this._revertHeadCommit()
+        return
       default:
         if (isTestMenuEvent(name)) {
           return showTestUI(
@@ -655,6 +667,95 @@ export class App extends React.Component<IAppProps, IAppState> {
       return
     }
     void this.props.dispatcher.closeCurrentRepository()
+  }
+
+  /**
+   * Repository menu ▸ Reset to HEAD ▸ {Soft,Mixed,Hard}
+   *
+   * Resolves the parent of the current HEAD commit and dispatches a
+   * `resetToCommit` against that parent using the requested mode. When HEAD
+   * has no parent (initial commit / empty repository) the user is shown an
+   * error popup instead of silently no-op'ing.
+   */
+  private async _resetHeadToParent(mode: GitResetMode) {
+    const repository = this.getRepository()
+    if (repository === null || repository instanceof CloningRepository) {
+      return
+    }
+
+    const parentSha = await this._resolveHeadParentSha(repository)
+    if (parentSha === null) {
+      this.props.dispatcher.showPopup({
+        type: PopupType.Error,
+        error: new Error(
+          'No parent commit found for HEAD — this is the initial commit or the repository is empty.'
+        ),
+      })
+      return
+    }
+
+    const commit = await getCommit(repository, parentSha)
+    if (commit === null) {
+      this.props.dispatcher.showPopup({
+        type: PopupType.Error,
+        error: new Error(
+          `Could not load commit ${parentSha.slice(0, 7)} for reset.`
+        ),
+      })
+      return
+    }
+
+    // `showConfirmationDialog = true` lets the existing warning dialog fire
+    // if the working tree is dirty — the user already chose the mode, but
+    // the dirty-tree confirmation is a separate concern.
+    await this.props.dispatcher.resetToCommit(repository, commit, mode, true)
+  }
+
+  /**
+   * Repository menu ▸ Revert HEAD Commit
+   *
+   * Resolves the current HEAD commit and dispatches `revertCommit`, which
+   * creates a new commit undoing the changes from HEAD. No-ops when no
+   * repository is selected.
+   */
+  private async _revertHeadCommit() {
+    const repository = this.getRepository()
+    if (repository === null || repository instanceof CloningRepository) {
+      return
+    }
+
+    const headCommit = await getCommit(repository, 'HEAD')
+    if (headCommit === null) {
+      this.props.dispatcher.showPopup({
+        type: PopupType.Error,
+        error: new Error('Could not resolve HEAD for revert.'),
+      })
+      return
+    }
+
+    await this.props.dispatcher.revertCommit(repository, headCommit)
+  }
+
+  /**
+   * Resolves the SHA of HEAD's parent. Returns `null` when HEAD has no
+   * parent (initial commit) or when the lookup fails for any reason.
+   */
+  private async _resolveHeadParentSha(
+    repository: Repository
+  ): Promise<string | null> {
+    try {
+      return await this.props.dispatcher.getPreviousCommitSha(repository)
+    } catch (err) {
+      log.error(
+        '[resetHeadToParent] failed to resolve HEAD~1',
+        err as Error
+      )
+      this.props.dispatcher.showPopup({
+        type: PopupType.Error,
+        error: err as Error,
+      })
+      return null
+    }
   }
 
   /**
@@ -2810,13 +2911,14 @@ export class App extends React.Component<IAppProps, IAppState> {
         )
       }
       case PopupType.WarningBeforeReset: {
-        const { repository, commit } = popup
+        const { repository, commit, mode } = popup
         return (
           <WarningBeforeReset
             key="warning-before-reset"
             dispatcher={this.props.dispatcher}
             repository={repository}
             commit={commit}
+            mode={mode}
             onDismissed={onPopupDismissedFn}
           />
         )

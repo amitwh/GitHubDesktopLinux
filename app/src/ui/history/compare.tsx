@@ -29,7 +29,7 @@ import { DragType } from '../../models/drag-drop'
 import { PopupType } from '../../models/popup'
 import { getUniqueCoauthorsAsAuthors } from '../../lib/unique-coauthors-as-authors'
 import { getSquashedCommitDescription } from '../../lib/squash/squashed-commit-description'
-import { doMergeCommitsExistAfterCommit } from '../../lib/git'
+import { doMergeCommitsExistAfterCommit, GitResetMode } from '../../lib/git'
 import { KeyboardInsertionData } from '../lib/list'
 import { Account } from '../../models/account'
 import { Emoji } from '../../lib/emoji'
@@ -617,7 +617,11 @@ export class CompareSidebar extends React.Component<
   }
 
   private onResetToCommit = (commit: Commit) => {
-    this.props.dispatcher.resetToCommit(this.props.repository, commit)
+    this.props.dispatcher.resetToCommit(
+      this.props.repository,
+      commit,
+      GitResetMode.Mixed
+    )
   }
 
   private onCreateBranch = (commit: CommitOneLine) => {

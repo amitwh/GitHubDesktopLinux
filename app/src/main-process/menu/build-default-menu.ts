@@ -109,6 +109,7 @@ export function buildDefaultMenuTemplate({
   isStashedChangesVisible = false,
   askForConfirmationWhenStashingAllChanges = true,
   isChangesFilterVisible = true,
+  hasMultipleCommits = false,
 }: MenuLabelsEvent): Electron.MenuItemConstructorOptions[] {
   contributionTargetDefaultBranch = truncateWithEllipsis(
     contributionTargetDefaultBranch,
@@ -565,6 +566,40 @@ export function buildDefaultMenuTemplate({
         id: 'compare-with-previous',
         accelerator: 'CmdOrCtrl+Alt+P',
         click: emit('compare-with-previous'),
+      },
+      {
+        id: 'reset-to-head',
+        label: __DARWIN__ ? 'Reset to HEAD…' : 'R&eset to HEAD…',
+        submenu: [
+          {
+            id: 'reset-head-soft',
+            label: __DARWIN__
+              ? 'Soft — Keep Changes Staged'
+              : '&Soft — keep changes staged',
+            click: emit('reset-head-soft'),
+          },
+          {
+            id: 'reset-head-mixed',
+            label: __DARWIN__
+              ? 'Mixed — Keep Changes Unstaged'
+              : '&Mixed — keep changes unstaged',
+            click: emit('reset-head-mixed'),
+          },
+          {
+            id: 'reset-head-hard',
+            label: __DARWIN__
+              ? 'Hard — Discard All Changes'
+              : '&Hard — discard all changes',
+            click: emit('reset-head-hard'),
+          },
+        ],
+      },
+      { type: 'separator' },
+      {
+        id: 'revert-head-commit',
+        label: __DARWIN__ ? 'Revert HEAD Commit' : 'Revert HEAD commit',
+        click: emit('revert-head-commit'),
+        enabled: hasMultipleCommits === true,
       },
       {
         label: __DARWIN__

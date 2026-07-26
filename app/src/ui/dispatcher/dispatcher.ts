@@ -43,6 +43,7 @@ import {
   cleanUntrackedFiles as cleanUntrackedFilesImpl,
   getPreviousCommitSha as getPreviousCommitShaImpl,
   git,
+  GitResetMode,
 } from '../../lib/git'
 import { isGitOnPath } from '../../lib/is-git-on-path'
 import {
@@ -984,12 +985,14 @@ export class Dispatcher {
   public resetToCommit(
     repository: Repository,
     commit: Commit,
+    mode: GitResetMode,
     showConfirmationDialog: boolean = true
   ): Promise<void> {
     this.statsStore.increment('resetToCommitCount')
     return this.appStore._resetToCommit(
       repository,
       commit,
+      mode,
       showConfirmationDialog
     )
   }
@@ -5061,6 +5064,18 @@ export class Dispatcher {
 
     await this.refreshRepository(repository)
     return true
+  }
+
+  /**
+   * Resolve the SHA of HEAD's parent commit, or `null` if HEAD is the
+   * initial commit. Thin wrapper around `getPreviousCommitSha` exposed on
+   * the dispatcher so renderer-side menu handlers can reuse the existing
+   * lookup rather than re-implementing the rev-parse logic.
+   */
+  public async getPreviousCommitSha(
+    repository: Repository
+  ): Promise<string | null> {
+    return getPreviousCommitShaImpl(repository)
   }
 
   /**
