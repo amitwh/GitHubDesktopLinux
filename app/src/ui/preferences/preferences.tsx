@@ -114,6 +114,8 @@ interface IPreferencesProps {
   readonly customShell: ICustomIntegration | null
   readonly repositoryIndicatorsEnabled: boolean
   readonly autoPruneWorktreesOnOpen: boolean
+  readonly autoFetchOnFocus: boolean
+  readonly useSSHDefault: boolean
   readonly onEditGlobalGitConfig: () => void
   readonly underlineLinks: boolean
   readonly showDiffCheckMarks: boolean
@@ -168,7 +170,8 @@ interface IPreferencesState {
   readonly existingLockFilePath?: string
   readonly repositoryIndicatorsEnabled: boolean
   readonly autoPruneWorktreesOnOpen: boolean
-
+  readonly autoFetchOnFocus: boolean
+  readonly useSSHDefault: boolean
   readonly initiallySelectedTheme: ApplicationTheme
   readonly initiallySelectedTabSize: number
 
@@ -246,6 +249,8 @@ export class Preferences extends React.Component<
       selectedShell: this.props.selectedShell,
       repositoryIndicatorsEnabled: this.props.repositoryIndicatorsEnabled,
       autoPruneWorktreesOnOpen: this.props.autoPruneWorktreesOnOpen,
+      autoFetchOnFocus: this.props.autoFetchOnFocus,
+      useSSHDefault: this.props.useSSHDefault,
       initiallySelectedTheme: this.props.selectedTheme,
       initiallySelectedTabSize: this.props.selectedTabSize,
       isLoadingGitConfig: true,
@@ -624,6 +629,7 @@ export class Preferences extends React.Component<
               onEnableGitHookEnvChanged={this.onEnableGitHookEnvChanged}
               onCacheGitHookEnvChanged={this.onCacheGitHookEnvChanged}
               onSelectedShellChanged={this.onSelectedGitHookEnvShellChanged}
+              onUseSSHDefaultChanged={this.onUseSSHDefaultChanged}
               enableGitHookEnv={
                 this.state.enableGitHookEnv ?? defaultHooksEnvEnabledValue
               }
@@ -631,6 +637,7 @@ export class Preferences extends React.Component<
               selectedShell={
                 this.state.selectedGitHookEnvShell ?? defaultGitHookEnvShell
               }
+              useSSHDefault={this.state.useSSHDefault}
             />
           </>
         )
@@ -729,6 +736,7 @@ export class Preferences extends React.Component<
             useExternalCredentialHelper={this.state.useExternalCredentialHelper}
             repositoryIndicatorsEnabled={this.state.repositoryIndicatorsEnabled}
             autoPruneWorktreesOnOpen={this.state.autoPruneWorktreesOnOpen}
+            autoFetchOnFocus={this.state.autoFetchOnFocus}
             onUseWindowsOpenSSHChanged={this.onUseWindowsOpenSSHChanged}
             onOptOutofReportingChanged={this.onOptOutofReportingChanged}
             onUseExternalCredentialHelperChanged={
@@ -740,6 +748,7 @@ export class Preferences extends React.Component<
             onAutoPruneWorktreesOnOpenChanged={
               this.onAutoPruneWorktreesOnOpenChanged
             }
+            onAutoFetchOnFocusChanged={this.onAutoFetchOnFocusChanged}
           />
         )
         break
@@ -779,6 +788,10 @@ export class Preferences extends React.Component<
     autoPruneWorktreesOnOpen: boolean
   ) => {
     this.setState({ autoPruneWorktreesOnOpen })
+  }
+
+  private onAutoFetchOnFocusChanged = (autoFetchOnFocus: boolean) => {
+    this.setState({ autoFetchOnFocus })
   }
 
   private onLockFileDeleted = () => {
@@ -868,6 +881,10 @@ export class Preferences extends React.Component<
 
   private onCommitterEmailChanged = (committerEmail: string) => {
     this.setState({ committerEmail })
+  }
+
+  private onUseSSHDefaultChanged = (useSSHDefault: boolean) => {
+    this.setState({ useSSHDefault })
   }
 
   private onDefaultBranchChanged = (defaultBranch: string) => {
@@ -1110,6 +1127,14 @@ export class Preferences extends React.Component<
       await dispatcher.setAutoPruneWorktreesOnOpenSetting(
         this.state.autoPruneWorktreesOnOpen
       )
+    }
+
+    if (this.props.autoFetchOnFocus !== this.state.autoFetchOnFocus) {
+      await dispatcher.setAutoFetchOnFocus(this.state.autoFetchOnFocus)
+    }
+
+    if (this.props.useSSHDefault !== this.state.useSSHDefault) {
+      await dispatcher.setUseSSHDefault(this.state.useSSHDefault)
     }
 
     await dispatcher.setConfirmRepoRemovalSetting(

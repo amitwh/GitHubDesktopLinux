@@ -32,6 +32,12 @@ describe('IPC channel contract', () => {
     'send-error-report',
     'unsafe-open-directory',
     'menu-event',
+    // Linux File menu: Open Recent submenu (renderer → main) carries the
+    // recent-repositories list; Close Repository and Open Recent click
+    // handlers (main → renderer) carry no/positional payloads.
+    'update-recent-repositories-for-menu',
+    'close-repository',
+    'open-recent-repository',
     'log',
     'will-quit',
     'will-quit-even-if-updating',
@@ -69,6 +75,9 @@ describe('IPC channel contract', () => {
     'show-installing-update',
     'install-windows-cli',
     'uninstall-windows-cli',
+    'view:toggle-word-wrap',
+    'view:toggle-line-numbers',
+    'view:reset-layout',
   ] as const
 
   const expectedResponseChannels = [

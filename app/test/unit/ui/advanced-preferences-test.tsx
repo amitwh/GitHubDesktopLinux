@@ -14,11 +14,13 @@ describe('Advanced preferences — auto-prune worktrees', () => {
         useExternalCredentialHelper={false}
         repositoryIndicatorsEnabled={false}
         autoPruneWorktreesOnOpen={false}
+        autoFetchOnFocus={false}
         onUseWindowsOpenSSHChanged={() => {}}
         onOptOutofReportingChanged={() => {}}
         onUseExternalCredentialHelperChanged={() => {}}
         onRepositoryIndicatorsEnabledChanged={() => {}}
         onAutoPruneWorktreesOnOpenChanged={() => {}}
+        onAutoFetchOnFocusChanged={() => {}}
       />
     )
 
@@ -37,11 +39,13 @@ describe('Advanced preferences — auto-prune worktrees', () => {
         useExternalCredentialHelper={false}
         repositoryIndicatorsEnabled={false}
         autoPruneWorktreesOnOpen={true}
+        autoFetchOnFocus={false}
         onUseWindowsOpenSSHChanged={() => {}}
         onOptOutofReportingChanged={() => {}}
         onUseExternalCredentialHelperChanged={() => {}}
         onRepositoryIndicatorsEnabledChanged={() => {}}
         onAutoPruneWorktreesOnOpenChanged={() => {}}
+        onAutoFetchOnFocusChanged={() => {}}
       />
     )
 
@@ -61,6 +65,7 @@ describe('Advanced preferences — auto-prune worktrees', () => {
         useExternalCredentialHelper={false}
         repositoryIndicatorsEnabled={false}
         autoPruneWorktreesOnOpen={false}
+        autoFetchOnFocus={false}
         onUseWindowsOpenSSHChanged={() => {}}
         onOptOutofReportingChanged={() => {}}
         onUseExternalCredentialHelperChanged={() => {}}
@@ -68,6 +73,7 @@ describe('Advanced preferences — auto-prune worktrees', () => {
         onAutoPruneWorktreesOnOpenChanged={value => {
           lastValue = value
         }}
+        onAutoFetchOnFocusChanged={() => {}}
       />
     )
 

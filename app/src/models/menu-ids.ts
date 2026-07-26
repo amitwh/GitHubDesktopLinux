@@ -43,3 +43,8 @@ export type MenuIDs =
   | 'decrease-active-resizable-width'
   | 'increase-active-resizable-width'
   | 'toggle-changes-filter'
+  | 'cherry-pick-commit'
+  | 'stash-changes-with-message'
+  | 'compare-with-previous'
+  | 'discard-all-working-tree-changes'
+  | 'clean-untracked-files'

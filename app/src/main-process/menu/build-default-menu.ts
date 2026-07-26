@@ -6,7 +6,9 @@ import { getLogDirectoryPath } from '../../lib/logging/get-log-path'
 import { UNSAFE_openDirectory } from '../shell'
 import { enableWorktreeSupport } from '../../lib/feature-flag'
 import { MenuLabelsEvent } from '../../models/menu-labels'
+import { IRecentRepositoryMenuEntry } from '../../lib/ipc-shared'
 import * as ipcWebContents from '../ipc-webcontents'
+import * as ipcMain from '../ipc-main'
 import { mkdir } from 'fs/promises'
 import { buildTestMenu } from './build-test-menu'
 
@@ -34,6 +36,62 @@ enum ZoomDirection {
 
 export const separator: Electron.MenuItemConstructorOptions = {
   type: 'separator',
+}
+
+/**
+ * Module-level cache of the renderer's recently-opened repositories. The
+ * renderer (App.tsx) pushes the list here over the
+ * `update-recent-repositories-for-menu` IPC channel whenever it changes;
+ * the menu builder reads from this cache when constructing the File submenu
+ * so the Open Recent submenu always reflects current state.
+ */
+let cachedRecentRepositoriesForMenu: ReadonlyArray<IRecentRepositoryMenuEntry> =
+  []
+
+if (__LINUX__) {
+  ipcMain.on('update-recent-repositories-for-menu', (_, entries) => {
+    cachedRecentRepositoriesForMenu = entries
+  })
+}
+
+/**
+ * The maximum number of entries to display in the Open Recent submenu. The
+ * recent-repositories state on the renderer side typically only retains the
+ * last few (3 in Desktop's persisted store), so this acts as a guardrail for
+ * future changes rather than a hard requirement.
+ */
+const MaxRecentRepositoriesInMenu = 10
+
+/**
+ * Build the `Open Recent ▸` submenu for the File menu. Linux-specific; on
+ * platforms where it isn't useful we fall back to a single disabled item.
+ */
+function buildOpenRecentSubmenu(): Electron.MenuItemConstructorOptions[] {
+  const recent = __LINUX__ ? cachedRecentRepositoriesForMenu : []
+  const trimmed = recent.slice(0, MaxRecentRepositoriesInMenu)
+
+  if (trimmed.length === 0) {
+    return [
+      {
+        id: 'open-recent-empty',
+        label: __DARWIN__ ? 'No Recent Repositories' : 'No &recent repositories',
+        enabled: false,
+      },
+    ]
+  }
+
+  const items: Electron.MenuItemConstructorOptions[] = trimmed.map(repo => ({
+    id: `open-recent-${repo.id}`,
+    label: repo.name,
+    // The path lives on the menu item id so it's available both for
+    // accessibility tooling (and so it doesn't get lost across menu
+    // rebuilds). The click handler ignores the id and captures `path`
+    // in its closure.
+    toolTip: repo.path,
+    click: () => emitOpenRecentRepository(repo.path),
+  }))
+
+  return items
 }
 
 export function buildDefaultMenu(params: MenuLabelsEvent): Electron.Menu {
@@ -126,7 +184,31 @@ export function buildDefaultMenuTemplate({
         accelerator: 'CmdOrCtrl+Shift+O',
         click: emit('clone-repository'),
       },
+      ...(__LINUX__
+        ? ([
+            {
+              id: 'open-recent',
+              label: 'Open R&ecent',
+              submenu: buildOpenRecentSubmenu(),
+            },
+          ] as Electron.MenuItemConstructorOptions[])
+        : []),
     ],
+  }
+
+  if (__LINUX__) {
+    const fileItems = fileMenu.submenu as Electron.MenuItemConstructorOptions[]
+
+    // Close Repository only makes sense when a repository is currently
+    // selected. The accelerator is bound explicitly to override Electron's
+    // platform-default mapping for CmdOrCtrl+W (which is "close window" on
+    // Linux/Win and "close tab" on macOS).
+    fileItems.push(separator, {
+      id: 'close-repository',
+      label: '&Close Repository',
+      accelerator: 'CmdOrCtrl+W',
+      click: emit('close-repository'),
+    })
   }
 
   if (!__DARWIN__) {
@@ -270,6 +352,25 @@ export function buildDefaultMenuTemplate({
         id: 'decrease-active-resizable-width',
         accelerator: 'CmdOrCtrl+8',
         click: emit('decrease-active-resizable-width'),
+      },
+      separator,
+      {
+        label: __DARWIN__ ? 'Toggle Word Wrap' : 'Toggl&e word wrap',
+        id: 'toggle-word-wrap',
+        accelerator: 'CmdOrCtrl+Shift+Alt+W',
+        click: emitViewAction('view:toggle-word-wrap'),
+      },
+      {
+        label: __DARWIN__ ? 'Toggle Line Numbers' : 'Toggle line &numbers',
+        id: 'toggle-line-numbers',
+        accelerator: 'CmdOrCtrl+Shift+Alt+L',
+        click: emitViewAction('view:toggle-line-numbers'),
+      },
+      {
+        label: __DARWIN__ ? 'Reset Layout' : 'Reset l&ayout',
+        id: 'reset-layout',
+        accelerator: 'CmdOrCtrl+Shift+Alt+R',
+        click: emitViewAction('view:reset-layout'),
       },
       separator,
       {
@@ -444,6 +545,40 @@ export function buildDefaultMenuTemplate({
         label: __DARWIN__ ? 'Submodules…' : 'Submo&dules…',
         id: 'submodule-management',
         click: emit('submodule-management'),
+      },
+      { type: 'separator' },
+      {
+        label: __DARWIN__ ? 'Cherry-pick Commit…' : 'Cherry-pick commit…',
+        id: 'cherry-pick-commit',
+        accelerator: 'CmdOrCtrl+Shift+C',
+        click: emit('cherry-pick-commit'),
+      },
+      {
+        label: __DARWIN__ ? 'Stash Changes…' : 'Stash changes…',
+        id: 'stash-changes-with-message',
+        click: emit('stash-changes-with-message'),
+      },
+      {
+        label: __DARWIN__
+          ? 'Compare with Previous Commit'
+          : 'Compare with previous commit',
+        id: 'compare-with-previous',
+        accelerator: 'CmdOrCtrl+Alt+P',
+        click: emit('compare-with-previous'),
+      },
+      {
+        label: __DARWIN__
+          ? 'Discard All Working Tree Changes…'
+          : 'Discard all working tree changes…',
+        id: 'discard-all-working-tree-changes',
+        click: emit('discard-all-working-tree-changes'),
+      },
+      {
+        label: __DARWIN__
+          ? 'Clean Untracked Files…'
+          : 'Clean untracked files…',
+        id: 'clean-untracked-files',
+        click: emit('clean-untracked-files'),
       },
     ],
   })
@@ -704,6 +839,50 @@ export function emit(name: MenuEvent): ClickHandler {
         : BrowserWindow.getAllWindows()[0]
     if (window !== undefined) {
       ipcWebContents.send(window.webContents, 'menu-event', name)
+    }
+  }
+}
+
+/**
+ * Returns a Click event handler that notifies the renderer that the user
+ * picked a recent repository from the `Open Recent ▸` submenu. The path is
+ * sent on the typed `open-recent-repository` channel rather than the generic
+ * `menu-event` channel so the renderer can dispatch on a payload-carrying
+ * event without conflating it with the menu's name-only events.
+ */
+function emitOpenRecentRepository(path: string): ClickHandler {
+  return (_, focusedWindow) => {
+    const window =
+      focusedWindow instanceof BrowserWindow
+        ? focusedWindow
+        : BrowserWindow.getAllWindows()[0]
+    if (window !== undefined) {
+      ipcWebContents.send(window.webContents, 'open-recent-repository', path)
+    }
+  }
+}
+
+/**
+ * Utility function returning a Click event handler which, when invoked, sends
+ * the provided dedicated View-menu IPC channel directly to the renderer.
+ * Unlike `emit()` above (which multiplexes all menu actions through the
+ * 'menu-event' channel), this uses a per-action channel so the renderer can
+ * subscribe to the exact View actions it cares about without needing to
+ * inspect event-name payloads.
+ */
+export function emitViewAction(
+  channel:
+    | 'view:toggle-word-wrap'
+    | 'view:toggle-line-numbers'
+    | 'view:reset-layout'
+): ClickHandler {
+  return (_, focusedWindow) => {
+    const window =
+      focusedWindow instanceof BrowserWindow
+        ? focusedWindow
+        : BrowserWindow.getAllWindows()[0]
+    if (window !== undefined) {
+      ipcWebContents.send(window.webContents, channel)
     }
   }
 }

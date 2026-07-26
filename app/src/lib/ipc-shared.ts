@@ -19,6 +19,18 @@ import { DesktopAliveEvent } from './stores/alive-store'
 import { CLIAction } from './cli-action'
 
 /**
+ * Shape used to communicate the most-recently-opened repositories from the
+ * renderer to the main process. Only used by the Linux File menu's
+ * `Open Recent ▸` submenu; the renderer has the source of truth for the
+ * recent-repositories list and pushes entries here whenever it changes.
+ */
+export interface IRecentRepositoryMenuEntry {
+  readonly id: number
+  readonly name: string
+  readonly path: string
+}
+
+/**
  * Defines the simplex IPC channel names we use from the renderer
  * process along with their signatures. This type is used from both
  * the renderer and the main process to ensure a common contract between
@@ -46,6 +58,17 @@ export type RequestChannels = {
   ) => void
   'unsafe-open-directory': (path: string) => void
   'menu-event': (name: MenuEvent) => void
+  // Linux File menu: Open Recent submenu — renderer pushes the recent
+  // repository list (id, name, path) so the main process can render a
+  // dynamic submenu. Items are also disabled when no entries exist.
+  'update-recent-repositories-for-menu': (
+    entries: ReadonlyArray<IRecentRepositoryMenuEntry>
+  ) => void
+  // Linux File menu: Close Repository / Open Recent clicks — the main
+  // process sends these to the renderer with an optional path argument
+  // (path is only populated for `open-recent-repository`).
+  'close-repository': () => void
+  'open-recent-repository': (path: string) => void
   log: (level: LogLevel, message: string) => void
   'will-quit': () => void
   'will-quit-even-if-updating': () => void
@@ -87,6 +110,9 @@ export type RequestChannels = {
   'show-installing-update': () => void
   'install-windows-cli': () => void
   'uninstall-windows-cli': () => void
+  'view:toggle-word-wrap': () => void
+  'view:toggle-line-numbers': () => void
+  'view:reset-layout': () => void
 }
 
 /**

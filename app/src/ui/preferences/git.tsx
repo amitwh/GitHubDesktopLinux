@@ -34,9 +34,13 @@ interface IGitProps {
   readonly onCacheGitHookEnvChanged: (cacheGitHookEnv: boolean) => void
   readonly onSelectedShellChanged: (selectedShell: string) => void
 
+  readonly onUseSSHDefaultChanged: (useSSHDefault: boolean) => void
+
   readonly enableGitHookEnv: boolean
   readonly cacheGitHookEnv: boolean
   readonly selectedShell: string
+
+  readonly useSSHDefault: boolean
 }
 
 const windowsShells: ReadonlyArray<SupportedHooksEnvShell> = [
@@ -147,6 +151,7 @@ export class Git extends React.Component<IGitProps> {
           <span>Author</span>
           <span>Default branch</span>
           <span>Hooks</span>
+          <span>Cloning</span>
         </TabBar>
         <div className="git-preferences-content">{this.renderCurrentTab()}</div>
       </DialogContent>
@@ -160,9 +165,37 @@ export class Git extends React.Component<IGitProps> {
       return this.renderDefaultBranchSetting()
     } else if (this.selectedTabIndex === 2) {
       return this.renderHooksSettings()
+    } else if (this.selectedTabIndex === 3) {
+      return this.renderCloningSettings()
     }
 
     return null
+  }
+
+  private onUseSSHDefaultChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    this.props.onUseSSHDefaultChanged(event.currentTarget.checked)
+  }
+
+  private renderCloningSettings() {
+    return (
+      <>
+        <Checkbox
+          label="Use SSH for new clones"
+          ariaDescribedBy="use-ssh-default-description"
+          value={
+            this.props.useSSHDefault ? CheckboxValue.On : CheckboxValue.Off
+          }
+          onChange={this.onUseSSHDefaultChanged}
+        />
+        <p id="use-ssh-default-description" className="settings-description">
+          When enabled, the clone repository dialog will pre-fill the URL with
+          the SSH form (<code>git@github.com:owner/repo.git</code>) instead of
+          HTTPS. Requires an SSH key configured with your GitHub account.
+        </p>
+      </>
+    )
   }
 
   private renderGitConfigAuthorInfo() {

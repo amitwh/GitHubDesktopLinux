@@ -143,6 +143,11 @@ const allMenuIds: ReadonlyArray<MenuIDs> = [
   'toggle-stashed-changes',
   'create-worktree',
   'show-worktrees-list',
+  'cherry-pick-commit',
+  'stash-changes-with-message',
+  'compare-with-previous',
+  'discard-all-working-tree-changes',
+  'clean-untracked-files',
 ]
 
 function getAllMenusDisabledBuilder(): MenuStateBuilder {
@@ -253,6 +258,11 @@ function getRepositoryMenuBuilder(state: IAppState): MenuStateBuilder {
     'compare-to-branch',
     'toggle-changes-filter',
     'create-worktree',
+    'cherry-pick-commit',
+    'stash-changes-with-message',
+    'compare-with-previous',
+    'discard-all-working-tree-changes',
+    'clean-untracked-files',
   ]
 
   const menuStateBuilder = new MenuStateBuilder()

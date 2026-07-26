@@ -327,6 +327,11 @@ export class App extends React.Component<IAppProps, IAppState> {
     this.state = props.appStore.getState()
     props.appStore.onDidUpdate(state => {
       this.setState(state)
+
+      // Linux File menu: keep the main-process menu's Open Recent submenu in
+      // sync with the renderer's recent-repositories view by republishing
+      // the latest list whenever the AppStore updates.
+      this.publishRecentRepositoriesForMenu(state)
     })
 
     props.appStore.onDidError(error => {
@@ -334,6 +339,16 @@ export class App extends React.Component<IAppProps, IAppState> {
     })
 
     ipcRenderer.on('menu-event', (_, name) => this.onMenuEvent(name))
+
+    // Linux File menu: clicked entry in the Open Recent submenu. The main
+    // process sends the absolute path of the selected repository so the
+    // renderer can match it against the current repositories list and
+    // either select it or re-add it through the AddRepository flow.
+    if (__LINUX__) {
+      ipcRenderer.on('open-recent-repository', (_, path) =>
+        this.openRecentRepository(path)
+      )
+    }
 
     updateStore.onDidChange(async state => {
       const status = state.status
@@ -580,6 +595,19 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.resizeActiveResizable('decrease-active-resizable-width')
       case 'toggle-changes-filter':
         return this.toggleChangesFilterVisibility()
+      case 'close-repository':
+        return this.onCloseRepository()
+      // The cases below are intentionally kept as no-ops to keep the build
+      // green while their owning subagent (View-toggles / smartgit-features)
+      // finishes wiring up real handlers. They emit via the main-process
+      // `emit()` helper, so removing the cases would cause `assertNever` to
+      // reject the widening of `MenuEvent`.
+      case 'cherry-pick-commit':
+      case 'stash-changes-with-message':
+      case 'compare-with-previous':
+      case 'discard-all-working-tree-changes':
+      case 'clean-untracked-files':
+        return
       default:
         if (isTestMenuEvent(name)) {
           return showTestUI(
@@ -598,6 +626,78 @@ export class App extends React.Component<IAppProps, IAppState> {
    */
   private toggleChangesFilterVisibility() {
     this.props.dispatcher.toggleChangesFilterVisibility()
+  }
+
+  /**
+   * Linux File menu: clears the active repository from the UI via the
+   * dispatcher but leaves the entry in `recentRepositories` so it still
+   * shows in `Open Recent ▸`. No-ops when nothing is selected.
+   */
+  private onCloseRepository() {
+    if (this.state.selectedState === null) {
+      return
+    }
+    void this.props.dispatcher.closeCurrentRepository()
+  }
+
+  /**
+   * Linux File menu: open the repository at the given absolute path. The
+   * path is matched against the existing repositories list and selected in
+   * place; if it isn't already registered (e.g. it was removed but still
+   * exists on disk) we route through AddRepository so the user can confirm
+   * before any destructive action is taken.
+   */
+  private async openRecentRepository(path: string) {
+    const { repositories } = this.state
+    const existing = matchExistingRepository(
+      repositories,
+      path
+    ) as Repository | CloningRepository | null
+
+    if (existing !== null && existing !== undefined) {
+      await this.props.dispatcher.selectRepository(existing)
+      return
+    }
+
+    await this.showPopup({ type: PopupType.AddRepository, path })
+  }
+
+  /**
+   * Linux File menu: push the current recent-repositories list to the main
+   * process so it can rebuild the `Open Recent ▸` submenu. Entries are
+   * resolved against the repositories list using the same id-based lookup
+   * the rest of the app uses (so we get friendly display names from
+   * existing `Repository` instances rather than only paths).
+   */
+  private publishRecentRepositoriesForMenu(state: IAppState) {
+    if (!__LINUX__) {
+      return
+    }
+
+    const recentIds = state.recentRepositories
+    if (recentIds.length === 0) {
+      ipcRenderer.send('update-recent-repositories-for-menu', [])
+      return
+    }
+
+    const repositoriesById = new Map<number, Repository | CloningRepository>()
+    for (const repo of state.repositories) {
+      repositoriesById.set(repo.id, repo)
+    }
+
+    const entries = recentIds
+      .map(id => repositoriesById.get(id))
+      .filter(
+        (repo): repo is Repository =>
+          repo instanceof Repository && !(repo instanceof CloningRepository)
+      )
+      .map(repo => ({
+        id: repo.id,
+        name: repo.name,
+        path: repo.path,
+      }))
+
+    ipcRenderer.send('update-recent-repositories-for-menu', entries)
   }
 
   /**
@@ -1900,6 +2000,8 @@ export class App extends React.Component<IAppProps, IAppState> {
             customShell={this.state.customShell}
             repositoryIndicatorsEnabled={this.state.repositoryIndicatorsEnabled}
             autoPruneWorktreesOnOpen={this.state.autoPruneWorktreesOnOpen}
+            autoFetchOnFocus={this.state.autoFetchOnFocus}
+            useSSHDefault={this.state.useSSHDefault}
             onEditGlobalGitConfig={this.editGlobalGitConfig}
             underlineLinks={this.state.underlineLinks}
             showDiffCheckMarks={this.state.showDiffCheckMarks}

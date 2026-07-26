@@ -552,6 +552,24 @@ app.on('ready', () => {
   }
 
   /**
+   * View-menu actions. These channels are simplex (main → renderer): the
+   * click handler on each View submenu item in `build-default-menu.ts` calls
+   * `emitViewAction()` which dispatches `webContents.send(channel)` to the
+   * focused window. The renderer's AppStore subscribes to these channels in
+   * `wireupIpcEventHandlers` and updates the corresponding preference state.
+   *
+   * No `ipcMain.on(...)` handler is needed here because the renderer never
+   * needs to invoke these actions back through the main process — the menu
+   * itself is the sole trigger.
+   *
+   * Channels:
+   *   - `view:toggle-word-wrap`     — toggle word-wrap in diff/commit editor
+   *   - `view:toggle-line-numbers`  — toggle line numbers in diff editor
+   *   - `view:reset-layout`         — reset all resizable panel widths
+   */
+  // (intentionally no ipcMain.on registrations — see comment above)
+
+  /**
    * An event sent by the renderer asking for a copy of the current
    * application menu.
    */

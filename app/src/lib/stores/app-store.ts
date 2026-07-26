@@ -578,6 +578,18 @@ const alwaysUseCopilotForConflictResolutionKey =
 
 export const showChangesFilterKey = 'show-changes-filter'
 
+export const wordWrapKey = 'word-wrap'
+export const wordWrapDefault = true
+
+export const showLineNumbersKey = 'diff-line-numbers-visible'
+export const showLineNumbersDefault = true
+
+export const useSSHDefaultKey = 'use-ssh-default'
+export const useSSHDefaultDefault = false
+
+export const autoFetchOnFocusKey = 'auto-fetch-on-focus'
+export const autoFetchOnFocusDefault = false
+
 // TODO: to be removed after the migration period. Now Copilot models are stored
 // per account, not globally.
 const selectedCopilotModelsKey = 'selected-copilot-models'
@@ -751,6 +763,23 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private alwaysUseCopilotForConflictResolution: boolean = false
 
   private showChangesFilter: boolean = false
+
+  /** Whether the diff editor wraps long lines (also used in the commit message box) */
+  private wordWrap: boolean = wordWrapDefault
+
+  /** Whether the diff editor shows line numbers */
+  private showLineNumbers: boolean = showLineNumbersDefault
+
+  /** Whether the clone-URL dialog defaults to SSH instead of HTTPS */
+  private useSSHDefault: boolean = useSSHDefaultDefault
+
+  /**
+   * Whether the app should automatically fetch the current repository when
+   * the window regains focus. Defaults to false so we don't surprise users
+   * with network activity. The actual fetch-on-focus behavior is wired in a
+   * follow-up slice; this preference is already persisted.
+   */
+  private autoFetchOnFocus: boolean = autoFetchOnFocusDefault
 
   private selectedCopilotModelsByAccount: CopilotModelSelectionsByAccount =
     new Map()
@@ -1028,6 +1057,22 @@ export class AppStore extends TypedBaseStore<IAppState> {
     })
 
     ipcRenderer.on('app-menu', (_, menu) => this.setAppMenu(menu))
+
+    // View menu actions dispatched from the main-process menu via dedicated
+    // IPC channels. The main-process click handler sends to these channels
+    // directly (see `emitViewAction` in build-default-menu.ts) so we don't
+    // route them through the 'menu-event' multiplexer.
+    ipcRenderer.on('view:toggle-word-wrap', () => {
+      this._setWordWrap(!this.wordWrap)
+    })
+
+    ipcRenderer.on('view:toggle-line-numbers', () => {
+      this._setShowLineNumbers(!this.showLineNumbers)
+    })
+
+    ipcRenderer.on('view:reset-layout', () => {
+      this._resetLayout()
+    })
   }
 
   private wireupStoreEventHandlers() {
@@ -1374,6 +1419,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
       alwaysUseCopilotForConflictResolution:
         this.alwaysUseCopilotForConflictResolution,
       showChangesFilter: this.showChangesFilter,
+      wordWrap: this.wordWrap,
+      showLineNumbers: this.showLineNumbers,
+      useSSHDefault: this.useSSHDefault,
+      autoFetchOnFocus: this.autoFetchOnFocus,
       selectedCopilotModelsByAccount: this.selectedCopilotModelsByAccount,
       copilotModelsByAccount: this.copilotModelsByAccount,
       copilotQuotaSnapshotsByAccount: this.copilotQuotaSnapshotsByAccount,
@@ -2671,6 +2720,17 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.showChangesFilter = getBoolean(
       showChangesFilterKey,
       showChangesFilterDefault
+    )
+
+    this.wordWrap = getBoolean(wordWrapKey, wordWrapDefault)
+    this.showLineNumbers = getBoolean(
+      showLineNumbersKey,
+      showLineNumbersDefault
+    )
+    this.useSSHDefault = getBoolean(useSSHDefaultKey, useSSHDefaultDefault)
+    this.autoFetchOnFocus = getBoolean(
+      autoFetchOnFocusKey,
+      autoFetchOnFocusDefault
     )
 
     this.selectedCopilotModelsByAccount =
@@ -10364,6 +10424,78 @@ export class AppStore extends TypedBaseStore<IAppState> {
       setBoolean(showDiffCheckMarksKey, showDiffCheckMarks)
       this.emitUpdate()
     }
+  }
+
+  /**
+   * Toggle (or explicitly set) the word-wrap preference for the diff editor
+   * and commit message box. Persisted to local storage so it survives
+   * app restarts.
+   */
+  public _setWordWrap(wordWrap: boolean) {
+    if (wordWrap !== this.wordWrap) {
+      this.wordWrap = wordWrap
+      setBoolean(wordWrapKey, wordWrap)
+      this.emitUpdate()
+    }
+  }
+
+  /**
+   * Toggle (or explicitly set) the line-numbers preference for the diff
+   * editor. Persisted to local storage so it survives app restarts.
+   */
+  public _setShowLineNumbers(showLineNumbers: boolean) {
+    if (showLineNumbers !== this.showLineNumbers) {
+      this.showLineNumbers = showLineNumbers
+      setBoolean(showLineNumbersKey, showLineNumbers)
+      this.emitUpdate()
+    }
+  }
+
+  /**
+   * Toggle (or explicitly set) whether the clone-URL dialog should default
+   * to SSH. When `true`, the clone dialog opens pre-populated with an SSH
+   * URL (e.g. `git@github.com:owner/repo.git`); when `false`, HTTPS. Persisted
+   * to local storage so it survives app restarts.
+   */
+  public _setUseSSHDefault(useSSHDefault: boolean) {
+    if (useSSHDefault !== this.useSSHDefault) {
+      this.useSSHDefault = useSSHDefault
+      setBoolean(useSSHDefaultKey, useSSHDefault)
+      this.emitUpdate()
+    }
+  }
+
+  /**
+   * Toggle (or explicitly set) whether the app should automatically fetch
+   * the current repository when the window regains focus. Persisted to
+   * local storage so it survives app restarts. The actual fetch-on-focus
+   * behavior is wired in a follow-up slice.
+   */
+  public _setAutoFetchOnFocus(autoFetchOnFocus: boolean) {
+    if (autoFetchOnFocus !== this.autoFetchOnFocus) {
+      this.autoFetchOnFocus = autoFetchOnFocus
+      setBoolean(autoFetchOnFocusKey, autoFetchOnFocus)
+      this.emitUpdate()
+    }
+  }
+
+  /**
+   * Reset all resizable panel widths back to their default sizes. Triggered
+   * by the View ▸ Reset Layout menu item (CmdOrCtrl+Shift+R). The actual
+   * re-render happens automatically because the panel-width fields are part
+   * of `IAppState` and `emitUpdate()` triggers a re-render of any subscribed
+   * components.
+   */
+  public _resetLayout() {
+    this.sidebarWidth = constrain(defaultSidebarWidth)
+    this.commitSummaryWidth = constrain(defaultCommitSummaryWidth)
+    this.stashedFilesWidth = constrain(defaultStashedFilesWidth)
+    this.pullRequestFileListWidth = constrain(defaultPullRequestFileListWidth)
+    this.branchDropdownWidth = constrain(defaultBranchDropdownWidth)
+    this.worktreeDropdownWidth = constrain(defaultWorktreeDropdownWidth)
+    this.pushPullButtonWidth = constrain(defaultPushPullButtonWidth)
+    this.updateResizableConstraints()
+    this.emitUpdate()
   }
 
   /** This shouldn't be called directly. See 'Dispatcher'. */

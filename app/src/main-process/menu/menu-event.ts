@@ -33,6 +33,11 @@ export type MenuEvent =
   | 'resolve-conflicts'
   | 'interactive-rebase'
   | 'submodule-management'
+  | 'cherry-pick-commit'
+  | 'stash-changes-with-message'
+  | 'compare-with-previous'
+  | 'discard-all-working-tree-changes'
+  | 'clean-untracked-files'
   | 'open-in-shell'
   | 'compare-on-github'
   | 'branch-on-github'
@@ -56,6 +61,8 @@ export type MenuEvent =
   | 'decrease-active-resizable-width'
   | 'increase-active-resizable-width'
   | 'toggle-changes-filter'
+  // Linux File menu items
+  | 'close-repository'
   | TestMenuEvent
 
 /**

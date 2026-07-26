@@ -11,11 +11,13 @@ interface IAdvancedPreferencesProps {
   readonly useExternalCredentialHelper: boolean
   readonly repositoryIndicatorsEnabled: boolean
   readonly autoPruneWorktreesOnOpen: boolean
+  readonly autoFetchOnFocus: boolean
   readonly onUseWindowsOpenSSHChanged: (checked: boolean) => void
   readonly onOptOutofReportingChanged: (checked: boolean) => void
   readonly onUseExternalCredentialHelperChanged: (checked: boolean) => void
   readonly onRepositoryIndicatorsEnabledChanged: (enabled: boolean) => void
   readonly onAutoPruneWorktreesOnOpenChanged: (enabled: boolean) => void
+  readonly onAutoFetchOnFocusChanged: (enabled: boolean) => void
 }
 
 interface IAdvancedPreferencesState {
@@ -82,6 +84,12 @@ export class Advanced extends React.Component<
     this.props.onUseWindowsOpenSSHChanged(event.currentTarget.checked)
   }
 
+  private onAutoFetchOnFocusChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    this.props.onAutoFetchOnFocusChanged(event.currentTarget.checked)
+  }
+
   private reportDesktopUsageLabel() {
     return (
       <span>
@@ -142,6 +150,30 @@ export class Advanced extends React.Component<
             }
             onChange={this.onAutoPruneWorktreesOnOpenChanged}
           />
+        </div>
+        <div className="advanced-section">
+          <h2>Fetching</h2>
+          <Checkbox
+            label="Automatically fetch when the window regains focus"
+            value={
+              this.props.autoFetchOnFocus
+                ? CheckboxValue.On
+                : CheckboxValue.Off
+            }
+            onChange={this.onAutoFetchOnFocusChanged}
+            ariaDescribedBy="auto-fetch-on-focus-description"
+          />
+          <div id="auto-fetch-on-focus-description" className="settings-description">
+            <p>
+              When enabled, GitHub Desktop will run <code>git fetch</code> on
+              the currently selected repository whenever the window regains
+              focus (e.g. after switching back from another application).
+            </p>
+            <p>
+              This preference persists across sessions; the actual fetch
+              behavior is wired in a follow-up slice.
+            </p>
+          </div>
         </div>
         <h2>Network and credentials</h2>
         {this.renderSSHSettings()}

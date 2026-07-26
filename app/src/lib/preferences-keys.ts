@@ -16,3 +16,15 @@ export const showDiffCheckMarksKey = 'diff-check-marks-visible'
 
 export const showChangesFilterKey = 'show-changes-filter'
 export const showChangesFilterDefault = true
+
+export const wordWrapKey = 'word-wrap'
+export const wordWrapDefault = true
+
+export const showLineNumbersKey = 'diff-line-numbers-visible'
+export const showLineNumbersDefault = true
+
+export const useSSHDefaultKey = 'use-ssh-default'
+export const useSSHDefaultDefault = false
+
+export const autoFetchOnFocusKey = 'auto-fetch-on-focus'
+export const autoFetchOnFocusDefault = false

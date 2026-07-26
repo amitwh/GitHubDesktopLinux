@@ -457,6 +457,21 @@ export interface IAppState {
   /** Whether the changes filter is shown */
   readonly showChangesFilter: boolean
 
+  /** Whether the diff editor and commit message box wrap long lines */
+  readonly wordWrap: boolean
+
+  /** Whether the diff editor shows line numbers */
+  readonly showLineNumbers: boolean
+
+  /** Whether the clone-URL dialog defaults to SSH instead of HTTPS */
+  readonly useSSHDefault: boolean
+
+  /**
+   * Whether the app should automatically fetch the current repository when
+   * the window regains focus. Defaults to false.
+   */
+  readonly autoFetchOnFocus: boolean
+
   /** Account-scoped Copilot model selections. */
   readonly selectedCopilotModelsByAccount: CopilotModelSelectionsByAccount
 
