@@ -7,8 +7,14 @@ import { setupEmptyRepository } from '../../helpers/repositories'
 import { makeCommit } from '../../helpers/repository-scaffolding'
 import {
   parseWorktreePorcelainOutput,
+  parsePruneVerboseOutput,
   listWorktrees,
   listWorktreesFromGitDir,
+  addWorktree,
+  lockWorktree,
+  unlockWorktree,
+  pruneWorktrees,
+  getWorktreeDirtyState,
 } from '../../../src/lib/git'
 
 describe('git/worktree', () => {
@@ -319,6 +325,181 @@ describe('git/worktree', () => {
       assert(
         worktrees.some(wt => wt.path === resolvedWorktreePath && wt.isPrunable)
       )
+    })
+  })
+
+  describe('parsePruneVerboseOutput', () => {
+    it('returns empty array for empty output', () => {
+      assert.deepStrictEqual(parsePruneVerboseOutput(''), [])
+    })
+
+    it('returns empty array for output with no entries', () => {
+      assert.deepStrictEqual(parsePruneVerboseOutput('\n\n'), [])
+    })
+
+    it('parses a single Would-remove entry (dry-run)', () => {
+      const output = "Would remove worktrees/wt-a: /path/to/wt-a\n"
+      assert.deepStrictEqual(parsePruneVerboseOutput(output), ['/path/to/wt-a'])
+    })
+
+    it('parses a single Removing entry (live run)', () => {
+      const output = "Removing worktrees/wt-a: /path/to/wt-a\n"
+      assert.deepStrictEqual(parsePruneVerboseOutput(output), ['/path/to/wt-a'])
+    })
+
+    it('parses multiple entries', () => {
+      const output =
+        "Would remove worktrees/wt-a: /path/to/wt-a\n" +
+        "Would remove worktrees/wt-b: /path/to/wt-b\n"
+      assert.deepStrictEqual(parsePruneVerboseOutput(output), [
+        '/path/to/wt-a',
+        '/path/to/wt-b',
+      ])
+    })
+
+    it('skips lines that do not look like prune entries', () => {
+      const output =
+        "Removing worktrees/wt-a: /path/to/wt-a\n" +
+        "Some other diagnostic message\n"
+      assert.deepStrictEqual(parsePruneVerboseOutput(output), ['/path/to/wt-a'])
+    })
+
+    it('skips lines whose tail is not an absolute path', () => {
+      const output = "Removing worktrees/wt-a: relative/path\n"
+      assert.deepStrictEqual(parsePruneVerboseOutput(output), [])
+    })
+  })
+
+  describe('lockWorktree / unlockWorktree', () => {
+    it('locks and unlocks a linked worktree', async t => {
+      const repo = await setupEmptyRepository(t, 'main')
+      await makeCommit(repo, {
+        entries: [{ path: 'README', contents: 'hello' }],
+      })
+      await exec(['branch', 'feature-a'], repo.path)
+      const worktreePath = repo.path + '-wt-a'
+      await addWorktree(repo, worktreePath, { commitish: 'feature-a' })
+
+      // Before locking, the worktree is not locked.
+      let wts = await listWorktrees(repo)
+      assert.strictEqual(wts[1].isLocked, false)
+
+      await lockWorktree(repo, worktreePath, 'fixing a bug')
+      wts = await listWorktrees(repo)
+      assert.strictEqual(wts[1].isLocked, true)
+
+      await unlockWorktree(repo, worktreePath)
+      wts = await listWorktrees(repo)
+      assert.strictEqual(wts[1].isLocked, false)
+    })
+
+    it('locks without a reason', async t => {
+      const repo = await setupEmptyRepository(t, 'main')
+      await makeCommit(repo, {
+        entries: [{ path: 'README', contents: 'hello' }],
+      })
+      await exec(['branch', 'feature-a'], repo.path)
+      const worktreePath = repo.path + '-wt-a'
+      await addWorktree(repo, worktreePath, { commitish: 'feature-a' })
+
+      await lockWorktree(repo, worktreePath)
+      const wts = await listWorktrees(repo)
+      assert.strictEqual(wts[1].isLocked, true)
+    })
+  })
+
+  describe('pruneWorktrees', () => {
+    it('dry-run returns paths that would be pruned, but does not remove them', async t => {
+      const repo = await setupEmptyRepository(t, 'main')
+      await makeCommit(repo, {
+        entries: [{ path: 'README', contents: 'hello' }],
+      })
+      await exec(['branch', 'feature-a'], repo.path)
+      const worktreePath = repo.path + '-wt-a'
+      await exec(['worktree', 'add', worktreePath, 'feature-a'], repo.path)
+
+      // Make the worktree admin entry stale by removing its directory.
+      await rm(worktreePath, { recursive: true, force: true })
+
+      const wouldPrune = await pruneWorktrees(repo, true)
+      assert.strictEqual(wouldPrune.length, 1)
+      assert.strictEqual(wouldPrune[0], Path.resolve(worktreePath))
+
+      // After dry-run, the admin entry still lists the worktree as prunable.
+      const wts = await listWorktrees(repo)
+      const resolvedPath = Path.resolve(worktreePath)
+      assert(wts.some(wt => wt.path === resolvedPath))
+    })
+
+    it('live run removes stale admin entries', async t => {
+      const repo = await setupEmptyRepository(t, 'main')
+      await makeCommit(repo, {
+        entries: [{ path: 'README', contents: 'hello' }],
+      })
+      await exec(['branch', 'feature-a'], repo.path)
+      const worktreePath = repo.path + '-wt-a'
+      await exec(['worktree', 'add', worktreePath, 'feature-a'], repo.path)
+      await rm(worktreePath, { recursive: true, force: true })
+
+      const pruned = await pruneWorktrees(repo, false)
+      assert.strictEqual(pruned.length, 1)
+
+      const wts = await listWorktrees(repo)
+      const resolvedPath = Path.resolve(worktreePath)
+      assert(!wts.some(wt => wt.path === resolvedPath))
+    })
+  })
+
+  describe('getWorktreeDirtyState', () => {
+    it('returns zero counts for a clean worktree', async t => {
+      const repo = await setupEmptyRepository(t, 'main')
+      await makeCommit(repo, {
+        entries: [{ path: 'README', contents: 'hello' }],
+      })
+      const state = await getWorktreeDirtyState(repo.path)
+      assert.deepStrictEqual(state, { modifiedCount: 0, untrackedCount: 0 })
+    })
+
+    it('counts modified tracked files', async t => {
+      const repo = await setupEmptyRepository(t, 'main')
+      await makeCommit(repo, {
+        entries: [{ path: 'README', contents: 'hello' }],
+      })
+      // Modify a tracked file AFTER the commit so it shows up as modified.
+      const { writeFile } = await import('fs/promises')
+      await writeFile(Path.join(repo.path, 'README'), 'changed')
+
+      const state = await getWorktreeDirtyState(repo.path)
+      assert.strictEqual(state.modifiedCount, 1)
+      assert.strictEqual(state.untrackedCount, 0)
+    })
+
+    it('counts untracked files separately', async t => {
+      const repo = await setupEmptyRepository(t, 'main')
+      await makeCommit(repo, {
+        entries: [{ path: 'README', contents: 'hello' }],
+      })
+      // Modify a tracked file and add an untracked file AFTER the commit.
+      const { writeFile } = await import('fs/promises')
+      await writeFile(Path.join(repo.path, 'README'), 'changed')
+      await writeFile(Path.join(repo.path, 'untracked.txt'), 'new')
+
+      const state = await getWorktreeDirtyState(repo.path)
+      assert.strictEqual(state.modifiedCount, 1)
+      assert.strictEqual(state.untrackedCount, 1)
+    })
+
+    it('counts only untracked files when nothing is modified', async t => {
+      const repo = await setupEmptyRepository(t, 'main')
+      await makeCommit(repo, {
+        entries: [{ path: 'README', contents: 'hello' }],
+      })
+      const { writeFile } = await import('fs/promises')
+      await writeFile(Path.join(repo.path, 'untracked.txt'), 'new')
+
+      const state = await getWorktreeDirtyState(repo.path)
+      assert.strictEqual(state.modifiedCount, 0)
+      assert.strictEqual(state.untrackedCount, 1)
     })
   })
 })
