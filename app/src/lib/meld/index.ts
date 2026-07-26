@@ -16,3 +16,9 @@ export {
   applyHunkResolution,
   buildConflictHunks,
 } from './conflictMarkers'
+// Phase 2: blame-gutter alignment helpers
+export {
+  parseHunkHeader,
+  alignBlameToDiff,
+  IBlameLine,
+} from './blameAlignment'

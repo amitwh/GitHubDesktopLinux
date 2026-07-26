@@ -28,5 +28,8 @@ export { MeldMergedPane } from './MeldMergedPane'
 export type { IMeldMergedPaneProps } from './MeldMergedPane'
 export { MeldMergeControls } from './MeldMergeControls'
 export type { IMeldMergeControlsProps } from './MeldMergeControls'
+// Phase 2 (T1, BlameGutter): per-line git blame attribution
+export { MeldBlameGutter } from './MeldBlameGutter'
+export type { IMeldBlameGutterProps } from './MeldBlameGutter'
 export { ExternalToolsSettings } from './settings/ExternalToolsSettings'
 export type { IExternalToolsSettingsProps } from './settings/ExternalToolsSettings'

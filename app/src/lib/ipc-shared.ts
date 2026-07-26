@@ -149,4 +149,6 @@ export type RequestResponseChannels = {
     clean: boolean
     conflictCount: number
   }>
+  // Phase 2 (T1, BlameGutter): fetch blame information for a file
+  'meld:get-blame': (req: unknown) => Promise<ReadonlyArray<unknown>>
 }

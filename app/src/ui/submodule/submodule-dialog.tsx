@@ -1,7 +1,6 @@
 import * as React from 'react'
 import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
-import { Dispatcher } from '../dispatcher'
 import { Repository } from '../../models/repository'
 import { getSubmodules, updateSubmodule, syncSubmodule, ISubmodule } from '../../lib/git/submodule'
 import { Ref } from '../lib/ref'
@@ -9,7 +8,6 @@ import { Row } from '../lib/row'
 import { Button } from '../lib/button'
 
 interface ISubmoduleDialogProps {
-  readonly dispatcher: Dispatcher
   readonly repository: Repository
   readonly onDismissed: () => void
 }
@@ -37,12 +35,20 @@ export class SubmoduleDialog extends React.Component<
     this.setState({ submodules, loading: false })
   }
 
-  private onUpdate = async (path: string) => {
+  private onUpdate = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    const path = event.currentTarget.getAttribute('data-submodule-path')
+    if (path === null) {
+      return
+    }
     await updateSubmodule(this.props.repository, path)
     await this.loadSubmodules()
   }
 
-  private onSync = async (path: string) => {
+  private onReload = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    const path = event.currentTarget.getAttribute('data-submodule-path')
+    if (path === null) {
+      return
+    }
     await syncSubmodule(this.props.repository, path)
     await this.loadSubmodules()
   }
@@ -67,8 +73,8 @@ export class SubmoduleDialog extends React.Component<
               <Row key={sub.path} className="submodule-entry">
                 <span className="submodule-sha"><Ref>{sub.sha.substring(0, 7)}</Ref></span>{' '}
                 <span className="submodule-path"><Ref>{sub.path}</Ref></span>{' '}
-                <Button onClick={() => this.onUpdate(sub.path)}>Update</Button>{' '}
-                <Button onClick={() => this.onSync(sub.path)}>Sync</Button>
+                <Button onClick={this.onUpdate} data-submodule-path={sub.path}>Update</Button>{' '}
+                <Button onClick={this.onReload} data-submodule-path={sub.path}>Sync</Button>
               </Row>
             ))}
         </DialogContent>

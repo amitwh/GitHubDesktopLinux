@@ -414,7 +414,7 @@ export function buildDefaultMenuTemplate({
         click: emit('open-current-file-in-meld-window'),
       },
       {
-        label: __DARWIN__ ? 'View Reflog' : 'View &reflog',
+        label: __DARWIN__ ? 'View Reflog' : 'View reflo&g',
         id: 'view-reflog',
         click: emit('view-reflog'),
       },
@@ -424,7 +424,7 @@ export function buildDefaultMenuTemplate({
         click: emit('view-blame'),
       },
       {
-        label: __DARWIN__ ? 'View Stashes…' : 'View &stashes…',
+        label: __DARWIN__ ? 'View Stashes…' : 'View stashes…',
         id: 'view-stashes',
         click: emit('view-stashes'),
       },
@@ -435,13 +435,13 @@ export function buildDefaultMenuTemplate({
         click: emit('resolve-conflicts'),
       },
       {
-        label: __DARWIN__ ? 'Interactive Rebase…' : 'Interactive &rebase…',
+        label: __DARWIN__ ? 'Interactive Rebase…' : 'Interactive reb&ase…',
         id: 'interactive-rebase',
         click: emit('interactive-rebase'),
       },
       separator,
       {
-        label: __DARWIN__ ? 'Submodules…' : '&Submodules…',
+        label: __DARWIN__ ? 'Submodules…' : 'Submo&dules…',
         id: 'submodule-management',
         click: emit('submodule-management'),
       },

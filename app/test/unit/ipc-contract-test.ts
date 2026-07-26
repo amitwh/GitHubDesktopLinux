@@ -103,6 +103,7 @@ describe('IPC channel contract', () => {
     'meld:open-window',
     'meld:save-edits',
     'meld:auto-merge',
+    'meld:get-blame',
   ] as const
 
   describe('RequestChannels', () => {

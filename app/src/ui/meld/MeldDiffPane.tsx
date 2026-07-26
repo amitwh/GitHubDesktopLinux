@@ -4,7 +4,10 @@ import { IMeldEditState } from '../../models/meld-edit'
 import { MeldEditorPane } from './MeldEditorPane'
 import { MeldCharDiff } from './MeldCharDiff'
 import { MeldCopyButtons } from './MeldCopyButtons'
+import { MeldBlameGutter } from './MeldBlameGutter'
 import { computeCharDiff, ICharDiffPart } from '../../lib/meld/diffOperations'
+import { alignBlameToDiff, IBlameLine } from '../../lib/meld/blameAlignment'
+import { IBlameHunk } from '../../lib/git/blame'
 
 export interface IMeldDiffPaneProps {
   readonly filePath: string
@@ -25,6 +28,25 @@ export interface IMeldDiffPaneProps {
   readonly onEditDiscard?: (side: 'left' | 'right') => void
   readonly onCopyHunkLeft?: (hunkIndex: number) => void
   readonly onCopyHunkRight?: (hunkIndex: number) => void
+
+  /**
+   * Phase 2 (T1, BlameGutter): per-file `git blame` data, fetched by
+   * the parent and aligned to the right-side lines of the current
+   * diff. When provided, the editable side-by-side view renders a
+   * `MeldBlameGutter` column to the left of the right editor pane;
+   * when omitted, the gutter is hidden (so this prop is optional and
+   * binary/untracked files simply don't show attribution).
+   *
+   * The pane aligns the raw blame hunks with the diff text internally
+   * (via `alignBlameToDiff`); parents should pass the raw hunks they
+   * get back from the `meld:get-blame` IPC channel.
+   */
+  readonly blame?: ReadonlyArray<IBlameHunk> | null
+  /** True while blame is being fetched; shows a "loading" gutter. */
+  readonly blameLoading?: boolean
+  /** Called when the user clicks a blame cell. The parent typically
+   *  opens the referenced commit in a new Meld window. */
+  readonly onOpenCommit?: (sha: string) => void
 }
 
 /**
@@ -85,6 +107,9 @@ export class MeldDiffPane extends React.Component<IMeldDiffPaneProps, {}> {
       onEditDiscard,
       onCopyHunkLeft,
       onCopyHunkRight,
+      blame,
+      blameLoading = false,
+      onOpenCommit,
     } = this.props
 
     const useEditors = editState !== undefined && editState !== null
@@ -112,6 +137,9 @@ export class MeldDiffPane extends React.Component<IMeldDiffPaneProps, {}> {
           onEditDiscard,
           onCopyHunkLeft,
           onCopyHunkRight,
+          blame,
+          blameLoading,
+          onOpenCommit,
         })}
       </div>
     )
@@ -126,6 +154,9 @@ export class MeldDiffPane extends React.Component<IMeldDiffPaneProps, {}> {
       onEditDiscard?: (side: 'left' | 'right') => void
       onCopyHunkLeft?: (hunkIndex: number) => void
       onCopyHunkRight?: (hunkIndex: number) => void
+      blame?: ReadonlyArray<IBlameHunk> | null
+      blameLoading?: boolean
+      onOpenCommit?: (sha: string) => void
     }
   ) {
     const hunks = splitHunksFromText(this.props.diff ? renderDiffText(this.props.diff) : '')
@@ -133,6 +164,17 @@ export class MeldDiffPane extends React.Component<IMeldDiffPaneProps, {}> {
       hunks.length > 0
         ? computeCharDiff(state.leftContent, state.rightContent)
         : []
+
+    // Phase 2 (T1): align blame with the right-side lines of the diff.
+    // When the parent hasn't provided blame (binary, untracked, or the
+    // IPC fetch failed) we pass `[]` and the gutter renders nothing.
+    const blameLines: ReadonlyArray<IBlameLine | null> =
+      handlers.blame && this.props.diff
+        ? alignBlameToDiff(renderDiffText(this.props.diff), handlers.blame)
+        : []
+    const showBlameGutter =
+      handlers.onOpenCommit !== undefined &&
+      (handlers.blame !== undefined || handlers.blameLoading === true)
 
     return (
       <div className="meld-diff-pane-editors">
@@ -160,6 +202,13 @@ export class MeldDiffPane extends React.Component<IMeldDiffPaneProps, {}> {
             onSave={handlers.onEditSave || (() => undefined)}
             onDiscard={handlers.onEditDiscard || (() => undefined)}
           />
+          {showBlameGutter && (
+            <MeldBlameGutter
+              lines={blameLines}
+              onOpenCommit={handlers.onOpenCommit || (() => undefined)}
+              loading={handlers.blameLoading === true}
+            />
+          )}
         </div>
         {hunks.length > 1 && (
           <div className="meld-diff-pane-hunk-buttons" role="list" aria-label="Hunk copy controls">

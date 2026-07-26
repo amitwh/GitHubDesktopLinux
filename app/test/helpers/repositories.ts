@@ -58,6 +58,8 @@ bare = false
 logallrefupdates = true
 ignorecase = ${process.platform === 'linux' ? 'true' : 'false'}
 precomposeunicode = true
+[merge]
+\tconflictstyle = merge
 `
     ),
     writeFile(join(repoPath, '.git/description'), DefaultGitDescription),

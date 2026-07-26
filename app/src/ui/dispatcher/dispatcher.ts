@@ -1727,6 +1727,45 @@ export class Dispatcher {
   }
 
   /**
+   * Phase 2 (T1, BlameGutter): open a Meld window in commit mode for a
+   * specific commit's version of a file. The session is tracked with
+   * `mode: 'commit'` and the commit SHA is passed via the URL hash
+   * (`baseRef`) so the renderer can fetch the commit's tree contents
+   * on mount.
+   *
+   * The full commit-mode diff UI (side-by-side of the commit's version
+   * against its parent) is queued for a follow-up to Phase 2; for now
+   * the window opens in commit mode and uses the existing working-tree
+   * diff as a placeholder. Clicking a blame cell in the BlameGutter
+   * is the entry point for this action in the renderer.
+   */
+  public openInMeldWindowCommitMode(
+    repository: Repository,
+    filePath: string,
+    commitSha: string
+  ): Promise<void> {
+    if (typeof commitSha !== 'string' || commitSha.length === 0) {
+      throw new Error('openInMeldWindowCommitMode requires a non-empty commitSha')
+    }
+    const sessionID = `${repository.id}:${filePath}:commit:${commitSha}`
+    void this.appStore._addMeldSession({
+      id: sessionID,
+      repositoryID: repository.id,
+      filePath,
+      mode: 'commit',
+    })
+    return (invoke as (channel: string, ...args: unknown[]) => Promise<void>)(
+      'meld:open-window',
+      {
+        repositoryID: repository.id,
+        filePath,
+        mode: 'commit',
+        baseRef: commitSha,
+      }
+    )
+  }
+
+  /**
    * Phase 1c: build and cache the three-way merge state for a conflicted file.
    * Returns the full `IThreeWayState` (BASE / LOCAL / REMOTE + parsed hunks)
    * and caches it under `${repository.id}:${filePath}:merge`.

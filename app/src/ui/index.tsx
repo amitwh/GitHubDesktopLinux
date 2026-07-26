@@ -458,8 +458,6 @@ interface IMeldMergeLoaderProps {
   readonly dispatcher: typeof dispatcher
   readonly repositoryID: number
   readonly filePath: string
-  readonly mergeBaseSha: string
-  readonly theirsSha: string
 }
 
 /**
@@ -588,6 +586,63 @@ function MeldWindowContainer(props: {
       onHunkResolved={(_repositoryID, _filePath, _hunkIndex, _side) => {
         // No-op: the window handles state update internally.
       }}
+      onOpenCommit={async (repositoryID, filePath, commitSha) => {
+        // Phase 2 (T1, BlameGutter): open a new Meld window in commit
+        // mode for the referenced commit. The new window will fetch
+        // its own diff; we just need the dispatcher entry point.
+        const repo = appStore.getState().repositories.find(
+          r => r.id === repositoryID,
+        )
+        if (!repo || !(repo instanceof Repository)) {
+          return
+        }
+        return props.dispatcher.openInMeldWindowCommitMode(
+          repo,
+          filePath,
+          commitSha
+        )
+      }}
+      onGetBlame={async (repositoryID, filePath) => {
+        // Phase 2 (T1, BlameGutter): fetch blame for the current file
+        // via the main-process `meld:get-blame` IPC channel. Resolve
+        // the repository path from the AppStore (the window only has
+        // the numeric ID).
+        const repo = appStore.getState().repositories.find(
+          r => r.id === repositoryID,
+        )
+        if (!repo || !(repo instanceof Repository)) {
+          return []
+        }
+        return new Promise<
+          ReadonlyArray<import('../lib/git/blame').IBlameHunk>
+        >(resolve => {
+          const w = window as unknown as {
+            electron?: { ipcRenderer?: { invoke: (channel: string, ...args: unknown[]) => Promise<unknown> } }
+          }
+          const ipcRenderer = w.electron?.ipcRenderer
+          if (!ipcRenderer) {
+            resolve([])
+            return
+          }
+          ipcRenderer
+            .invoke('meld:get-blame', {
+              repositoryPath: repo.path,
+              filePath,
+            })
+            .then(
+              (result: unknown) =>
+                resolve(
+                  result as ReadonlyArray<
+                    import('../lib/git/blame').IBlameHunk
+                  >
+                ),
+              (err: Error) => {
+                console.warn('[meld:get-blame] failed:', err.message)
+                resolve([])
+              }
+            )
+        })
+      }}
       onLaunchExternalTool={async (tool, left, right, base) => {
         return new Promise<{ success: boolean; error?: string }>(resolve => {
           const w = window as unknown as {
@@ -635,8 +690,6 @@ ReactDOM.render(
             dispatcher={dispatcher}
             repositoryID={args.repositoryID}
             filePath={args.filePath}
-            mergeBaseSha={args.mergeBaseSha}
-            theirsSha={args.theirsSha}
           />
         )
       }
@@ -683,6 +736,58 @@ ReactDOM.render(
             })
           }}
           onClose={() => window.close()}
+          onOpenCommit={async (repositoryID, filePath, commitSha) => {
+            // Phase 2 (T1, BlameGutter): see the merge-mode block above.
+            const repo = appStore.getState().repositories.find(
+              r => r.id === repositoryID,
+            )
+            if (!repo || !(repo instanceof Repository)) {
+              return
+            }
+            return dispatcher.openInMeldWindowCommitMode(
+              repo,
+              filePath,
+              commitSha
+            )
+          }}
+          onGetBlame={async (repositoryID, filePath) => {
+            // Phase 2 (T1, BlameGutter): see the merge-mode block above.
+            const repo = appStore.getState().repositories.find(
+              r => r.id === repositoryID,
+            )
+            if (!repo || !(repo instanceof Repository)) {
+              return []
+            }
+            return new Promise<
+              ReadonlyArray<import('../lib/git/blame').IBlameHunk>
+            >(resolve => {
+              const w = window as unknown as {
+                electron?: { ipcRenderer?: { invoke: (channel: string, ...args: unknown[]) => Promise<unknown> } }
+              }
+              const ipcRenderer = w.electron?.ipcRenderer
+              if (!ipcRenderer) {
+                resolve([])
+                return
+              }
+              ipcRenderer
+                .invoke('meld:get-blame', {
+                  repositoryPath: repo.path,
+                  filePath,
+                })
+                .then(
+                  (result: unknown) =>
+                    resolve(
+                      result as ReadonlyArray<
+                        import('../lib/git/blame').IBlameHunk
+                      >
+                    ),
+                  (err: Error) => {
+                    console.warn('[meld:get-blame] failed:', err.message)
+                    resolve([])
+                  }
+                )
+            })
+          }}
         />
       )
     })()

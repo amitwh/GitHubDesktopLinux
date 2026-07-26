@@ -1,14 +1,12 @@
 import * as React from 'react'
 import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
-import { Dispatcher } from '../dispatcher'
 import { Repository } from '../../models/repository'
 import { getBlame, IBlameHunk } from '../../lib/git/blame'
 import { Ref } from '../lib/ref'
 import { Row } from '../lib/row'
 
 interface IBlameDialogProps {
-  readonly dispatcher: Dispatcher
   readonly repository: Repository
   readonly relativePath: string
   readonly onDismissed: () => void

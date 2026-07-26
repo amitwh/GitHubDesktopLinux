@@ -7,6 +7,7 @@ import { getDefaultExternalTools } from '../../lib/meld/default-tools'
 import { substituteArgs } from '../../lib/meld/external-tool-args'
 import { IExternalTool } from '../../models/external-tool'
 import { gitMergeFile } from '../../lib/git/merge-file'
+import { getBlame, IBlameHunk } from '../../lib/git/blame'
 import { Repository } from '../../models/repository'
 import { openMeldWindow, IOpenMeldWindowArgs } from './meld-window'
 
@@ -22,6 +23,11 @@ interface IAutoMergeRequest {
   readonly baseContent: string
   readonly localContent: string
   readonly remoteContent: string
+}
+
+interface IGetBlameRequest {
+  readonly repositoryPath: string
+  readonly filePath: string
 }
 
 export function registerMeldIpcHandlers() {
@@ -109,6 +115,46 @@ export function registerMeldIpcHandlers() {
       }
     } finally {
       void rm(tmpDir, { recursive: true, force: true })
+    }
+  })
+
+  /**
+   * Phase 2 (T1, BlameGutter): fetch blame information for a file
+   * using the existing `git blame` wrapper. The renderer passes the
+   * working-directory-relative file path; the main process turns the
+   * absolute repository path + relative path into a Repository stub
+   * (mirroring the pattern used by `meld:auto-merge` above) and calls
+   * the same `getBlame` function the main app uses.
+   *
+   * Returns the array of `IBlameHunk` (which is JSON-serialisable).
+   * On failure (e.g. binary file, file not tracked, exit code 128) the
+   * handler returns an empty array — the renderer treats empty as
+   * "no blame data available" and renders placeholder cells in the
+   * gutter.
+   */
+  ipcMain.handle('meld:get-blame', async (_event, req: unknown) => {
+    const r = req as IGetBlameRequest
+    if (typeof r.repositoryPath !== 'string' || typeof r.filePath !== 'string') {
+      return [] as ReadonlyArray<IBlameHunk>
+    }
+    const repository: Repository = {
+      id: -1,
+      name: '',
+      path: r.repositoryPath,
+      hash: '',
+      lastFetched: null,
+    } as unknown as Repository
+
+    try {
+      return await getBlame(repository, r.filePath)
+    } catch (err) {
+      // Binary files, untracked files, or git errors — return an empty
+      // list and let the renderer render a placeholder column.
+      console.warn(
+        `[meld:get-blame] blame failed for ${r.filePath}:`,
+        err instanceof Error ? err.message : String(err)
+      )
+      return [] as ReadonlyArray<IBlameHunk>
     }
   })
 }

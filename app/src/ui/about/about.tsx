@@ -248,6 +248,38 @@ export class About extends React.Component<IAboutProps> {
     )
   }
 
+  /**
+   * Renders a block of text that clearly identifies this build as an
+   * unofficial community-maintained Linux fork, links to the fork's
+   * source repository, and links to the upstream project. Intended to
+   * avoid any appearance that this build is an official GitHub product
+   * (per GitHub's trademark policy) while preserving the MIT-required
+   * copyright acknowledgement of the original project.
+   */
+  private renderForkAttribution() {
+    return (
+      <div className="fork-attribution">
+        <p className="no-padding">
+          GitHub Desktop is developed and maintained by{' '}
+          <LinkButton uri="https://github.com/about">GitHub, Inc.</LinkButton>{' '}
+          and is released under the MIT license.
+        </p>
+        <p className="no-padding">
+          This is an unofficial community-maintained Linux build. The full
+          source for this fork is available at{' '}
+          <LinkButton uri="https://github.com/amitwh/GitHubDesktop">
+            github.com/amitwh/GitHubDesktop
+          </LinkButton>
+          ; the upstream project lives at{' '}
+          <LinkButton uri="https://github.com/desktop/desktop">
+            github.com/desktop/desktop
+          </LinkButton>
+          .
+        </p>
+      </div>
+    )
+  }
+
   public render() {
     const name = this.props.applicationName
     const version = this.props.applicationVersion
@@ -285,6 +317,7 @@ export class About extends React.Component<IAboutProps> {
           {this.renderUpdateDetails()}
           {this.renderUpdateButton()}
           {this.renderBetaLink()}
+          {this.renderForkAttribution()}
           <div className="terms-and-license-container">
             <p className="no-padding terms-and-license">
               <LinkButton onClick={this.props.onShowTermsAndConditions}>

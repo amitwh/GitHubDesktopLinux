@@ -4,7 +4,6 @@ import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { Select } from '../lib/select'
 import { Row } from '../lib/row'
-import { Dispatcher } from '../dispatcher'
 import { Repository } from '../../models/repository'
 import {
   exportCommitHistory,
@@ -12,7 +11,6 @@ import {
 } from '../../lib/commit-export'
 
 interface IExportCommitHistoryDialogProps {
-  readonly dispatcher: Dispatcher
   readonly repository: Repository
   readonly onDismissed: () => void
 }

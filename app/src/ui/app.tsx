@@ -1857,7 +1857,6 @@ export class App extends React.Component<IAppProps, IAppState> {
         return (
           <ExportCommitHistoryDialog
             key="export-commit-history"
-            dispatcher={this.props.dispatcher}
             repository={popup.repository}
             onDismissed={onPopupDismissedFn}
           />
@@ -1866,7 +1865,6 @@ export class App extends React.Component<IAppProps, IAppState> {
         return (
           <ReflogDialog
             key="reflog"
-            dispatcher={this.props.dispatcher}
             repository={popup.repository}
             onDismissed={onPopupDismissedFn}
           />
@@ -1875,7 +1873,6 @@ export class App extends React.Component<IAppProps, IAppState> {
         return (
           <BlameDialog
             key="blame"
-            dispatcher={this.props.dispatcher}
             repository={popup.repository}
             relativePath={popup.relativePath}
             onDismissed={onPopupDismissedFn}
@@ -1885,7 +1882,6 @@ export class App extends React.Component<IAppProps, IAppState> {
         return (
           <StashManagerDialog
             key="stash-manager"
-            dispatcher={this.props.dispatcher}
             repository={popup.repository}
             onDismissed={onPopupDismissedFn}
           />
@@ -3022,7 +3018,6 @@ export class App extends React.Component<IAppProps, IAppState> {
         return (
           <InteractiveRebaseDialog
             key="interactive-rebase"
-            dispatcher={this.props.dispatcher}
             repository={popup.repository}
             branchName={popup.branchName}
             onDismissed={onPopupDismissedFn}
@@ -3032,7 +3027,6 @@ export class App extends React.Component<IAppProps, IAppState> {
         return (
           <SubmoduleDialog
             key="submodule"
-            dispatcher={this.props.dispatcher}
             repository={popup.repository}
             onDismissed={onPopupDismissedFn}
           />

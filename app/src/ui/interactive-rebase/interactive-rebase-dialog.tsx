@@ -1,7 +1,6 @@
 import * as React from 'react'
 import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
-import { Dispatcher } from '../dispatcher'
 import { Repository } from '../../models/repository'
 import { getCommits } from '../../lib/git/log'
 import { rebaseInteractive } from '../../lib/git/rebase'
@@ -13,7 +12,6 @@ import * as Path from 'path'
 import * as Fs from 'fs/promises'
 
 interface IInteractiveRebaseDialogProps {
-  readonly dispatcher: Dispatcher
   readonly repository: Repository
   readonly branchName: string
   readonly onDismissed: () => void
@@ -54,7 +52,11 @@ export class InteractiveRebaseDialog extends React.Component<
     })
   }
 
-  private onActionChange = (sha: string, event: React.FormEvent<HTMLSelectElement>) => {
+  private onActionChange = (event: React.FormEvent<HTMLSelectElement>) => {
+    const sha = event.currentTarget.getAttribute('data-sha')
+    if (sha === null) {
+      return
+    }
     const action = event.currentTarget.value as ICommitAction['action']
     this.setState(prev => ({
       commits: prev.commits.map(c =>
@@ -63,8 +65,9 @@ export class InteractiveRebaseDialog extends React.Component<
     }))
   }
 
-  private onMoveUp = (index: number) => {
-    if (index === 0) return
+  private onMoveUp = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const index = Number(event.currentTarget.getAttribute('data-index'))
+    if (Number.isNaN(index) || index === 0) {return}
     this.setState(prev => {
       const commits = [...prev.commits]
       const temp = commits[index]
@@ -74,9 +77,11 @@ export class InteractiveRebaseDialog extends React.Component<
     })
   }
 
-  private onMoveDown = (index: number) => {
+  private onMoveDown = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const index = Number(event.currentTarget.getAttribute('data-index'))
+    if (Number.isNaN(index)) {return}
     this.setState(prev => {
-      if (index >= prev.commits.length - 1) return prev
+      if (index >= prev.commits.length - 1) {return prev}
       const commits = [...prev.commits]
       const temp = commits[index]
       commits[index] = commits[index + 1]
@@ -128,7 +133,8 @@ export class InteractiveRebaseDialog extends React.Component<
               <Row key={commit.sha} className="rebase-commit">
                 <Select
                   value={commit.action}
-                  onChange={(e) => this.onActionChange(commit.sha, e)}
+                  onChange={this.onActionChange}
+                  data-sha={commit.sha}
                 >
                   {actions.map(a => (
                     <option key={a} value={a}>{a}</option>
@@ -136,8 +142,8 @@ export class InteractiveRebaseDialog extends React.Component<
                 </Select>
                 <span className="rebase-sha"><Ref>{commit.sha.substring(0, 7)}</Ref></span>{' '}
                 <span className="rebase-summary"><Ref>{commit.summary}</Ref></span>
-                <Button onClick={() => this.onMoveUp(index)} disabled={index === 0}>↑</Button>
-                <Button onClick={() => this.onMoveDown(index)} disabled={index === commits.length - 1}>↓</Button>
+                <Button onClick={this.onMoveUp} data-index={index} disabled={index === 0}>↑</Button>
+                <Button onClick={this.onMoveDown} data-index={index} disabled={index === commits.length - 1}>↓</Button>
               </Row>
             ))}
         </DialogContent>

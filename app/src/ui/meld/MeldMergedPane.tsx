@@ -13,6 +13,70 @@ export interface IMeldMergedPaneProps {
 }
 
 /**
+ * A single per-hunk action bar rendered below the main textarea
+ * (as a sibling in the scrollable container).
+ */
+class HunkActionBar extends React.Component<
+  {
+    readonly hunkIndex: number
+    readonly onResolveClick: (
+      hunkIndex: number,
+      side: 'base' | 'local' | 'remote'
+    ) => void
+  },
+  {}
+> {
+  private handleClick = (event: React.MouseEvent<HTMLButtonElement>): void => {
+    const side = event.currentTarget.getAttribute(
+      'data-side'
+    ) as 'base' | 'local' | 'remote' | null
+    if (side === null) {
+      return
+    }
+    this.props.onResolveClick(this.props.hunkIndex, side)
+  }
+
+  public render() {
+    const { hunkIndex } = this.props
+    return (
+      <div
+        className="meld-merged-hunk-bar"
+        role="group"
+        aria-label={`Conflict ${hunkIndex + 1} resolution actions`}
+      >
+        <button
+          type="button"
+          onClick={this.handleClick}
+          data-side="local"
+          data-testid={`resolve-local-${hunkIndex}`}
+          aria-label="Accept LOCAL version of this conflict"
+        >
+          Accept LOCAL
+        </button>
+        <button
+          type="button"
+          onClick={this.handleClick}
+          data-side="remote"
+          data-testid={`resolve-remote-${hunkIndex}`}
+          aria-label="Accept REMOTE version of this conflict"
+        >
+          Accept REMOTE
+        </button>
+        <button
+          type="button"
+          onClick={this.handleClick}
+          data-side="base"
+          data-testid={`resolve-base-${hunkIndex}`}
+          aria-label="Use BASE (common ancestor) version of this conflict"
+        >
+          Use BASE
+        </button>
+      </div>
+    )
+  }
+}
+
+/**
  * Editable MERGED-output pane for Phase 1c three-way merge.
  *
  * Renders the merged file content in a single `<textarea>` with a
@@ -22,15 +86,8 @@ export interface IMeldMergedPaneProps {
  *   - "Accept REMOTE" → calls onHunkResolved(idx, 'remote')
  *   - "Use BASE"      → calls onHunkResolved(idx, 'base')
  *
- * The component uses `parseConflictMarkers` to identify context vs.
- * conflict regions in the MERGED text. Hunks are in the same order as
- * the `hunks` prop array.
- *
- * NOTE: The docstring above references `parseConflictMarkers`, but the
- * implementation does not import or call it. The action bars are
- * rendered as siblings below the textarea, and `hunks` is provided by
- * the parent. If/when marker-based positioning is needed, this comment
- * block should be updated to match the implementation.
+ * The action bars are rendered as siblings below the textarea, and
+ * `hunks` is provided by the parent.
  */
 export class MeldMergedPane extends React.Component<IMeldMergedPaneProps> {
   private static readonly DebounceMs = 200
@@ -117,49 +174,4 @@ export class MeldMergedPane extends React.Component<IMeldMergedPaneProps> {
       </div>
     )
   }
-}
-
-/**
- * A single per-hunk action bar rendered below the main textarea
- * (as a sibling in the scrollable container).
- */
-function HunkActionBar({
-  hunkIndex,
-  onResolveClick,
-}: {
-  hunkIndex: number
-  onResolveClick: (hunkIndex: number, side: 'base' | 'local' | 'remote') => void
-}) {
-  return (
-    <div
-      className="meld-merged-hunk-bar"
-      role="group"
-      aria-label={`Conflict ${hunkIndex + 1} resolution actions`}
-    >
-      <button
-        type="button"
-        onClick={() => onResolveClick(hunkIndex, 'local')}
-        data-testid={`resolve-local-${hunkIndex}`}
-        aria-label="Accept LOCAL version of this conflict"
-      >
-        Accept LOCAL
-      </button>
-      <button
-        type="button"
-        onClick={() => onResolveClick(hunkIndex, 'remote')}
-        data-testid={`resolve-remote-${hunkIndex}`}
-        aria-label="Accept REMOTE version of this conflict"
-      >
-        Accept REMOTE
-      </button>
-      <button
-        type="button"
-        onClick={() => onResolveClick(hunkIndex, 'base')}
-        data-testid={`resolve-base-${hunkIndex}`}
-        aria-label="Use BASE (common ancestor) version of this conflict"
-      >
-        Use BASE
-      </button>
-    </div>
-  )
 }

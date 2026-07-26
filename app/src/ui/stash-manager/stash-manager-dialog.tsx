@@ -1,7 +1,6 @@
 import * as React from 'react'
 import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
-import { Dispatcher } from '../dispatcher'
 import { Repository } from '../../models/repository'
 import { getAllStashes, dropStashByName, IAllStashEntry } from '../../lib/git/stash'
 import { Ref } from '../lib/ref'
@@ -9,7 +8,6 @@ import { Row } from '../lib/row'
 import { Button } from '../lib/button'
 
 interface IStashManagerDialogProps {
-  readonly dispatcher: Dispatcher
   readonly repository: Repository
   readonly onDismissed: () => void
 }
@@ -37,7 +35,11 @@ export class StashManagerDialog extends React.Component<
     this.setState({ entries, loading: false })
   }
 
-  private onDrop = async (stashName: string) => {
+  private onDrop = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    const stashName = event.currentTarget.getAttribute('data-stash-name')
+    if (stashName === null) {
+      return
+    }
     await dropStashByName(this.props.repository, stashName)
     await this.loadStashes()
   }
@@ -63,7 +65,7 @@ export class StashManagerDialog extends React.Component<
                 <span className="stash-name"><Ref>{entry.name}</Ref></span>{' '}
                 <span className="stash-sha"><Ref>{entry.stashSha.substring(0, 7)}</Ref></span>{' '}
                 <span className="stash-message"><Ref>{entry.message}</Ref></span>{' '}
-                <Button onClick={() => this.onDrop(entry.name)}>Drop</Button>
+                <Button onClick={this.onDrop} data-stash-name={entry.name}>Drop</Button>
               </Row>
             ))}
         </DialogContent>

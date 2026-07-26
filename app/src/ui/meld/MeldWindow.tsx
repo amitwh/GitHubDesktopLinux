@@ -80,6 +80,27 @@ export interface IMeldWindowProps {
     hunkIndex: number,
     side: 'base' | 'local' | 'remote'
   ) => void
+  /**
+   * Phase 2 (T1, BlameGutter): fetch per-line git blame for a file.
+   * Returns an array of `IBlameHunk` (may be empty for untracked
+   * files). Provided by the mount point; the window does not need to
+   * know about IPC channels.
+   */
+  readonly onGetBlame?: (
+    repositoryID: number,
+    filePath: string
+  ) => Promise<ReadonlyArray<import('../../lib/git/blame').IBlameHunk>>
+  /**
+   * Phase 2 (T1, BlameGutter): open a new Meld window in commit mode
+   * for the given commit SHA. Called when the user clicks a blame
+   * cell. The dispatcher wires this to `openInMeldWindowCommitMode`;
+   * the actual commit-diff viewer UI is queued for a follow-up.
+   */
+  readonly onOpenCommit?: (
+    repositoryID: number,
+    filePath: string,
+    commitSha: string
+  ) => Promise<void>
 }
 
 interface IMeldWindowState {
@@ -101,6 +122,11 @@ interface IMeldWindowState {
    * computeBaseHunks(). null when no hunk is selected.
    */
   readonly activeHunkIndex: number | null
+  /** Phase 2 (T1): blame data for the currently-loaded file. `null`
+   *  while loading or when no blame is available (binary, untracked). */
+  readonly blame: ReadonlyArray<import('../../lib/git/blame').IBlameHunk> | null
+  /** True while blame is being fetched. */
+  readonly blameLoading: boolean
 }
 
 /**
@@ -146,6 +172,8 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
       fileChangedSinceLoad: false,
       mergedContent: props.threeWayState?.mergedContent ?? null,
       activeHunkIndex: null,
+      blame: null,
+      blameLoading: false,
     }
   }
 
@@ -168,6 +196,38 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
         editState: editStateFromDiff(diff),
         fileChangedSinceLoad: false,
       })
+      // Phase 2 (T1, BlameGutter): fetch blame in parallel and update
+      // state when it arrives. Failure is non-fatal — the gutter just
+      // stays empty. We do this in a fire-and-forget pattern so the
+      // diff renders immediately without waiting for blame.
+      if (this.props.onGetBlame !== undefined) {
+        this.setState({ blameLoading: true })
+        try {
+          const blame = await this.props.onGetBlame(
+            this.props.repositoryID,
+            filePath
+          )
+          // Only commit blame if the user hasn't navigated to a
+          // different file while we were waiting.
+          if (this.state.selectedPath === filePath) {
+            this.setState({ blame, blameLoading: false })
+          } else {
+            this.setState({ blameLoading: false })
+          }
+        } catch (e) {
+          if (this.state.selectedPath === filePath) {
+            this.setState({ blame: [], blameLoading: false })
+          } else {
+            this.setState({ blameLoading: false })
+          }
+          // Don't show the error in the dialog — blame failure is
+          // expected for binary/untracked files. Log to console only.
+          console.warn(
+            `[MeldWindow] blame fetch failed for ${filePath}:`,
+            e instanceof Error ? e.message : String(e)
+          )
+        }
+      }
     } catch (e) {
       this.setState({
         diffLoading: false,
@@ -216,6 +276,25 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
     this.setState({
       editState: applyEdit(this.state.editState, side, value),
     })
+  }
+
+  /**
+   * Phase 2 (T1, BlameGutter): handle a click on a blame cell. Delegates
+   * to the parent-provided `onOpenCommit` callback, which in turn calls
+   * `dispatcher.openInMeldWindowCommitMode` from the mount point. The
+   * full commit-diff viewer UI inside the new window is queued for a
+   * follow-up; for now the placeholder renders a working-tree diff.
+   */
+  private onOpenCommit = (sha: string) => {
+    if (this.props.onOpenCommit === undefined) {
+      this.setState({
+        errorMessage:
+          'Opening a commit in the Meld window is not yet wired into this mount point.',
+      })
+      return
+    }
+    const filePath = this.state.selectedPath ?? this.props.filePath
+    void this.props.onOpenCommit(this.props.repositoryID, filePath, sha)
   }
 
   private onEditorSave = async (side: 'left' | 'right') => {
@@ -390,7 +469,7 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
    */
   private getActiveHunk(hunkIndex: number): IConflictHunk | null {
     const { threeWayState } = this.props
-    if (!threeWayState) return null
+    if (!threeWayState) {return null}
 
     const baseLines = threeWayState.baseContent.split('\n')
     const localLines = threeWayState.localContent.split('\n')
@@ -402,7 +481,7 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
 
   private onMergeHunkResolved = (hunkIndex: number, side: 'base' | 'local' | 'remote') => {
     const { mergedContent } = this.state
-    if (!mergedContent) return
+    if (!mergedContent) {return}
 
     const updated = applyHunkResolution(mergedContent, hunkIndex, side)
     this.setState({ mergedContent: updated })
@@ -419,7 +498,7 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
   }
 
   private onMergeAutoMerge = async () => {
-    if (!this.props.onAutoMerge) return
+    if (!this.props.onAutoMerge) {return}
     try {
       const result = await this.props.onAutoMerge(
         this.props.repositoryID,
@@ -435,7 +514,7 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
 
   private onMergeMarkResolved = async () => {
     const { mergedContent } = this.state
-    if (!mergedContent || !this.props.onMarkMergeResolved) return
+    if (!mergedContent || !this.props.onMarkMergeResolved) {return}
 
     const result = await this.props.onMarkMergeResolved(
       this.props.repositoryID,
@@ -455,7 +534,7 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
     // Find the index of this hunk in BASE-coord space by matching startLine/endLine.
     // (The hunk was produced by computeBaseHunks so we can use index lookup.)
     const { threeWayState } = this.props
-    if (!threeWayState) return
+    if (!threeWayState) {return}
 
     const baseLines = threeWayState.baseContent.split('\n')
     const localLines = threeWayState.localContent.split('\n')
@@ -619,6 +698,9 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
             onEditDiscard={this.onEditorDiscard}
             onCopyHunkLeft={this.onCopyHunkLeftBound}
             onCopyHunkRight={this.onCopyHunkRightBound}
+            blame={this.state.blame}
+            blameLoading={this.state.blameLoading}
+            onOpenCommit={this.onOpenCommit}
           />
         </div>
         {footer}

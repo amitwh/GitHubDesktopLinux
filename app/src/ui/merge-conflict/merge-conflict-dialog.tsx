@@ -37,9 +37,11 @@ export class MergeConflictDialog extends React.Component<
     )
   }
 
-  private onAcceptOurs = async (path: string) => {
+  private onAcceptOurs = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    const path = event.currentTarget.getAttribute('data-conflict-path')
+    if (path === null) {return}
     const file = this.conflictedFiles.find(f => f.path === path)
-    if (!file) return
+    if (!file) {return}
     await checkoutConflictedFile(
       this.props.repository,
       file,
@@ -53,9 +55,11 @@ export class MergeConflictDialog extends React.Component<
     })
   }
 
-  private onAcceptTheirs = async (path: string) => {
+  private onAcceptTheirs = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    const path = event.currentTarget.getAttribute('data-conflict-path')
+    if (path === null) {return}
     const file = this.conflictedFiles.find(f => f.path === path)
-    if (!file) return
+    if (!file) {return}
     await checkoutConflictedFile(
       this.props.repository,
       file,
@@ -69,9 +73,11 @@ export class MergeConflictDialog extends React.Component<
     })
   }
 
-  private onMarkResolved = async (path: string) => {
+  private onMarkResolved = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    const path = event.currentTarget.getAttribute('data-conflict-path')
+    if (path === null) {return}
     const file = this.conflictedFiles.find(f => f.path === path)
-    if (!file) return
+    if (!file) {return}
     await addConflictedFile(this.props.repository, file)
     this.setState(prev => {
       const resolved = new Set(prev.resolvedFiles)
@@ -87,9 +93,11 @@ export class MergeConflictDialog extends React.Component<
    * (per the spec) so the user can mark additional files resolved via
    * the legacy buttons.
    */
-  private onOpenInMeldWindow = (path: string) => {
+  private onOpenInMeldWindow = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const path = event.currentTarget.getAttribute('data-conflict-path')
+    if (path === null) {return}
     const file = this.conflictedFiles.find(f => f.path === path)
-    if (!file) return
+    if (!file) {return}
     void this.props.dispatcher.openInMeldWindowMergeMode(
       this.props.repository,
       file.path,
@@ -118,17 +126,18 @@ export class MergeConflictDialog extends React.Component<
                 </span>
                 {!isResolved && (
                   <div className="button-group">
-                    <Button onClick={() => this.onAcceptOurs(file.path)}>
+                    <Button onClick={this.onAcceptOurs} data-conflict-path={file.path}>
                       Ours
                     </Button>
-                    <Button onClick={() => this.onAcceptTheirs(file.path)}>
+                    <Button onClick={this.onAcceptTheirs} data-conflict-path={file.path}>
                       Theirs
                     </Button>
-                    <Button onClick={() => this.onMarkResolved(file.path)}>
+                    <Button onClick={this.onMarkResolved} data-conflict-path={file.path}>
                       Resolved
                     </Button>
                     <Button
-                      onClick={() => this.onOpenInMeldWindow(file.path)}
+                      onClick={this.onOpenInMeldWindow}
+                      data-conflict-path={file.path}
                       className="button-primary"
                     >
                       Open in Meld Window

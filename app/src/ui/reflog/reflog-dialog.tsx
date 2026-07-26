@@ -1,14 +1,12 @@
 import * as React from 'react'
 import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
-import { Dispatcher } from '../dispatcher'
 import { Repository } from '../../models/repository'
 import { IReflogEntry, getReflog } from '../../lib/git/reflog'
 import { Ref } from '../lib/ref'
 import { Row } from '../lib/row'
 
 interface IReflogDialogProps {
-  readonly dispatcher: Dispatcher
   readonly repository: Repository
   readonly onDismissed: () => void
 }

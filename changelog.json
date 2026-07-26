@@ -1,5 +1,10 @@
 {
   "releases": {
+    "3.5.13-beta1-linux1": [
+      "[New] About dialog now shows a fork attribution block that clearly identifies this as an unofficial community-maintained Linux build, credits GitHub, Inc. as the original developer, and links to both the fork and upstream repositories",
+      "[New] Meld diff viewer: per-line git blame gutter (Phase 2 T1) shows author and short commit SHA next to each right-side line of the editable side-by-side view; click a cell to open that commit in a new Meld window",
+      "[Improved] Meld diff viewer: 14 new unit tests for the blame-to-diff alignment helpers, 10 new React component tests for the BlameGutter, and a typed meld:get-blame IPC channel for the main-process git blame wrapper"
+    ],
     "3.5.13-beta1": [
       "[New] Resolve merge conflicts with Copilot - #22265",
       "[New] Git worktree support for managing multiple working directories of the same repository - #22102",

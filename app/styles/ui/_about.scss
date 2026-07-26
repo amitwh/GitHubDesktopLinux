@@ -37,6 +37,18 @@ dialog#about {
       margin-top: var(--spacing);
     }
 
+    .fork-attribution {
+      border-top: 1px solid var(--box-border-color);
+      margin-top: var(--spacing);
+      padding-top: var(--spacing);
+      text-align: left;
+
+      p {
+        line-height: 1.4;
+        text-align: left;
+      }
+    }
+
     .version-text {
       cursor: pointer;
       .octicon {
