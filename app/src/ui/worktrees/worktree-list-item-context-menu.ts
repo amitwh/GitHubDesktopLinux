@@ -9,13 +9,22 @@ interface IWorktreeContextMenuConfig {
   readonly isLocked: boolean
   readonly onRenameWorktree?: (path: string) => void
   readonly onRemoveWorktree?: (path: string) => void
+  readonly onLockWorktree?: (path: string) => void
+  readonly onUnlockWorktree?: (path: string) => void
 }
 
 export function generateWorktreeContextMenuItems(
   config: IWorktreeContextMenuConfig
 ): ReadonlyArray<IMenuItem> {
-  const { path, isMainWorktree, isLocked, onRenameWorktree, onRemoveWorktree } =
-    config
+  const {
+    path,
+    isMainWorktree,
+    isLocked,
+    onRenameWorktree,
+    onRemoveWorktree,
+    onLockWorktree,
+    onUnlockWorktree,
+  } = config
   const name = Path.basename(path)
   const items = new Array<IMenuItem>()
 
@@ -38,6 +47,24 @@ export function generateWorktreeContextMenuItems(
   })
 
   items.push({ type: 'separator' })
+
+  if (!isMainWorktree) {
+    if (onLockWorktree !== undefined) {
+      items.push({
+        label: __DARWIN__ ? 'Lock…' : 'Lock…',
+        action: () => onLockWorktree(path),
+        enabled: !isLocked,
+      })
+    }
+
+    if (onUnlockWorktree !== undefined) {
+      items.push({
+        label: __DARWIN__ ? 'Unlock' : 'Unlock',
+        action: () => onUnlockWorktree(path),
+        enabled: isLocked,
+      })
+    }
+  }
 
   if (onRemoveWorktree !== undefined) {
     items.push({

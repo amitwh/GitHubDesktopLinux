@@ -231,6 +231,11 @@ import {
   listWorktreesFromGitDir,
   removeWorktree,
   moveWorktree,
+  lockWorktree,
+  unlockWorktree,
+  pruneWorktrees,
+  getWorktreeDirtyState,
+  WorktreeDirtyState,
   getCommitRangeDiff,
   getCommitRangeChangedFiles,
   updateRemoteHEAD,
@@ -500,6 +505,9 @@ const confirmCommitFilteredChangesKey: string =
 const confirmCommitMessageOverrideKey: string = 'confirmCommitMessageOverride'
 const confirmWorktreeRemovalKey: string = 'confirmWorktreeRemoval'
 
+const autoPruneWorktreesOnOpenDefault: boolean = false
+const autoPruneWorktreesOnOpenKey: string = 'autoPruneWorktreesOnOpen'
+
 const uncommittedChangesStrategyKey = 'uncommittedChangesStrategyKind'
 
 const externalEditorKey: string = 'externalEditor'
@@ -658,6 +666,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private confirmCommitMessageOverride: boolean =
     confirmCommitMessageOverrideDefault
   private confirmWorktreeRemoval: boolean = confirmWorktreeRemovalDefault
+  private autoPruneWorktreesOnOpen: boolean = autoPruneWorktreesOnOpenDefault
   private imageDiffType: ImageDiffType = imageDiffTypeDefault
   private hideWhitespaceInChangesDiff: boolean =
     hideWhitespaceInChangesDiffDefault
@@ -1316,6 +1325,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       askForConfirmationOnCommitMessageOverride:
         this.confirmCommitMessageOverride,
       askForConfirmationOnWorktreeRemoval: this.confirmWorktreeRemoval,
+      autoPruneWorktreesOnOpen: this.autoPruneWorktreesOnOpen,
       uncommittedChangesStrategy: this.uncommittedChangesStrategy,
       selectedExternalEditor: this.selectedExternalEditor,
       imageDiffType: this.imageDiffType,
@@ -2535,6 +2545,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.confirmWorktreeRemoval = getBoolean(
       confirmWorktreeRemovalKey,
       confirmWorktreeRemovalDefault
+    )
+
+    this.autoPruneWorktreesOnOpen = getBoolean(
+      autoPruneWorktreesOnOpenKey,
+      autoPruneWorktreesOnOpenDefault
     )
 
     this.uncommittedChangesStrategy =
@@ -4368,6 +4383,21 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private async _refreshWorktrees(repository: Repository): Promise<void> {
     try {
       const worktrees = await listWorktrees(repository)
+
+      if (this.autoPruneWorktreesOnOpen) {
+        // When auto-prune is on, run `git worktree prune` before listing so the
+        // UI never shows stale admin entries. Failures are logged but never
+        // block the repository from opening.
+        try {
+          const stalePaths = await pruneWorktrees(repository, true)
+          if (stalePaths.length > 0) {
+            await pruneWorktrees(repository, false)
+          }
+        } catch (e) {
+          log.error('Auto-prune worktrees failed', e)
+        }
+      }
+
       this.repositoryStateCache.update(repository, () => ({ worktrees }))
       this.statsStore.recordWorktreeCount(worktrees.length)
 
@@ -6178,18 +6208,24 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   /** This shouldn't be called directly. See 'Dispatcher'. */
-  public _requestDeleteWorktree(
+  public async _requestDeleteWorktree(
     repository: Repository,
     worktreePath: string
-  ): void {
+  ): Promise<void> {
+    // Compute the dirty state so the dialog can warn the user about
+    // modified/untracked files before they hit Delete. Failure to read
+    // it leaves dirtyState undefined, which the dialog treats as "clean".
+    const dirtyState = await this._getWorktreeDirtyState(worktreePath)
+
     if (this.confirmWorktreeRemoval) {
       this._showPopup({
         type: PopupType.DeleteWorktree,
         repository,
         worktreePath,
+        dirtyState,
       })
     } else {
-      this._deleteWorktree(repository, worktreePath).catch(e =>
+      this._deleteWorktree(repository, worktreePath, false).catch(e =>
         this.emitError(e)
       )
     }
@@ -6238,6 +6274,58 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     await this._refreshWorktrees(repository)
     this.statsStore.increment('worktreeDeletedCount')
+  }
+
+  /** This shouldn't be called directly. See 'Dispatcher'. */
+  public async _lockWorktree(
+    repository: Repository,
+    worktreePath: string,
+    reason?: string
+  ): Promise<void> {
+    await lockWorktree(repository, worktreePath, reason)
+    await this._refreshWorktrees(repository)
+  }
+
+  /** This shouldn't be called directly. See 'Dispatcher'. */
+  public async _unlockWorktree(
+    repository: Repository,
+    worktreePath: string
+  ): Promise<void> {
+    await unlockWorktree(repository, worktreePath)
+    await this._refreshWorktrees(repository)
+  }
+
+  /** This shouldn't be called directly. See 'Dispatcher'. */
+  public async _pruneWorktrees(repository: Repository): Promise<void> {
+    await pruneWorktrees(repository, false)
+    await this._refreshWorktrees(repository)
+  }
+
+  /**
+   * Compute the dirty state of a worktree's working directory. Used by the
+   * delete-worktree dialog to decide whether to require an explicit
+   * force-confirm step. Returns zero counts on any error so the UI can
+   * fall back to its default behavior.
+   */
+  public async _getWorktreeDirtyState(
+    worktreePath: string
+  ): Promise<WorktreeDirtyState> {
+    try {
+      return await getWorktreeDirtyState(worktreePath)
+    } catch (e) {
+      log.error('Failed to read worktree dirty state', e)
+      return { modifiedCount: 0, untrackedCount: 0 }
+    }
+  }
+
+  /** This shouldn't be called directly. See 'Dispatcher'. */
+  public _setAutoPruneWorktreesOnOpenSetting(value: boolean): Promise<void> {
+    this.autoPruneWorktreesOnOpen = value
+    setBoolean(autoPruneWorktreesOnOpenKey, value)
+
+    this.emitUpdate()
+
+    return Promise.resolve()
   }
 
   /** This shouldn't be called directly. See 'Dispatcher'. */

@@ -113,6 +113,7 @@ interface IPreferencesProps {
   readonly useCustomShell: boolean
   readonly customShell: ICustomIntegration | null
   readonly repositoryIndicatorsEnabled: boolean
+  readonly autoPruneWorktreesOnOpen: boolean
   readonly onEditGlobalGitConfig: () => void
   readonly underlineLinks: boolean
   readonly showDiffCheckMarks: boolean
@@ -166,6 +167,7 @@ interface IPreferencesState {
    */
   readonly existingLockFilePath?: string
   readonly repositoryIndicatorsEnabled: boolean
+  readonly autoPruneWorktreesOnOpen: boolean
 
   readonly initiallySelectedTheme: ApplicationTheme
   readonly initiallySelectedTabSize: number
@@ -243,6 +245,7 @@ export class Preferences extends React.Component<
       availableShells: [],
       selectedShell: this.props.selectedShell,
       repositoryIndicatorsEnabled: this.props.repositoryIndicatorsEnabled,
+      autoPruneWorktreesOnOpen: this.props.autoPruneWorktreesOnOpen,
       initiallySelectedTheme: this.props.selectedTheme,
       initiallySelectedTabSize: this.props.selectedTabSize,
       isLoadingGitConfig: true,
@@ -725,6 +728,7 @@ export class Preferences extends React.Component<
             optOutOfUsageTracking={this.state.optOutOfUsageTracking}
             useExternalCredentialHelper={this.state.useExternalCredentialHelper}
             repositoryIndicatorsEnabled={this.state.repositoryIndicatorsEnabled}
+            autoPruneWorktreesOnOpen={this.state.autoPruneWorktreesOnOpen}
             onUseWindowsOpenSSHChanged={this.onUseWindowsOpenSSHChanged}
             onOptOutofReportingChanged={this.onOptOutofReportingChanged}
             onUseExternalCredentialHelperChanged={
@@ -732,6 +736,9 @@ export class Preferences extends React.Component<
             }
             onRepositoryIndicatorsEnabledChanged={
               this.onRepositoryIndicatorsEnabledChanged
+            }
+            onAutoPruneWorktreesOnOpenChanged={
+              this.onAutoPruneWorktreesOnOpenChanged
             }
           />
         )
@@ -766,6 +773,12 @@ export class Preferences extends React.Component<
     repositoryIndicatorsEnabled: boolean
   ) => {
     this.setState({ repositoryIndicatorsEnabled })
+  }
+
+  private onAutoPruneWorktreesOnOpenChanged = (
+    autoPruneWorktreesOnOpen: boolean
+  ) => {
+    this.setState({ autoPruneWorktreesOnOpen })
   }
 
   private onLockFileDeleted = () => {
@@ -1087,6 +1100,15 @@ export class Preferences extends React.Component<
     ) {
       dispatcher.setUseExternalCredentialHelper(
         this.state.useExternalCredentialHelper
+      )
+    }
+
+    if (
+      this.props.autoPruneWorktreesOnOpen !==
+      this.state.autoPruneWorktreesOnOpen
+    ) {
+      await dispatcher.setAutoPruneWorktreesOnOpenSetting(
+        this.state.autoPruneWorktreesOnOpen
       )
     }
 

@@ -18,11 +18,13 @@ interface IWorktreeListItem extends IFilterListItem {
   readonly text: ReadonlyArray<string>
   readonly id: string
   readonly worktree: WorktreeEntry
+  readonly sizeBytes?: number | null
 }
 
 interface IWorktreeListProps {
   readonly worktrees: ReadonlyArray<WorktreeEntry>
   readonly currentWorktree: WorktreeEntry | null
+  readonly worktreeSizes?: ReadonlyMap<string, number | null>
 
   readonly onWorktreeClick?: (
     worktree: WorktreeEntry,
@@ -32,6 +34,7 @@ interface IWorktreeListProps {
   readonly filterText: string
   readonly canCreateNewWorktree: boolean
   readonly onCreateNewWorktree?: () => void
+  readonly onPruneWorktrees?: () => void
   readonly onWorktreeContextMenu?: (
     worktree: WorktreeEntry,
     event: React.MouseEvent<HTMLDivElement>
@@ -77,6 +80,9 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
   })
 
   private renderItem = (item: IWorktreeListItem, matches: IMatches) => {
+    const sizeBytes = item.worktree
+      ? this.props.worktreeSizes?.get(item.worktree.path)
+      : undefined
     return (
       <WorktreeListItem
         worktree={item.worktree}
@@ -85,6 +91,7 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
           this.props.currentWorktree.path === item.worktree.path
         }
         matches={matches}
+        sizeBytes={sizeBytes}
       />
     )
   }
@@ -115,16 +122,25 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
   }
 
   private onRenderNewButton = () => {
-    if (!this.props.canCreateNewWorktree || !this.props.onCreateNewWorktree) {
-      return null
-    }
     return (
-      <Button
-        className="new-worktree-button"
-        onClick={this.props.onCreateNewWorktree}
-      >
-        {__DARWIN__ ? 'New Worktree' : 'New worktree'}
-      </Button>
+      <div className="worktree-list-actions">
+        {this.props.onPruneWorktrees ? (
+          <Button
+            className="prune-worktrees-button"
+            onClick={this.props.onPruneWorktrees}
+          >
+            {__DARWIN__ ? 'Prune Stale Worktrees…' : 'Prune stale worktrees…'}
+          </Button>
+        ) : null}
+        {this.props.canCreateNewWorktree && this.props.onCreateNewWorktree ? (
+          <Button
+            className="new-worktree-button"
+            onClick={this.props.onCreateNewWorktree}
+          >
+            {__DARWIN__ ? 'New Worktree' : 'New worktree'}
+          </Button>
+        ) : null}
+      </div>
     )
   }
 

@@ -12,6 +12,7 @@ import { generateWorktreeContextMenuItems } from '../worktrees/worktree-list-ite
 import { PopupType } from '../../models/popup'
 import { Resizable } from '../resizable'
 import { enableResizingToolbarButtons } from '../../lib/feature-flag'
+import { invoke } from '../../lib/ipc-renderer'
 
 interface IWorktreeDropdownProps {
   readonly dispatcher: Dispatcher
@@ -25,6 +26,7 @@ interface IWorktreeDropdownProps {
 
 interface IWorktreeDropdownState {
   readonly filterText: string
+  readonly worktreeSizes: ReadonlyMap<string, number | null>
 }
 
 export class WorktreeDropdown extends React.Component<
@@ -35,6 +37,38 @@ export class WorktreeDropdown extends React.Component<
     super(props)
     this.state = {
       filterText: '',
+      worktreeSizes: new Map(),
+    }
+  }
+
+  public componentDidMount() {
+    this.refreshSizes()
+  }
+
+  public componentDidUpdate(prevProps: IWorktreeDropdownProps) {
+    if (prevProps.worktrees !== this.props.worktrees) {
+      this.refreshSizes()
+    }
+  }
+
+  private async refreshSizes() {
+    const paths = this.props.worktrees.map(w => w.path)
+    if (paths.length === 0) {
+      return
+    }
+    try {
+      const result = await invoke('worktree:compute-sizes', { paths })
+      const map = new Map<string, number | null>()
+      for (const entry of result.sizes) {
+        if (entry === null) {
+          continue
+        }
+        map.set(entry.path, entry.size)
+      }
+      this.setState({ worktreeSizes: map })
+    } catch {
+      // Size computation failures are non-fatal; the list shows "—" for
+      // missing entries without blocking the rest of the UI.
     }
   }
 
@@ -57,6 +91,8 @@ export class WorktreeDropdown extends React.Component<
       isLocked: worktree.isLocked,
       onRenameWorktree: this.onRenameWorktree,
       onRemoveWorktree: this.onRemoveWorktree,
+      onLockWorktree: this.onLockWorktree,
+      onUnlockWorktree: this.onUnlockWorktree,
     })
 
     showContextualMenu(items)
@@ -74,6 +110,24 @@ export class WorktreeDropdown extends React.Component<
   private onRemoveWorktree = (path: string) => {
     this.props.dispatcher.closeFoldout(FoldoutType.Worktree)
     this.props.dispatcher.requestDeleteWorktree(this.props.repository, path)
+  }
+
+  private onLockWorktree = (path: string) => {
+    this.props.dispatcher.closeFoldout(FoldoutType.Worktree)
+    // Locking happens without a reason — the dialog will be added in
+    // a later polish pass. For now we lock without metadata so the
+    // context-menu action immediately reflects in the list.
+    void this.props.dispatcher.lockWorktree(this.props.repository, path)
+  }
+
+  private onUnlockWorktree = (path: string) => {
+    this.props.dispatcher.closeFoldout(FoldoutType.Worktree)
+    void this.props.dispatcher.unlockWorktree(this.props.repository, path)
+  }
+
+  private onPruneWorktrees = () => {
+    this.props.dispatcher.closeFoldout(FoldoutType.Worktree)
+    void this.props.dispatcher.pruneWorktrees(this.props.repository)
   }
 
   private onCreateNewWorktree = () => {
@@ -99,6 +153,8 @@ export class WorktreeDropdown extends React.Component<
       isMainWorktree: isMain,
       isLocked: currentWorktree.isLocked,
       onRemoveWorktree: isMain ? undefined : this.onRemoveWorktree,
+      onLockWorktree: isMain ? undefined : this.onLockWorktree,
+      onUnlockWorktree: isMain ? undefined : this.onUnlockWorktree,
     })
 
     const newWorktreeItem: IMenuItem = {
@@ -120,11 +176,13 @@ export class WorktreeDropdown extends React.Component<
       <WorktreeList
         worktrees={worktrees}
         currentWorktree={this.getCurrentWorktree()}
+        worktreeSizes={this.state.worktreeSizes}
         onWorktreeClick={this.onWorktreeClick}
         filterText={this.state.filterText}
         onFilterTextChanged={this.onFilterTextChanged}
         canCreateNewWorktree={true}
         onCreateNewWorktree={this.onCreateNewWorktree}
+        onPruneWorktrees={this.onPruneWorktrees}
         onWorktreeContextMenu={this.onWorktreeContextMenu}
       />
     )

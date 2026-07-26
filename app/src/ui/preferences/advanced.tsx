@@ -10,10 +10,12 @@ interface IAdvancedPreferencesProps {
   readonly optOutOfUsageTracking: boolean
   readonly useExternalCredentialHelper: boolean
   readonly repositoryIndicatorsEnabled: boolean
+  readonly autoPruneWorktreesOnOpen: boolean
   readonly onUseWindowsOpenSSHChanged: (checked: boolean) => void
   readonly onOptOutofReportingChanged: (checked: boolean) => void
   readonly onUseExternalCredentialHelperChanged: (checked: boolean) => void
   readonly onRepositoryIndicatorsEnabledChanged: (enabled: boolean) => void
+  readonly onAutoPruneWorktreesOnOpenChanged: (enabled: boolean) => void
 }
 
 interface IAdvancedPreferencesState {
@@ -66,6 +68,12 @@ export class Advanced extends React.Component<
     event: React.FormEvent<HTMLInputElement>
   ) => {
     this.props.onRepositoryIndicatorsEnabledChanged(event.currentTarget.checked)
+  }
+
+  private onAutoPruneWorktreesOnOpenChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    this.props.onAutoPruneWorktreesOnOpenChanged(event.currentTarget.checked)
   }
 
   private onUseWindowsOpenSSHChanged = (
@@ -121,6 +129,18 @@ export class Advanced extends React.Component<
                 : CheckboxValue.On
             }
             onChange={this.onReportingOptOutChanged}
+          />
+        </div>
+        <div className="advanced-section">
+          <h2>Worktrees</h2>
+          <Checkbox
+            label="Automatically prune stale worktrees when opening a repository"
+            value={
+              this.props.autoPruneWorktreesOnOpen
+                ? CheckboxValue.On
+                : CheckboxValue.Off
+            }
+            onChange={this.onAutoPruneWorktreesOnOpenChanged}
           />
         </div>
         <h2>Network and credentials</h2>

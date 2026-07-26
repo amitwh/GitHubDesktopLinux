@@ -549,6 +549,10 @@ export type PopupDetail =
       type: PopupType.DeleteWorktree
       repository: Repository
       worktreePath: string
+      dirtyState?: {
+        readonly modifiedCount: number
+        readonly untrackedCount: number
+      }
     }
   | {
       type: PopupType.DeleteWorktreeFailed
