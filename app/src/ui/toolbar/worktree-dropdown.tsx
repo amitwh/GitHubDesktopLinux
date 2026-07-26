@@ -114,8 +114,8 @@ export class WorktreeDropdown extends React.Component<
 
   private onLockWorktree = (path: string) => {
     this.props.dispatcher.closeFoldout(FoldoutType.Worktree)
-    // Locking happens without a reason — the dialog will be added in
-    // a later polish pass. For now we lock without metadata so the
+    // Locking happens without a reason — the reason-prompt dialog is
+    // intentionally out of scope for the Phase 1 plumbing pass. The
     // context-menu action immediately reflects in the list.
     void this.props.dispatcher.lockWorktree(this.props.repository, path)
   }
