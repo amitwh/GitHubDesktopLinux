@@ -11,6 +11,7 @@ import memoizeOne from 'memoize-one'
 import { IMenuItem, showContextualMenu } from '../../lib/menu-item'
 import { getDotComAPIEndpoint } from '../../lib/api'
 import { clipboard } from 'electron'
+import { createCommitURL } from '../../lib/commit-url'
 import { RowIndexPath } from '../lib/list/list-row-index-path'
 import { assertNever } from '../../lib/fatal-error'
 import { CommitDragElement } from '../drag-elements/commit-drag-element'
@@ -848,6 +849,16 @@ export class CommitList extends React.Component<
       {
         label: 'Copy SHA',
         action: () => clipboard.writeText(commit.sha),
+      },
+      {
+        label: __DARWIN__ ? 'Copy Commit URL' : 'Copy commit URL',
+        action: () => {
+          const url = createCommitURL(gitHubRepository!, commit.sha)
+          if (url !== null) {
+            clipboard.writeText(url)
+          }
+        },
+        enabled: !isLocal && !!gitHubRepository,
       },
       {
         label: __DARWIN__ ? darwinTagsLabel : windowTagsLabel,
