@@ -1,0 +1,1 @@
+export { registerWorktreeIpcHandlers } from './worktree-ipc'

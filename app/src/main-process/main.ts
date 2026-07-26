@@ -50,6 +50,7 @@ import {
 } from 'desktop-notifications'
 import { initializeDesktopNotifications } from './notifications'
 import { registerMeldIpcHandlers } from './meld'
+import { registerWorktreeIpcHandlers } from './worktree'
 import parseCommandLineArgs from 'minimist'
 import { CLIAction } from '../lib/cli-action'
 
@@ -325,6 +326,7 @@ app.on('ready', () => {
   possibleProtocols.forEach(protocol => setAsDefaultProtocolClient(protocol))
 
   registerMeldIpcHandlers()
+  registerWorktreeIpcHandlers()
 
   createWindow()
 
