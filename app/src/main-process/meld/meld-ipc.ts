@@ -66,29 +66,6 @@ interface IGetSubmoduleDiffRequest {
   readonly submodulePath: string
 }
 
-async function getDirectorySize(path: string): Promise<number> {
-  let size = 0
-  const directory = await opendir(path)
-  try {
-    for await (const entry of directory) {
-      const entryPath = join(path, entry.name)
-      if (entry.isDirectory()) {
-        size += await getDirectorySize(entryPath)
-      } else if (entry.isFile()) {
-        try {
-          size += (await stat(entryPath)).size
-        } catch {
-          // Files which disappear or cannot be read do not prevent the other
-          // worktree sizes from being returned.
-        }
-      }
-    }
-  } finally {
-    await directory.close()
-  }
-  return size
-}
-
 export function registerMeldIpcHandlers() {
   ipcMain.handle('meld:list-tools', async () => {
     return getDefaultExternalTools()

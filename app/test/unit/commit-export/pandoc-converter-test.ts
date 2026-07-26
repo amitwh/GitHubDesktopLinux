@@ -69,11 +69,6 @@ function setNextChildBehavior(behavior: ChildBehavior) {
   nextChildBehavior = buildBehaviorFn(behavior)
 }
 
-function setPersistentBehavior(behavior: ChildBehavior) {
-  persistentBehavior = buildBehaviorFn(behavior)
-  nextChildBehavior = null
-}
-
 /**
  * Install a mock child_process module so that the pandoc converter can be
  * exercised without a real pandoc binary.
