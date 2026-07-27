@@ -84,6 +84,7 @@ export enum PopupType {
   MultiCommitOperation = 'MultiCommitOperation',
   WarnLocalChangesBeforeUndo = 'WarnLocalChangesBeforeUndo',
   WarningBeforeReset = 'WarningBeforeReset',
+  ResetMode = 'ResetMode',
   InvalidatedToken = 'InvalidatedToken',
   AddSSHHost = 'AddSSHHost',
   SSHKeyPassphrase = 'SSHKeyPassphrase',
@@ -381,6 +382,11 @@ export type PopupDetail =
       repository: Repository
       commit: Commit
       mode: GitResetMode
+    }
+  | {
+      type: PopupType.ResetMode
+      repository: Repository
+      commit: Commit
     }
   | {
       type: PopupType.InvalidatedToken

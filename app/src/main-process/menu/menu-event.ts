@@ -21,6 +21,7 @@ export type MenuEvent =
   | 'open-working-directory'
   | 'update-branch-with-contribution-target-branch'
   | 'compare-to-branch'
+  | 'compare-with-branch'
   | 'merge-branch'
   | 'squash-and-merge-branch'
   | 'rebase-branch'

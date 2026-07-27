@@ -1,0 +1,35 @@
+name: Mirror release
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. 3.6.4-beta1-linux3)'
+        required: true
+      notes:
+        description: 'Release notes (Markdown)'
+        required: false
+        default: ''
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with: { repository: 'amitwh/GitHubDesktop' }
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: yarn install --frozen-lockfile
+      - run: yarn build:prod
+      - run: npx electron-builder --linux deb AppImage --prepackaged dist/GithubDesktopLinux-linux-x64 --publish never
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version }}
+          name: GitHub Desktop Linux ${{ inputs.version }}
+          body: ${{ inputs.notes }}
+          files: |
+            dist/*.deb
+            dist/*.AppImage
+            dist/*.snap
+          repository: amitwh/GitHubDesktopLinux-releases
+          fail_on_unmatched_files: false

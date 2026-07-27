@@ -8,6 +8,7 @@ import {
   FoldoutType,
   SelectionType,
   HistoryTabMode,
+  ComparisonMode,
   CommitOptions,
   ChangesSelectionKind,
 } from '../lib/app-state'
@@ -162,6 +163,7 @@ import { dragAndDropManager } from '../lib/drag-and-drop-manager'
 import { MultiCommitOperation } from './multi-commit-operation/multi-commit-operation'
 import { WarnLocalChangesBeforeUndo } from './undo/warn-local-changes-before-undo'
 import { WarningBeforeReset } from './reset/warning-before-reset'
+import { ResetModeDialog } from './reset/reset-mode-dialog'
 import { InvalidatedToken } from './invalidated-token/invalidated-token'
 import { MultiCommitOperationKind } from '../models/multi-commit-operation'
 import { AddSSHHost } from './ssh/add-ssh-host'
@@ -525,6 +527,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.updateBranchWithContributionTargetBranch()
       case 'compare-to-branch':
         return this.showHistory(false, true)
+      case 'compare-with-branch':
+        return this.showCompareWithBranch()
       case 'merge-branch':
         this.props.dispatcher.recordMenuInitiatedMerge()
         return this.mergeBranch()
@@ -1157,6 +1161,56 @@ export class App extends React.Component<IAppProps, IAppState> {
     if (shouldFocusHistory) {
       this.repositoryViewRef.current?.setFocusHistoryNeeded()
     }
+  }
+
+  /**
+   * Open the History tab in compare-mode with the branch-list filter
+   * visible. The full SearchableBranchList picker is deferred (see
+   * `app/src/ui/compare/compare-with-branch-dialog.tsx`); we reach the
+   * existing compare view through the proven BranchList filter UI,
+   * which already supports fuzzy search and click-to-compare. If a
+   * sensible default branch is available we jump straight into the
+   * compare view via `dispatcher.openCompareView` so the user lands on
+   * concrete ahead/behind numbers instead of an empty branch list.
+   */
+  private async showCompareWithBranch() {
+    const state = this.state.selectedState
+    if (state == null || state.type !== SelectionType.Repository) {
+      return
+    }
+
+    await this.props.dispatcher.closeCurrentFoldout()
+
+    const { branchesState } = state.state
+    const fallbackBranch =
+      branchesState.defaultBranch ?? branchesState.recentBranches[0]
+
+    if (fallbackBranch !== undefined) {
+      await this.props.dispatcher.initializeCompare(state.repository, {
+        kind: HistoryTabMode.Compare,
+        branch: fallbackBranch,
+        comparisonMode: ComparisonMode.Behind,
+      })
+      await this.props.dispatcher.changeRepositorySection(
+        state.repository,
+        RepositorySectionTab.History
+      )
+      return
+    }
+
+    await this.props.dispatcher.initializeCompare(state.repository, {
+      kind: HistoryTabMode.History,
+    })
+
+    await this.props.dispatcher.changeRepositorySection(
+      state.repository,
+      RepositorySectionTab.History
+    )
+
+    await this.props.dispatcher.updateCompareForm(state.repository, {
+      filterText: '',
+      showBranchList: true,
+    })
   }
 
   private async showChanges(shouldFocusChanges: boolean) {
@@ -2919,6 +2973,18 @@ export class App extends React.Component<IAppProps, IAppState> {
             repository={repository}
             commit={commit}
             mode={mode}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      }
+      case PopupType.ResetMode: {
+        const { repository, commit } = popup
+        return (
+          <ResetModeDialog
+            key="reset-mode-dialog"
+            dispatcher={this.props.dispatcher}
+            repository={repository}
+            commit={commit}
             onDismissed={onPopupDismissedFn}
           />
         )

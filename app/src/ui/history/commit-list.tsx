@@ -195,6 +195,196 @@ interface ICommitListState {
   readonly reorderingMessage: string
 }
 
+/**
+ * Inputs needed to build the context menu for a single commit row.
+ * Mirrors the subset of `ICommitListProps` the context-menu builder reads,
+ * so the builder can be exercised in isolation by tests.
+ */
+export interface ICommitContextMenuInputs {
+  readonly row: number
+  readonly commit: Commit
+  readonly localCommitSHAs: ReadonlyArray<string>
+  readonly canUndoCommits?: boolean
+  readonly canAmendCommits?: boolean
+  readonly canResetToCommits?: boolean
+  readonly gitHubRepository: GitHubRepository | null
+  readonly isLocalCommit: (sha: string) => boolean
+  readonly canReorder: () => boolean
+  readonly canCherryPick: () => boolean
+  readonly getDeleteTagsMenuItem: (commit: Commit) => IMenuItem | null
+  readonly onAmendCommit?: (commit: Commit, isLocalCommit: boolean) => void
+  readonly onUndoCommit?: (commit: Commit) => void
+  readonly onResetToCommit?: (commit: Commit) => void
+  readonly onRevertCommit?: (commit: Commit) => void
+  readonly onCreateBranch?: (commit: CommitOneLine) => void
+  readonly onCheckoutCommit?: (commit: CommitOneLine) => void
+  readonly onCreateTag?: (targetCommitSha: string) => void
+  readonly onCherryPick?: (commits: ReadonlyArray<CommitOneLine>) => void
+  readonly onKeyboardReorder?: (toReorder: ReadonlyArray<Commit>) => void
+  readonly onViewCommitOnGitHub?: (sha: string) => void
+  readonly selectedCommits: ReadonlyArray<Commit>
+}
+
+/**
+ * Build the context-menu items for a single commit row.
+ *
+ * Exported as a pure function so tests can exercise the gating logic
+ * (Copy commit URL gate, Reset to commit gate, Copy SHA always-on) without
+ * having to instantiate the full CommitList component or mock IPC.
+ */
+export function buildCommitContextMenu(
+  inputs: ICommitContextMenuInputs
+): IMenuItem[] {
+  const { row, commit } = inputs
+  const isLocal = inputs.isLocalCommit(commit.sha)
+
+  const canBeUndone =
+    inputs.canUndoCommits === true && isLocal && row === 0
+  const canBeAmended = inputs.canAmendCommits === true && row === 0
+  // The user can reset to any commit up to the first non-local one (included).
+  // They cannot reset to the most recent commit... because they're already
+  // in it.
+  const isResettableCommit =
+    row > 0 && row <= inputs.localCommitSHAs.length
+  const canBeResetTo =
+    inputs.canResetToCommits === true && isResettableCommit
+  const canBeCheckedOut = row > 0 //Cannot checkout the current commit
+
+  let viewOnGitHubLabel = 'View on GitHub'
+  const gitHubRepository = inputs.gitHubRepository
+
+  if (
+    gitHubRepository &&
+    gitHubRepository.endpoint !== getDotComAPIEndpoint()
+  ) {
+    viewOnGitHubLabel = 'View on GitHub Enterprise'
+  }
+
+  const items: IMenuItem[] = []
+
+  if (canBeAmended) {
+    items.push({
+      label: __DARWIN__ ? 'Amend Commit…' : 'Amend commit…',
+      action: () => inputs.onAmendCommit?.(commit, isLocal),
+    })
+  }
+
+  if (canBeUndone) {
+    items.push({
+      label: __DARWIN__ ? 'Undo Commit…' : 'Undo commit…',
+      action: () => {
+        if (inputs.onUndoCommit) {
+          inputs.onUndoCommit(commit)
+        }
+      },
+      enabled: inputs.onUndoCommit !== undefined,
+    })
+  }
+
+  items.push({
+    label: __DARWIN__ ? 'Reset to Commit…' : 'Reset to commit…',
+    action: () => {
+      if (inputs.onResetToCommit) {
+        inputs.onResetToCommit(commit)
+      }
+    },
+    enabled: canBeResetTo && inputs.onResetToCommit !== undefined,
+  })
+
+  items.push({
+    label: __DARWIN__ ? 'Checkout Commit' : 'Checkout commit',
+    action: () => {
+      inputs.onCheckoutCommit?.(commit)
+    },
+    enabled: canBeCheckedOut && inputs.onCheckoutCommit !== undefined,
+  })
+
+  items.push({
+    label: __DARWIN__ ? 'Reorder Commit' : 'Reorder commit',
+    action: () => {
+      inputs.onKeyboardReorder?.([commit])
+    },
+    enabled: inputs.canReorder(),
+  })
+
+  items.push(
+    {
+      label: __DARWIN__
+        ? 'Revert Changes in Commit'
+        : 'Revert changes in commit',
+      action: () => {
+        if (inputs.onRevertCommit) {
+          inputs.onRevertCommit(commit)
+        }
+      },
+      enabled: inputs.onRevertCommit !== undefined,
+    },
+    { type: 'separator' },
+    {
+      label: __DARWIN__
+        ? 'Create Branch from Commit'
+        : 'Create branch from commit',
+      action: () => {
+        if (inputs.onCreateBranch) {
+          inputs.onCreateBranch(commit)
+        }
+      },
+    },
+    {
+      label: 'Create Tag…',
+      action: () => inputs.onCreateTag?.(commit.sha),
+      enabled: inputs.onCreateTag !== undefined,
+    }
+  )
+
+  const deleteTagsMenuItem = inputs.getDeleteTagsMenuItem(commit)
+
+  if (deleteTagsMenuItem !== null) {
+    items.push(
+      {
+        type: 'separator',
+      },
+      deleteTagsMenuItem
+    )
+  }
+  const darwinTagsLabel = commit.tags.length > 1 ? 'Copy Tags' : 'Copy Tag'
+  const windowTagsLabel = commit.tags.length > 1 ? 'Copy tags' : 'Copy tag'
+  items.push(
+    {
+      label: __DARWIN__ ? 'Cherry-pick Commit…' : 'Cherry-pick commit…',
+      action: () => inputs.onCherryPick?.(inputs.selectedCommits),
+      enabled: inputs.canCherryPick(),
+    },
+    { type: 'separator' },
+    {
+      label: 'Copy SHA',
+      action: () => clipboard.writeText(commit.sha),
+    },
+    {
+      label: __DARWIN__ ? 'Copy Commit URL' : 'Copy commit URL',
+      action: () => {
+        const url = createCommitURL(gitHubRepository!, commit.sha)
+        if (url !== null) {
+          clipboard.writeText(url)
+        }
+      },
+      enabled: !isLocal && !!gitHubRepository,
+    },
+    {
+      label: __DARWIN__ ? darwinTagsLabel : windowTagsLabel,
+      action: () => clipboard.writeText(commit.tags.join(' ')),
+      enabled: commit.tags.length > 0,
+    },
+    {
+      label: viewOnGitHubLabel,
+      action: () => inputs.onViewCommitOnGitHub?.(commit.sha),
+      enabled: !isLocal && !!gitHubRepository,
+    }
+  )
+
+  return items
+}
+
 /** A component which displays the list of commits. */
 export class CommitList extends React.Component<
   ICommitListProps,
@@ -726,153 +916,30 @@ export class CommitList extends React.Component<
     row: number,
     commit: Commit
   ): IMenuItem[] {
-    const isLocal = this.isLocalCommit(commit.sha)
-
-    const canBeUndone =
-      this.props.canUndoCommits === true && isLocal && row === 0
-    const canBeAmended = this.props.canAmendCommits === true && row === 0
-    // The user can reset to any commit up to the first non-local one (included).
-    // They cannot reset to the most recent commit... because they're already
-    // in it.
-    const isResettableCommit =
-      row > 0 && row <= this.props.localCommitSHAs.length
-    const canBeResetTo =
-      this.props.canResetToCommits === true && isResettableCommit
-    const canBeCheckedOut = row > 0 //Cannot checkout the current commit
-
-    let viewOnGitHubLabel = 'View on GitHub'
-    const gitHubRepository = this.props.gitHubRepository
-
-    if (
-      gitHubRepository &&
-      gitHubRepository.endpoint !== getDotComAPIEndpoint()
-    ) {
-      viewOnGitHubLabel = 'View on GitHub Enterprise'
-    }
-
-    const items: IMenuItem[] = []
-
-    if (canBeAmended) {
-      items.push({
-        label: __DARWIN__ ? 'Amend Commit…' : 'Amend commit…',
-        action: () => this.props.onAmendCommit?.(commit, isLocal),
-      })
-    }
-
-    if (canBeUndone) {
-      items.push({
-        label: __DARWIN__ ? 'Undo Commit…' : 'Undo commit…',
-        action: () => {
-          if (this.props.onUndoCommit) {
-            this.props.onUndoCommit(commit)
-          }
-        },
-        enabled: this.props.onUndoCommit !== undefined,
-      })
-    }
-
-    items.push({
-      label: __DARWIN__ ? 'Reset to Commit…' : 'Reset to commit…',
-      action: () => {
-        if (this.props.onResetToCommit) {
-          this.props.onResetToCommit(commit)
-        }
-      },
-      enabled: canBeResetTo && this.props.onResetToCommit !== undefined,
+    return buildCommitContextMenu({
+      row,
+      commit,
+      localCommitSHAs: this.props.localCommitSHAs,
+      canUndoCommits: this.props.canUndoCommits,
+      canAmendCommits: this.props.canAmendCommits,
+      canResetToCommits: this.props.canResetToCommits,
+      gitHubRepository: this.props.gitHubRepository,
+      isLocalCommit: sha => this.isLocalCommit(sha),
+      canReorder: () => this.canReorder(),
+      canCherryPick: () => this.canCherryPick(),
+      getDeleteTagsMenuItem: c => this.getDeleteTagsMenuItem(c),
+      onAmendCommit: this.props.onAmendCommit,
+      onUndoCommit: this.props.onUndoCommit,
+      onResetToCommit: this.props.onResetToCommit,
+      onRevertCommit: this.props.onRevertCommit,
+      onCreateBranch: this.props.onCreateBranch,
+      onCheckoutCommit: this.props.onCheckoutCommit,
+      onCreateTag: this.props.onCreateTag,
+      onCherryPick: this.props.onCherryPick,
+      onKeyboardReorder: this.props.onKeyboardReorder,
+      onViewCommitOnGitHub: this.props.onViewCommitOnGitHub,
+      selectedCommits: this.selectedCommits,
     })
-
-    items.push({
-      label: __DARWIN__ ? 'Checkout Commit' : 'Checkout commit',
-      action: () => {
-        this.props.onCheckoutCommit?.(commit)
-      },
-      enabled: canBeCheckedOut && this.props.onCheckoutCommit !== undefined,
-    })
-
-    items.push({
-      label: __DARWIN__ ? 'Reorder Commit' : 'Reorder commit',
-      action: () => {
-        this.props.onKeyboardReorder?.([commit])
-      },
-      enabled: this.canReorder(),
-    })
-
-    items.push(
-      {
-        label: __DARWIN__
-          ? 'Revert Changes in Commit'
-          : 'Revert changes in commit',
-        action: () => {
-          if (this.props.onRevertCommit) {
-            this.props.onRevertCommit(commit)
-          }
-        },
-        enabled: this.props.onRevertCommit !== undefined,
-      },
-      { type: 'separator' },
-      {
-        label: __DARWIN__
-          ? 'Create Branch from Commit'
-          : 'Create branch from commit',
-        action: () => {
-          if (this.props.onCreateBranch) {
-            this.props.onCreateBranch(commit)
-          }
-        },
-      },
-      {
-        label: 'Create Tag…',
-        action: () => this.props.onCreateTag?.(commit.sha),
-        enabled: this.props.onCreateTag !== undefined,
-      }
-    )
-
-    const deleteTagsMenuItem = this.getDeleteTagsMenuItem(commit)
-
-    if (deleteTagsMenuItem !== null) {
-      items.push(
-        {
-          type: 'separator',
-        },
-        deleteTagsMenuItem
-      )
-    }
-    const darwinTagsLabel = commit.tags.length > 1 ? 'Copy Tags' : 'Copy Tag'
-    const windowTagsLabel = commit.tags.length > 1 ? 'Copy tags' : 'Copy tag'
-    items.push(
-      {
-        label: __DARWIN__ ? 'Cherry-pick Commit…' : 'Cherry-pick commit…',
-        action: () => this.props.onCherryPick?.(this.selectedCommits),
-        enabled: this.canCherryPick(),
-      },
-      { type: 'separator' },
-      {
-        label: 'Copy SHA',
-        action: () => clipboard.writeText(commit.sha),
-      },
-      {
-        label: __DARWIN__ ? 'Copy Commit URL' : 'Copy commit URL',
-        action: () => {
-          const url = createCommitURL(gitHubRepository!, commit.sha)
-          if (url !== null) {
-            clipboard.writeText(url)
-          }
-        },
-        enabled: !isLocal && !!gitHubRepository,
-      },
-      {
-        label: __DARWIN__ ? darwinTagsLabel : windowTagsLabel,
-        action: () => clipboard.writeText(commit.tags.join(' ')),
-        enabled: commit.tags.length > 0,
-      },
-      {
-        label: viewOnGitHubLabel,
-        action: () => this.props.onViewCommitOnGitHub?.(commit.sha),
-        enabled: !isLocal && !!gitHubRepository,
-      }
-    )
-
-    return items
   }
 
   private canCherryPick(): boolean {

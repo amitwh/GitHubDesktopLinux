@@ -669,6 +669,13 @@ export function buildDefaultMenuTemplate({
     },
     {
       label: __DARWIN__
+        ? 'Compare Current Branch with…'
+        : 'Compare current branch &with…',
+      id: 'compare-with-branch',
+      click: emit('compare-with-branch'),
+    },
+    {
+      label: __DARWIN__
         ? 'Merge into Current Branch…'
         : '&Merge into current branch…',
       id: 'merge-branch',

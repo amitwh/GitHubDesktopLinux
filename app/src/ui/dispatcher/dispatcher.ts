@@ -12,8 +12,10 @@ import {
 import { shell } from '../../lib/app-shell'
 import {
   CompareAction,
+  ComparisonMode,
   Foldout,
   FoldoutType,
+  HistoryTabMode,
   ICompareFormUpdate,
   RepositorySectionTab,
   RebaseConflictState,
@@ -995,6 +997,23 @@ export class Dispatcher {
       mode,
       showConfirmationDialog
     )
+  }
+
+  /**
+   * Show the mode-picker dialog that lets the user choose Soft/Mixed/Hard
+   * before resetting to a non-HEAD commit. The user has already confirmed
+   * the destructive intent by clicking Continue in the picker, so the
+   * downstream reset call passes `showConfirmationDialog = false`.
+   */
+  public showResetModeDialog(
+    repository: Repository,
+    commit: Commit
+  ): Promise<void> {
+    return this.showPopup({
+      type: PopupType.ResetMode,
+      repository,
+      commit,
+    })
   }
 
   /** Revert the commit with the given SHA */
@@ -3103,6 +3122,20 @@ export class Dispatcher {
     initialAction?: CompareAction
   ) {
     return this.appStore._initializeCompare(repository, initialAction)
+  }
+
+  /**
+   * Open the compare view for the current repository against the given
+   * branch name. Resolves the branch through the current branches state
+   * and dispatches an `ICompareToBranch` action with `Behind` mode, which
+   * is the default "what would I merge in?" comparison.
+   */
+  public openCompareView(repository: Repository, branch: Branch): Promise<void> {
+    return this.executeCompare(repository, {
+      kind: HistoryTabMode.Compare,
+      branch,
+      comparisonMode: ComparisonMode.Behind,
+    })
   }
 
   /**
