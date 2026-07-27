@@ -1,5 +1,16 @@
 {
   "releases": {
+    "3.6.4-beta1-linux2": [
+      "[New] Linux-only top-level Tools menu (between Branch and Window): Open Configuration Folder, Open Logs Folder, Reload Window, Toggle Developer Tools, plus a Reveal Diagnostics Folder entry that opens the userData dir in the system file manager",
+      "[New] View menu: Toggle Word Wrap (diff editor + commit message), Toggle Line Numbers (diff editor), and Reset Layout — all three persisted via new wordWrapKey / showLineNumbersKey preference constants and bound to dedicated view:* IPC channels",
+      "[New] Repository menu gains five git operations backed by new lib/git wrappers and 15 unit tests: Cherry-pick Commit, Stash Changes with timestamped message, Compare with Previous Commit (HEAD vs HEAD~1, opens Meld), Discard All Working Tree Changes (git checkout -- .), Clean Untracked Files (git clean -fd)",
+      "[New] Repository menu gains a Reset to HEAD submenu with explicit --soft / --mixed / --hard mode selection plus a Revert HEAD Commit item; threaded GitResetMode end-to-end through dispatcher.resetToCommit / appStore._resetToCommit / PopupType.WarningBeforeReset.payload",
+      "[New] New Soft/Mixed/Hard picker dialog (app/src/ui/reset/reset-mode-dialog.tsx) ships as a self-contained component ready for follow-up wiring into the commit-list context menu's existing Reset to Commit flow",
+      "[New] Four new Preferences tabs: Meld/Diff Tools (default-diff / default-merge / fallback-to-inline diff checkboxes + Meld binary path detection), Shell (terminal dropdown, confirm-to-open, open-on-repo-open), Performance (hardware acceleration, smooth scrolling, fetch interval, perf tracing), and Diagnostics (read-only platform info, log directory reveal + copy, git binary path, issue reporter)",
+      "[New] File menu: Linux-only Open Recent submenu (dynamically populated up to 10 entries, 'No recent repositories' placeholder when empty) and a Close Repository action bound to CmdOrCtrl+W",
+      "[New] Settings: Use SSH for new clones (Preferences > Git > Cloning) and Auto-fetch when the window regains focus (Preferences > Advanced > Fetching)",
+      "[New] Commit-list context menu adds 'Copy commit URL' (uses createCommitURL helper at app/src/lib/commit-url.ts), complementing the existing Copy SHA / Copy tag(s) / Copy file path / Copy relative file path surface"
+    ],
     "3.6.4-beta1-linux1": [
       "[New] About dialog now shows a fork attribution block that clearly identifies this as an unofficial community-maintained Linux build, credits GitHub, Inc. as the original developer, and links to both the fork and upstream repositories",
       "[New] Meld diff viewer: per-line git blame gutter (Phase 2 T1) shows author and short commit SHA next to each right-side line of the editable side-by-side view; click a cell to open that commit in a new Meld window",

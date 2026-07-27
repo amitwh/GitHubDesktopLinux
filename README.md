@@ -38,6 +38,9 @@ This fork adds the following enhancements on top of upstream GitHub Desktop:
 - **Worktree housekeeping and safety** — lock/unlock, prune, dirty-state warnings on delete, disk-usage display, and an auto-prune preference, built on top of upstream worktree support.
 - **Commit history export** — export the commit history of any repository to Markdown, then convert it with [pandoc](https://pandoc.org/) to PDF, DOCX, HTML, and other formats.
 - **Linux font and UX** — JetBrains Mono is the default monospace font, and platform-gated features have been audited for Linux.
+- **Power-user menu additions** — View toggles for word wrap and line numbers, a Layout Reset action, and a Linux-only top-level **Tools** menu (Open Configuration Folder, Open Logs Folder, Reload, Toggle Developer Tools, Reveal Diagnostics Folder). The **Repository** menu gains Cherry-pick, Stash Changes, Compare with Previous, Discard All Working Tree Changes, Clean Untracked Files, plus a Reset-to-HEAD submenu with explicit `--soft`/`--mixed`/`--hard` mode selection and a Revert HEAD Commit item.
+- **New Preferences tabs** — Meld/Diff Tools (default-diff/merge/fallback toggles), Shell (terminal dropdown, confirm-to-open, open-on-repo-open), Performance (hardware acceleration, smooth scrolling, fetch interval, perf tracing), and Diagnostics (platform info, log directory reveal, Git binary path, issue reporter). Six additional persisted preferences wire through to the existing `AppStore` load/save flow.
+- **Copy SHA / Copy Path / Copy commit URL** — completes the context-menu clipboard surface so every commit row and every file row in Changes / History exposes the obvious copy actions.
 
 ### Beta Channel
 
