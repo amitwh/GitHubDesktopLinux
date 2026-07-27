@@ -20,3 +20,9 @@ junit*.xml
 *.swp
 tslint-rules/
 playwright-videos/
+
+# Local-only — keep on disk but out of the public fork.
+# These contain Claude-assisted session context and Linux-fork design
+# specs that should not leak via the GitHub mirror.
+CLAUDE.md
+docs/
