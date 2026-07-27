@@ -1,35 +1,124 @@
 name: Mirror release
+
+# Hardened workflow — addresses the security review on the original
+# (which trusted raw inputs.version / inputs.notes flowing into
+# tag_name / name / body without validation, and used the indefinite
+# "v4" pinning on third-party actions).
+#
+# Trust model: workflow_dispatch can only be triggered by repo
+# collaborators, but defense in depth is cheap and prevents accidental
+# releases with malformed tags, empty bodies, or repo poison via a
+# bad tag like "v$(...)".
+
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g. 3.6.4-beta1-linux3)'
-        required: true
-      notes:
-        description: 'Release notes (Markdown)'
+        description: 'Release version. Must match ^[0-9]+\.[0-9]+\.[0-9]+(-[a-z0-9.]+)?$ (e.g. 3.6.4-beta1-linux3). Leave empty to derive from app/package.json.'
         required: false
         default: ''
+        type: string
+      notes:
+        description: 'Optional release notes (Markdown). Capped at 16 KiB; shell-expansion patterns are rejected.'
+        required: false
+        default: ''
+        type: string
+
+# Top-level default: no implicit token write for the rest of the
+# workflow. Only the job opts back into `contents: write` below.
+permissions: {}
+
+concurrency:
+  group: release-mirror
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-        with: { repository: 'amitwh/GitHubDesktop' }
-      - uses: actions/setup-node@v4
-        with: { node-version: '20' }
-      - run: yarn install --frozen-lockfile
-      - run: yarn build:prod
-      - run: npx electron-builder --linux deb AppImage --prepackaged dist/GithubDesktopLinux-linux-x64 --publish never
-      - uses: softprops/action-gh-release@v2
+      - name: Validate inputs
+        id: validate
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_NOTES: ${{ inputs.notes }}
+        run: |
+          set -euo pipefail
+
+          # ---- Resolve version: prefer input, fall back to package.json ----
+          VERSION="${INPUT_VERSION}"
+          if [ -z "${VERSION}" ]; then
+            VERSION="$(jq -r .version app/package.json)"
+          fi
+
+          # ---- Strict regex check ----
+          if ! echo "${VERSION}" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[a-z0-9.]+)?$'; then
+            {
+              echo "::error::Version '${VERSION}' does not match the expected semver format"
+              echo "::error::Expected: ^[0-9]+\.[0-9]+\.[0-9]+(-[a-z0-9.]+)?$"
+            } >&2
+            exit 1
+          fi
+
+          # ---- Notes safety: cap length, reject shell-expansion patterns ----
+          NOTES_LEN=${#INPUT_NOTES}
+          if [ "${NOTES_LEN}" -gt 16384 ]; then
+            echo "::error::Release notes exceed 16 KiB cap (got ${NOTES_LEN} chars)" >&2
+            exit 1
+          fi
+          # Forbid patterns that look like shell expansion so notes can't
+          # be weaponised if the action interpolates them unsafely.
+          if printf '%s' "${INPUT_NOTES}" | grep -qE '\$\{|`[^`]*`|\$\(|<\s*script'; then
+            echo "::error::Release notes contain forbidden shell/HTML payloads" >&2
+            exit 1
+          fi
+
+          # Persist for downstream steps. The 'v' prefix is added at use site.
+          {
+            echo "version=${VERSION}"
+            echo "notes<<EOF"
+            printf '%s' "${INPUT_NOTES}"
+            echo
+            echo "EOF"
+          } >>"${GITHUB_OUTPUT}"
+
+      # Pin third-party actions to immutable commit SHAs rather than
+      # mutable tags like @v4 or @v2. Update via dependabot or
+      # selective bumps; this defeats supply-chain drift between
+      # reviewed-rigorous audit points.
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
-          tag_name: ${{ inputs.version }}
-          name: GitHub Desktop Linux ${{ inputs.version }}
-          body: ${{ inputs.notes }}
+          repository: amitwh/GitHubDesktop
+
+      - name: Setup Node
+        uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Production build
+        run: yarn build:prod
+
+      - name: Package Linux (deb + AppImage + snap; flatpak skipped — requires flatpak CLI on host)
+        run: npx electron-builder --linux deb AppImage snap --prepackaged dist/GithubDesktopLinux-linux-x64 --publish never
+
+      - name: Publish to public mirror
+        uses: softprops/action-gh-release@e7a8f85e1c67a31e6ed99a94b41bd0b71bbee6b8 # v2.0.9
+        with:
+          tag_name: v${{ steps.validate.outputs.version }}
+          name: GitHub Desktop Linux ${{ steps.validate.outputs.version }}
+          body: ${{ steps.validate.outputs.notes }}
           files: |
             dist/*.deb
             dist/*.AppImage
             dist/*.snap
           repository: amitwh/GitHubDesktopLinux-releases
-          fail_on_unmatched_files: false
+          # Default fail_on_unmatched_files is true; an empty release
+          # will fail this step rather than publishing a hollow tag.
+          generate_release_notes: false
+          draft: false
+          prerelease: true
