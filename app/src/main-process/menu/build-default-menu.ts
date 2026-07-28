@@ -48,10 +48,19 @@ export const separator: Electron.MenuItemConstructorOptions = {
 let cachedRecentRepositoriesForMenu: ReadonlyArray<IRecentRepositoryMenuEntry> =
   []
 
-if (__LINUX__) {
-  ipcMain.on('update-recent-repositories-for-menu', (_, entries) => {
-    cachedRecentRepositoriesForMenu = entries
-  })
+/**
+ * Register the IPC handler for recent-repository menu updates.
+ * MUST be called from the main process only (main.ts app.ready).
+ * Cannot be at module level — this file is transitively imported by
+ * the renderer (via ipc-shared.ts → menu/index.ts), and module-level
+ * ipcMain.on() would crash in the renderer where ipcMain is undefined.
+ */
+export function registerRecentRepositoriesHandler() {
+  if (__LINUX__) {
+    ipcMain.on('update-recent-repositories-for-menu', (_, entries) => {
+      cachedRecentRepositoriesForMenu = entries
+    })
+  }
 }
 
 /**

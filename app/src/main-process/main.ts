@@ -13,6 +13,7 @@ import * as Fs from 'fs'
 
 import { AppWindow } from './app-window'
 import { buildDefaultMenu, getAllMenuItems } from './menu'
+import { registerRecentRepositoriesHandler } from './menu/build-default-menu'
 import { shellNeedsPatching, updateEnvironmentForProcess } from '../lib/shell'
 import { parseAppURL } from '../lib/parse-app-url'
 import {
@@ -327,6 +328,7 @@ app.on('ready', () => {
 
   registerMeldIpcHandlers()
   registerWorktreeIpcHandlers()
+  registerRecentRepositoriesHandler()
 
   createWindow()
 
