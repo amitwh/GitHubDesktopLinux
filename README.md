@@ -25,22 +25,111 @@ Download the official installer for your operating system:
  - [Windows](https://central.github.com/deployments/desktop/desktop/latest/win32)
  - [Windows machine-wide install](https://central.github.com/deployments/desktop/desktop/latest/win32?format=msi)
 
-Linux is not officially supported; however, you can find installers created for Linux from a fork of GitHub Desktop in the [Community Releases](https://github.com/desktop/desktop#community-releases) section.
+### Linux (this fork)
+
+Linux is not officially supported by upstream GitHub Desktop. **This fork** ships native packages for every common Linux distribution, hosted publicly at [`amitwh/GitHubDesktopLinux-releases`](https://github.com/amitwh/GitHubDesktopLinux-releases/releases/latest):
+
+ - **AppImage** — portable single-file, runs on every distro without install
+ - **Debian / Ubuntu `.deb`** — installs as `githubdesktoplinux`, integrates with the system package manager
+ - **Snap** — universal Linux package, runs confined under snapd
+ - **Flatpak** — sandboxed Linux package, runs under Flatpak
+
+All four targets are published on every release. Auto-update does not run for the fork — re-download or re-install when you want to switch.
+
+```sh
+# Debian / Ubuntu (e.g., Ubuntu 22.04+)
+curl -L https://github.com/amitwh/GitHubDesktopLinux-releases/releases/latest/download/GithubDesktopLinux_3.6.4-beta1-linux3_amd64.deb \
+  -o /tmp/github-desktop.deb && sudo apt install /tmp/github-desktop.deb
+
+# Portable AppImage
+curl -L https://github.com/amitwh/GitHubDesktopLinux-releases/releases/latest/download/GithubDesktopLinux-3.6.4-beta1-linux3.AppImage \
+  -o ~/bin/github-desktop && chmod +x ~/bin/github-desktop
+```
 
 ## What's different from upstream GitHub Desktop?
 
-[GitHub Desktop Linux](https://github.com/amitwh/GitHubDesktop) is an unofficial, community-maintained Linux fork maintained by [Amit Haridas](https://github.com/amitwh). It is not affiliated with or endorsed by GitHub, Inc. All credit for the original GitHub Desktop application goes to GitHub, Inc. and the upstream contributors.
+[GitHub Desktop Linux](https://github.com/amitwh/GitHubDesktop) is an unofficial, community-maintained Linux fork maintained by [Amit Haridas](https://github.com/amitwh). It is not affiliated with or endorsed by GitHub, Inc. All credit for the original GitHub Desktop application goes to GitHub, Inc. and the upstream contributors. See the in-app **About** dialog for the same attribution block.
 
-This fork adds the following enhancements on top of upstream GitHub Desktop:
+The fork consists of upstream `desktop/desktop` plus the following enhancements, organized by area:
 
-- **Native Linux packaging** — `.deb`, AppImage, Snap, and Flatpak targets. The `.deb` and AppImage build out of the box; Flatpak requires the `flatpak` CLI on the build host to produce a usable artifact.
-- **Meld-style diff viewer** — a standalone `BrowserWindow` with side-by-side, unified, and 3-way merge views, in-place editing, character-level word diff, copy-left/copy-right controls, and conflict resolution. Phases 1a (read-only), 1b (editable), 1c (3-way merge), 2 (stash/reflog/submodule views), and 3 (rebase preview) have shipped.
-- **Worktree housekeeping and safety** — lock/unlock, prune, dirty-state warnings on delete, disk-usage display, and an auto-prune preference, built on top of upstream worktree support.
-- **Commit history export** — export the commit history of any repository to Markdown, then convert it with [pandoc](https://pandoc.org/) to PDF, DOCX, HTML, and other formats.
-- **Linux font and UX** — JetBrains Mono is the default monospace font, and platform-gated features have been audited for Linux.
-- **Power-user menu additions** — View toggles for word wrap and line numbers, a Layout Reset action, and a Linux-only top-level **Tools** menu (Open Configuration Folder, Open Logs Folder, Reload, Toggle Developer Tools, Reveal Diagnostics Folder). The **Repository** menu gains Cherry-pick, Stash Changes, Compare with Previous, Discard All Working Tree Changes, Clean Untracked Files, plus a Reset-to-HEAD submenu with explicit `--soft`/`--mixed`/`--hard` mode selection and a Revert HEAD Commit item.
-- **New Preferences tabs** — Meld/Diff Tools (default-diff/merge/fallback toggles), Shell (terminal dropdown, confirm-to-open, open-on-repo-open), Performance (hardware acceleration, smooth scrolling, fetch interval, perf tracing), and Diagnostics (platform info, log directory reveal, Git binary path, issue reporter). Six additional persisted preferences wire through to the existing `AppStore` load/save flow.
-- **Copy SHA / Copy Path / Copy commit URL** — completes the context-menu clipboard surface so every commit row and every file row in Changes / History exposes the obvious copy actions.
+### 🐧 Linux packaging
+
+- **`.deb`** — Debian / Ubuntu. Installs to `/opt/GitHub Desktop/`, registers `~/.local/bin/GithubDesktopLinux` via `update-alternatives`, and includes Electron's setuid sandbox helper for hardened-kernel deployments.
+- **AppImage** — portable, single-file, runs on every distro without root.
+- **Snap** — published under classic confinement so it can reach the user's home directory and run `git` operations on the host filesystem.
+- **Flatpak** — runs under `org.freedesktop.Platform 23.08` + Electron's BaseApp extension with `--filesystem=host` and secret-service portal access for the credential store.
+- **Linux-only top-level `Tools` menu** — Open Configuration Folder (user-data root), Open Logs Folder (rotating file logs), Reload Window, Toggle Developer Tools, Reveal Diagnostics Folder.
+
+### 🔍 Diff / merge
+
+- **Standalone Meld-style diff viewer** in its own `BrowserWindow`. Side-by-side, unified, and 3-way merge views; in-place editing; character-level word diff; copy-left / copy-right controls; safe-mode for read-only inspection. Phases 1a (read-only), 1b (editable), 1c (3-way merge), 2 (stash/reflog/submodule views), and 3 (rebase preview) have shipped.
+- **Per-line blame gutter** in the editable side-by-side view — author + 7-char SHA next to each right-side line, click-to-open-commit, hover tooltip with full message.
+- **External diff-tool launcher registry** — list pre-installed `meld`, `kdiff3`, `beyond-compare`, `vscode`, and pick the default per file type from Preferences → Meld / Diff Tools.
+
+### 🌿 Worktrees
+
+- **Lock / unlock** linked worktrees with a single right-click — keeps them from accidental pruning.
+- **Prune** linked worktrees via the worktree list and via a top-level menu item.
+- **Dirty-state warnings** when deleting a worktree with uncommitted changes (in-app confirmation dialog).
+- **Disk-usage display** per worktree in the dropdown.
+- **Auto-prune preference** — automatically prunes stale worktrees when a repository is opened.
+- **`worktree:compute-sizes` IPC** — main-process disk-usage computation with bounded concurrency.
+
+### 🛠 Repository workflow
+
+- **View menu** — Toggle Word Wrap (diff editor + commit message), Toggle Line Numbers (diff editor), Reset Layout (restore default panel widths). All three are persisted preferences.
+- **File menu (Linux-only)** — `Open Recent ▸` submenu (dynamically populated from `recentRepositories` via IPC, up to 10 entries, "No recent repositories" placeholder when empty) and `Close Repository` (`CmdOrCtrl+W`) for clearing the active repo without removing it from the recent list.
+- **Repository menu** — five new git operations backed by new `lib/git/` wrappers and 15 unit tests:
+  - **Cherry-pick Commit…** — invokes the existing cherry-pick infrastructure.
+  - **Stash Changes…** — timestamped stash message.
+  - **Compare with Previous Commit** (`CmdOrCtrl+Alt+P`) — opens Meld for HEAD vs HEAD~1 via `getPreviousCommitSha`.
+  - **Discard All Working Tree Changes…** — `git checkout -- .` via `lib/git/discard.ts`.
+  - **Clean Untracked Files…** — `git clean -fd` via `lib/git/clean.ts`.
+  - **Reset to HEAD…** submenu — three mode shortcuts:
+    - **Soft** — keep changes staged ( `--soft HEAD~1`).
+    - **Mixed** — keep changes unstaged (`HEAD~1`).
+    - **Hard** — discard all working changes (`--hard HEAD~1`).
+  - **Revert HEAD Commit** — invokes the existing `revertCommit` dispatcher; gated on `hasMultipleCommits`.
+- **Compare Current Branch with…** (`CmdOrCtrl+Alt+W`) — auto-opens the compare view against the repo's default branch or the most-recent local branch; falls back to the BranchList filter if neither is available.
+
+### ⚙️ Settings
+
+Four new Preferences tabs (Preferences → …):
+
+- **Git → Cloning** — Use SSH for new clones (`git@github.com` prefix).
+- **Advanced → Fetching** — Automatically fetch when the window regains focus.
+- **Meld / Diff Tools** — Always use Meld for 2-file diffs, Use Meld for conflict resolution, Fall back to inline diff when Meld is unavailable. Shows the detected Meld binary path (`which meld`).
+- **Shell** — Active shell dropdown (gnome-terminal / konsole / xterm / custom), Always confirm before opening shell, Open shell on repository open.
+- **Performance** — Disable hardware acceleration (requires restart), Smooth list scrolling, Limit concurrent git operations to 4, Background fetch interval (5/15/30/60 min), Enable performance tracing.
+- **Diagnostics** — Read-only platform info (Electron / Chrome / Node version, OS, arch), log directory path with Open-folder and Copy-path actions, Git binary path, app version, link to the upstream issue tracker.
+
+11 new persisted preference keys round-trip through the existing `AppStore` load/save flow. None of the existing keys were renamed or obsoleted.
+
+### 📋 Clipboard surface (complete)
+
+- **Copy SHA** — right-click any commit row.
+- **Copy commit URL** — right-click any commit row (uses `createCommitURL` helper at `lib/commit-url.ts`; gated on `gitHubRepository` and non-local commits).
+- **Copy branch name** — right-click any branch row.
+- **Copy tag** / **Copy tags** — right-click any commit row that carries tags.
+- **Copy file path** / **Copy relative file path** — right-click any file row in Changes or in a commit's file list.
+- **Open in Editor** / **Open with default program** / **Reveal in file manager** — already present in upstream but re-exported across all file-list views.
+
+### 🛡 Diagnostics & quality
+
+- **Trace logging toggle** in Preferences → Performance; logs git calls with timing when enabled.
+- **Log directory reveal** in Preferences → Diagnostics and from the top-level Tools → Open Logs Folder.
+- **`createCommitURL` helper** centralises GitHub commit-URL generation so any contributor adding new "View on GitHub" affordances gets the right URL format for both `github.com` and Enterprise instances by default.
+- **Chromium setuid sandbox helper** is now correctly bundled in the `.deb` postinst (fixed via the new `copyChromeSandbox()` step in `script/build.ts`), so installs on hardened kernels without user-namespaces see a working sandbox instead of an exit-on-launch failure.
+
+### 📝 Linux-fork disclosure
+
+The in-app **About** dialog now contains a fork-attribution block that:
+- Names the fork "GitHub Desktop Linux" (distinct from upstream's "GitHub Desktop").
+- States clearly that it is unofficial and community-maintained.
+- Credits GitHub, Inc. as the original developer of all upstream code.
+- Links to both `amitwh/GitHubDesktop` (private source) and `desktop/desktop` (upstream).
+
+Mitigates any trademark-policy concerns from GitHub by being explicit rather than silent about the fork relationship.
 
 ### Beta Channel
 

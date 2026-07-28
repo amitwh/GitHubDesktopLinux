@@ -1,5 +1,18 @@
 {
   "releases": {
+    "3.6.4-beta1-linux3": [
+      "[New] Four more Linux fork-specific Preferences tabs: Meld/Diff Tools, Shell, Performance, Diagnostics — each fully wired through PreferencesTab enum + IPreferencesProps/State + AppStore load/save + IPreferencesProps/State",
+      "[New] Reset mode now plumbed end-to-end: dispatcher.resetToCommit(repo, commit, GitResetMode, ...) and appStore._resetToCommit(repo, commit, GitResetMode, ...) take a mode arg; existing context-menu Reset to Commit flow honours the chosen mode",
+      "[New] Reset to HEAD submenu in the Repository menu — three mode shortcuts (Soft / Mixed / Hard) and a Revert HEAD Commit item gated on hasMultipleCommits; renderer-side handlers resolve HEAD~1 via getPreviousCommitSha",
+      "[New] Self-contained ResetModeDialog (Soft/Mixed/Hard radios, OkCancelButtonGroup with destructive=true on Hard) wired into the commit-list context-menu Reset to Commit flow; popup-type PopupType.ResetMode",
+      "[New] Compare current branch with… menu item opens the existing compare view against the repository's default branch or the most-recent local branch; deferred-picker shell with detailed JSDoc upgrade recipe",
+      "[New] 'Reveal Diagnostics Folder' in the top-level Tools menu — emits a new 'reveal-diag-folder' MenuEvent wired through the existing 'menu-event' multiplexed channel",
+      "[Improved] commit-list context-menu builder extracted into an exported pure function buildCommitContextMenu(ICommitContextMenuInputs) — testable without IPC mocks",
+      "[Improved] 9 net new unit tests: 5 for buildCommitContextMenu (Copy SHA always-on, Copy Commit URL gating, Reset to Commit gating + callback wiring + hidden on row 0) and 4 for ResetModeDialog (mount, default-to-Mixed dispatch, radio-button propagation, cancel)",
+      "[Fixed] Chromium setuid sandbox helper (chrome-sandbox) is now bundled in the .deb postinst — install no longer prints `chmod: cannot access ... chrome-sandbox` warning, and the app launches successfully on kernels without user namespaces",
+      "[New] Public binaries mirror repo amitwh/GitHubDesktopLinux-releases hosts AppImage / .deb / Snap / Flatpak downloads; the source fork amitwh/GitHubDesktop is now private",
+      "[Security] Manual-trigger GitHub Actions workflow `.github/workflows/release-mirror.yml` hardened: third-party actions SHA-pinned (checkout v4.1.1, setup-node v4.0.3, action-gh-release v2.0.9), workflow_dispatch inputs validated against ^\d+\.\d+\.\d+(-[a-z0-9.]+)?$ + 16 KiB notes cap + shell/HTML payload reject, fail_on_unmatched_files defaults to true, top-level permissions: {}"
+    ],
     "3.6.4-beta1-linux2": [
       "[New] Linux-only top-level Tools menu (between Branch and Window): Open Configuration Folder, Open Logs Folder, Reload Window, Toggle Developer Tools, plus a Reveal Diagnostics Folder entry that opens the userData dir in the system file manager",
       "[New] View menu: Toggle Word Wrap (diff editor + commit message), Toggle Line Numbers (diff editor), and Reset Layout — all three persisted via new wordWrapKey / showLineNumbersKey preference constants and bound to dedicated view:* IPC channels",
