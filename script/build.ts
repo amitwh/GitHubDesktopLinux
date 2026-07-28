@@ -34,6 +34,7 @@ import { isGitHubActions } from './build-platforms'
 import {
   getChannel,
   getDistArchitecture,
+  getDistPath,
   getDistRoot,
   getExecutableName,
   getIconDirectory,
@@ -41,6 +42,7 @@ import {
 } from './dist-info'
 
 import {
+  chmodSync,
   cpSync,
   existsSync,
   mkdirSync,
@@ -78,6 +80,9 @@ copyEmoji()
 
 console.log('Copying static resources…')
 copyStaticResources()
+
+console.log('Copying chrome-sandbox helper…')
+copyChromeSandbox()
 
 console.log('Parsing license metadata…')
 generateLicenseMetadata(outRoot)
@@ -258,6 +263,38 @@ function copyEmoji() {
   const emojiJSON = path.join(projectRoot, 'gemoji', 'db', 'emoji.json')
   const emojiJSONDestination = path.join(outRoot, 'emoji.json')
   removeAndCopy(emojiJSON, emojiJSONDestination)
+}
+
+function copyChromeSandbox() {
+  // Electron's setuid helper binary. The .deb postinst attempts to
+  // chmod 4755 / 0755 this file at install time. Without it the
+  // install prints a non-fatal `chmod: cannot access ... chrome-sandbox`
+  // warning — and on systems without user namespaces the renderer
+  // process can't sandbox. Ship it as a top-level file in the
+  // prepackaged dir so electron-builder bundles it automatically.
+  //
+  // electron-packager's ignore list excludes the whole electron
+  // module (and therefore this helper) from the app dir; we have to
+  // re-fetch it from node_modules after packager finishes.
+  const source = path.join(
+    projectRoot,
+    'node_modules',
+    'electron',
+    'dist',
+    'chrome-sandbox'
+  )
+  if (!existsSync(source)) {
+    console.warn(
+      `chrome-sandbox helper not found at ${source} — skipping. ` +
+        `This is non-fatal: the .deb postinst will simply skip the chmod.`
+    )
+    return
+  }
+
+  const dest = path.join(getDistPath(), 'chrome-sandbox')
+  mkdirSync(path.dirname(dest), { recursive: true })
+  cpSync(source, dest)
+  chmodSync(dest, 0o755)
 }
 
 function copyStaticResources() {
