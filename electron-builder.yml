@@ -1,7 +1,11 @@
 appId: com.github.GitHubClient
 extraMetadata:
   name: GithubDesktopLinux
-productName: GitHub Desktop
+# productName below is intentionally the fork name (was "GitHub Desktop"
+# in upstream). It drives the .desktop file's Name + StartupWMClass and
+# the binary's own WM class, so renaming it makes the GNOME shell happy
+# (dash shows it, "Show Applications" lists it under the right name).
+productName: GitHub Desktop Linux
 linux:
   executableName: GithubDesktopLinux
   category: Development
