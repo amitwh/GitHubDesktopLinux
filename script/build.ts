@@ -81,9 +81,6 @@ copyEmoji()
 console.log('Copying static resources…')
 copyStaticResources()
 
-console.log('Copying chrome-sandbox helper…')
-copyChromeSandbox()
-
 console.log('Parsing license metadata…')
 generateLicenseMetadata(outRoot)
 
@@ -124,7 +121,17 @@ verifyInjectedSassVariables(outRoot)
     }
 
     console.log('Packaging…')
-    return packageApp()
+    return packageApp().then(paths => {
+      // Electron-packager rebuilds the prepackaged dir as a side effect,
+      // so any file we copied in beforehand is wiped. Re-add chrome-sandbox
+      // for the Linux package targets so the .deb postinst's chmod has
+      // something to find.
+      if (process.platform === 'linux') {
+        console.log('Re-staging chrome-sandbox helper post-package…')
+        copyChromeSandbox()
+      }
+      return paths
+    })
   })
   .catch(err => {
     console.error(err)
