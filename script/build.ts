@@ -283,6 +283,16 @@ function copyChromeSandbox() {
   // electron-packager's ignore list excludes the whole electron
   // module (and therefore this helper) from the app dir; we have to
   // re-fetch it from node_modules after packager finishes.
+  //
+  // IMPORTANT: this function MUST run AFTER `packageApp()` — see the
+  // .then() chain that calls it post-package. Calling it earlier (as
+  // a top-level pipeline step) is silently wiped by electron-packager
+  // when it rebuilds the prepackaged dir. Both `yarn package` and
+  // `npx electron-builder --prepackaged …` produce a .deb WITHOUT
+  // chrome-sandbox if the post-package step didn't fire, so don't
+  // skip `yarn build:prod` between productName / extraMetadata /
+  // icon changes — electron-builder's --prepackaged mode reuses the
+  // existing prepackaged dir and skips build.ts entirely.
   const source = path.join(
     projectRoot,
     'node_modules',
