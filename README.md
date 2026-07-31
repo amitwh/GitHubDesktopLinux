@@ -46,6 +46,24 @@ curl -L https://github.com/amitwh/GitHubDesktopLinux-releases/releases/latest/do
   -o ~/bin/github-desktop && chmod +x ~/bin/github-desktop
 ```
 
+### Windows (this fork)
+
+The fork also ships an **unsigned Windows installer** named **GitHub Desktop Plus** on the same [`amitwh/GitHubDesktopLinux-releases`](https://github.com/amitwh/GitHubDesktopLinux-releases/releases/latest) mirror. Because it is not Authenticode-signed, Windows SmartScreen will warn on first launch — click **More info → Run anyway** to install. See [`docs/contributing/windows-build.md`](./docs/contributing/windows-build.md) for full details, the build pipeline, and the SmartScreen workaround.
+
+- **Squirrel `.exe` installer** — installs to `%LocalAppData%\GitHubDesktopPlus`, registers uninstall entry, auto-updates in-place.
+- **Standalone `.zip`** — portable, no installer, useful for locked-down environments or USB-stick installs.
+- **x64 and ARM64** — both architectures ship per release.
+
+```sh
+# Debian / Ubuntu (e.g., Ubuntu 22.04+)
+curl -L https://github.com/amitwh/GitHubDesktopLinux-releases/releases/latest/download/GithubDesktopLinux_3.6.4-beta1-linux3_amd64.deb \
+  -o /tmp/github-desktop.deb && sudo apt install /tmp/github-desktop.deb
+
+# Portable AppImage
+curl -L https://github.com/amitwh/GitHubDesktopLinux-releases/releases/latest/download/GithubDesktopLinux-3.6.4-beta1-linux3.AppImage \
+  -o ~/bin/github-desktop && chmod +x ~/bin/github-desktop
+```
+
 ## What's different from upstream GitHub Desktop?
 
 [GitHub Desktop Linux](https://github.com/amitwh/GitHubDesktop) is an unofficial, community-maintained Linux fork maintained by [Amit Haridas](https://github.com/amitwh). It is not affiliated with or endorsed by GitHub, Inc. All credit for the original GitHub Desktop application goes to GitHub, Inc. and the upstream contributors. See the in-app **About** dialog for the same attribution block.
@@ -59,6 +77,13 @@ The fork consists of upstream `desktop/desktop` plus the following enhancements,
 - **Snap** — published under classic confinement so it can reach the user's home directory and run `git` operations on the host filesystem.
 - **Flatpak** — runs under `org.freedesktop.Platform 23.08` + Electron's BaseApp extension with `--filesystem=host` and secret-service portal access for the credential store.
 - **Linux-only top-level `Tools` menu** — Open Configuration Folder (user-data root), Open Logs Folder (rotating file logs), Reload Window, Toggle Developer Tools, Reveal Diagnostics Folder.
+
+### 🪟 Windows fork (GitHub Desktop Plus)
+
+- **Same installer packaging path as upstream** — Squirrel-based `.exe` + standalone `.zip`, produced by `electron-winstaller` on a real `windows-2022` runner (no Wine, no cross-compile fragility).
+- **Built on every push to `linux` / `feat/linux-port`** — see `.github/workflows/ci-windows.yml`. Reusable via `workflow_call` from `.github/workflows/release-mirror.yml` when `target=windows` or `target=both`.
+- **Product name `GitHub Desktop Plus`** — switched via the `DESKTOP_BUILD_TARGET=windows` env-var in `app/package-info.ts`. Linux build default unchanged.
+- **Unsigned installer** — Windows SmartScreen warns on first run. Authenticode signing is planned for a future spec; the SmartScreen workaround is one extra click for users.
 
 ### 🔍 Diff / merge
 
