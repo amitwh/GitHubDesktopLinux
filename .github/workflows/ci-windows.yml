@@ -1,0 +1,119 @@
+name: CI — Windows
+
+# Builds the Windows fork installer (GitHub Desktop Plus) on every push and
+# pull request to the linux/feat-linux-port branches, on windows-2022 with
+# the x64 + arm64 matrix. Mirrors the upstream ci.yml Windows job structure
+# but stays self-contained (no composite actions, no code signing) for the
+# Linux fork's trust posture.
+#
+# Outputs:
+#   - windows-packages-x64 / -arm64 workflow artifacts containing the
+#     Squirrel installer .exe + standalone .zip produced by yarn package
+#     under dist/, with the GitHub Desktop Plus product name applied via
+#     the DESKTOP_BUILD_TARGET=windows env-var picked up by
+#     app/package-info.ts::getProductName().
+#
+# Followed up by release-mirror.yml (which calls this workflow via
+# workflow_call) to publish a Windows installer to a GitHub Release.
+
+on:
+  push:
+    branches: [linux, feat/linux-port]
+  pull_request:
+    branches: [linux, feat/linux-port]
+  workflow_call:
+    inputs:
+      upload-artifacts:
+        description: 'Upload Windows packages as workflow artifacts'
+        type: boolean
+        default: true
+      release-channel:
+        description: 'Release channel (development / production)'
+        type: string
+        default: development
+
+permissions: {}
+
+concurrency:
+  group: ci-windows
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: 24.15.0
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      RELEASE_CHANNEL: development
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+      - run: yarn
+      - run: yarn validate-electron-version
+      - run: yarn lint
+      - run: yarn validate-changelog
+
+  build:
+    name: Windows ${{ matrix.arch }}
+    runs-on: windows-2022
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, arm64]
+    timeout-minutes: 60
+    env:
+      # The fork's productName becomes 'GitHub Desktop Plus' when this env
+      # is set (see app/package-info.ts::getProductName). Released Windows
+      # builds are named accordingly — see docs/contributing/windows-build.md.
+      DESKTOP_BUILD_TARGET: windows
+      RELEASE_CHANNEL: ${{ inputs.release-channel || 'development' }}
+      npm_config_arch: ${{ matrix.arch }}
+      TARGET_ARCH: ${{ matrix.arch }}
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+          architecture: ${{ matrix.arch }}
+      - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478e79d6989d # v5.3.0
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: yarn
+      - name: Build production app (Windows target)
+        run: yarn build:prod
+      - name: Prepare testing environment
+        run: yarn test:setup
+      # Unit tests run only on x64 to halve CI minutes (matches upstream's
+      # ci.yml: "(runner.os == 'Windows' && matrix.arch == 'x64')").
+      - name: Run unit tests
+        if: matrix.arch == 'x64'
+        run: yarn test:unit
+      - name: Run script tests
+        run: yarn test:script
+      - name: Package Windows installer
+        run: yarn package
+      - name: Upload Windows packages
+        if: ${{ inputs.upload-artifacts }}
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+        with:
+          name: windows-packages-${{ matrix.arch }}
+          path: |
+            dist/*.exe
+            dist/*.zip
+          if-no-files-found: error
+          retention-days: 14
