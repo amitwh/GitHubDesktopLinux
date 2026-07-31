@@ -7,17 +7,39 @@ name: Mirror release
 #
 # Trust model: workflow_dispatch can only be triggered by repo
 # collaborators, but defense in depth is cheap and prevents accidental
-# releases with malformed tags, empty bodies, or repo poison via a
-# bad tag like "v$(...)".
+# releases with malformed tags, empty bodies, or repo poison via
+# a bad tag like "v$(...)".
+#
+# The workflow supports two build targets, selected via the
+# `target` workflow_dispatch input:
+#   - linux  : produces .deb / .AppImage / .snap on ubuntu-latest
+#   - windows: produces a Squirrel installer (.exe) and standalone
+#              .zip on windows-2022 with x64 + arm64 matrix
+#   - both   : runs both jobs in parallel
+#
+# All targets publish into the same release on
+# amitwh/GitHubDesktopLinux-releases (the public mirror). The
+# GitHub Desktop Plus Windows installer is shipped from there with
+# a clear product name; the About dialog's fork attribution remains
+# the authoritative legal disclosure.
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version. Must match ^[0-9]+\.[0-9]+\.[0-9]+(-[a-z0-9.]+)?$ (e.g. 3.6.4-beta1-linux3). Leave empty to derive from app/package.json.'
+        description: 'Release version. Must match ^[0-9]+\.[0-9]+\.[0-9]+(-[a-z0-9.]+)?$ (e.g. 3.6.4-beta1-linux3 or 3.6.4-beta1-windows). Leave empty to derive from app/package.json.'
         required: false
         default: ''
         type: string
+      target:
+        description: 'Build target: linux | windows | both.'
+        required: true
+        default: linux
+        type: choice
+        options:
+          - linux
+          - windows
+          - both
       notes:
         description: 'Optional release notes (Markdown). Capped at 16 KiB; shell-expansion patterns are rejected.'
         required: false
@@ -25,7 +47,7 @@ on:
         type: string
 
 # Top-level default: no implicit token write for the rest of the
-# workflow. Only the job opts back into `contents: write` below.
+# workflow. Only the jobs opt back into `contents: write` below.
 permissions: {}
 
 concurrency:
@@ -33,15 +55,21 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
+  validate:
+    name: Validate inputs
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
+    outputs:
+      version: ${{ steps.validate.outputs.version }}
+      notes: ${{ steps.validate.outputs.notes }}
+      target: ${{ steps.validate.outputs.target }}
     steps:
       - name: Validate inputs
         id: validate
         env:
           INPUT_VERSION: ${{ inputs.version }}
+          INPUT_TARGET: ${{ inputs.target }}
           INPUT_NOTES: ${{ inputs.notes }}
         run: |
           set -euo pipefail
@@ -61,6 +89,16 @@ jobs:
             exit 1
           fi
 
+          # ---- Target must be one of the allowed values (defence in depth
+          # even though `choice` enforces it in the UI). ----
+          case "${INPUT_TARGET}" in
+            linux|windows|both) ;;
+            *)
+              echo "::error::Target '${INPUT_TARGET}' is not one of linux|windows|both" >&2
+              exit 1
+              ;;
+          esac
+
           # ---- Notes safety: cap length, reject shell-expansion patterns ----
           NOTES_LEN=${#INPUT_NOTES}
           if [ "${NOTES_LEN}" -gt 16384 ]; then
@@ -77,12 +115,21 @@ jobs:
           # Persist for downstream steps. The 'v' prefix is added at use site.
           {
             echo "version=${VERSION}"
+            echo "target=${INPUT_TARGET}"
             echo "notes<<EOF"
             printf '%s' "${INPUT_NOTES}"
             echo
             echo "EOF"
           } >>"${GITHUB_OUTPUT}"
 
+  linux:
+    name: Linux release
+    needs: validate
+    if: contains(needs.validate.outputs.target, 'linux')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
       # Pin third-party actions to immutable commit SHAs rather than
       # mutable tags like @v4 or @v2. Update via dependabot or
       # selective bumps; this defeats supply-chain drift between
@@ -109,9 +156,9 @@ jobs:
       - name: Publish to public mirror
         uses: softprops/action-gh-release@e7a8f85e1c67a31e6ed99a94b41bd0b71bbee6b8 # v2.0.9
         with:
-          tag_name: v${{ steps.validate.outputs.version }}
-          name: GitHub Desktop Linux ${{ steps.validate.outputs.version }}
-          body: ${{ steps.validate.outputs.notes }}
+          tag_name: v${{ needs.validate.outputs.version }}
+          name: GitHub Desktop Linux ${{ needs.validate.outputs.version }}
+          body: ${{ needs.validate.outputs.notes }}
           files: |
             dist/*.deb
             dist/*.AppImage
@@ -119,6 +166,60 @@ jobs:
           repository: amitwh/GitHubDesktopLinux-releases
           # Default fail_on_unmatched_files is true; an empty release
           # will fail this step rather than publishing a hollow tag.
+          generate_release_notes: false
+          draft: false
+          prerelease: true
+
+  windows:
+    name: Windows release
+    needs: validate
+    if: contains(needs.validate.outputs.target, 'windows')
+    runs-on: windows-2022
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, arm64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          repository: amitwh/GitHubDesktop
+
+      - name: Setup Node
+        uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
+        with:
+          node-version: '20'
+          architecture: ${{ matrix.arch }}
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      # DESKTOP_BUILD_TARGET=windows makes app/package-info.ts::getProductName
+      # return 'GitHub Desktop Plus'. yarn package then dispatches to
+      # packageWindows() on win32 (this runner is windows-2022) and the
+      # resulting installer is named accordingly via script/dist-info.ts.
+      - name: Production build (Windows target)
+        env:
+          DESKTOP_BUILD_TARGET: windows
+        run: yarn build:prod
+
+      - name: Package Windows installer
+        env:
+          DESKTOP_BUILD_TARGET: windows
+        run: yarn package
+
+      - name: Publish to public mirror
+        uses: softprops/action-gh-release@e7a8f85e1c67a31e6ed99a94b41bd0b71bbee6b8 # v2.0.9
+        with:
+          tag_name: v${{ needs.validate.outputs.version }}
+          name: GitHub Desktop Linux ${{ needs.validate.outputs.version }}
+          body: ${{ needs.validate.outputs.notes }}
+          files: |
+            dist/*.exe
+            dist/*.zip
+          repository: amitwh/GitHubDesktopLinux-releases
           generate_release_notes: false
           draft: false
           prerelease: true
