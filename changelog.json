@@ -1,5 +1,9 @@
 {
   "releases": {
+    "3.6.4-beta1-linux4": [
+      "[Sync] Merged upstream development (commit cc90c4deb9) — picks up 4 commits in the worktree-path recovery series: Persist the main worktree path for missing-worktree recovery (74ebcd235f), Re-resolve the main worktree path when a repository is relocated (e78b21461a), Treat a recorded main worktree path as a hint, not the answer (7186c92efa)",
+      "[Improved] worktree-test.ts gains 5 new tests for resolveMainWorktreePath covering: resolves from persisted path after worktree metadata is gone, falls back to git dir when no path was persisted, returns null when repository is already main, falls back when persisted path is stale, returns null when neither is available — resolution preserves all existing parsePruneVerboseOutput / lockWorktree / pruneWorktrees / getWorktreeDirtyState describes alongside the new one"
+    ],
     "3.6.4-beta1-linux3": [
       "[New] Four more Linux fork-specific Preferences tabs: Meld/Diff Tools, Shell, Performance, Diagnostics — each fully wired through PreferencesTab enum + IPreferencesProps/State + AppStore load/save + IPreferencesProps/State",
       "[New] Reset mode now plumbed end-to-end: dispatcher.resetToCommit(repo, commit, GitResetMode, ...) and appStore._resetToCommit(repo, commit, GitResetMode, ...) take a mode arg; existing context-menu Reset to Commit flow honours the chosen mode",

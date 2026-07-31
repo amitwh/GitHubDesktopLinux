@@ -502,6 +502,8 @@ describe('git/worktree', () => {
       const state = await getWorktreeDirtyState(repo.path)
       assert.strictEqual(state.modifiedCount, 0)
       assert.strictEqual(state.untrackedCount, 1)
+    })
+  })
 
   describe('resolveMainWorktreePath', () => {
     /**
