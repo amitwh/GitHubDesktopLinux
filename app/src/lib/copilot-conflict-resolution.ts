@@ -11,6 +11,18 @@ import {
 // Types & interfaces
 // ---------------------------------------------------------------------------
 
+/**
+ * A conflicted file that Copilot did not resolve, along with the reason it was
+ * skipped (e.g. too large, unreadable, no parseable markers). Surfaced in the
+ * result dialog so the user can resolve it manually.
+ */
+export interface ICopilotSkippedFile {
+  /** Repository-relative file path that was skipped. */
+  readonly path: string
+  /** Human-readable reason the file was skipped. */
+  readonly reason: string
+}
+
 /** Resolution suggestion for a single conflicted file. */
 export interface IFileResolution {
   /** Repository-relative file path that was resolved. */
@@ -19,6 +31,34 @@ export interface IFileResolution {
   readonly resolvedContent: string
   /** Human-readable explanation of how and why conflicts were resolved this way. */
   readonly reasoning: string
+  /**
+   * For delete-vs-modify conflicts: the model's recommendation.
+   * When present, `resolvedContent` is not meaningful — the resolution
+   * is applied as a `ManualConflictResolution` (keep = non-deleted side,
+   * delete = deleted side).
+   */
+  readonly deleteConflictAction?: 'keep' | 'delete'
+}
+
+/** Resolution for a single conflict hunk as returned by the model. */
+export interface IHunkResolution {
+  /** The resolved content that replaces the conflict marker block. */
+  readonly resolvedContent: string
+}
+
+/** Per-file resolution from the model's raw response (before reassembly). */
+export interface IRawFileResolution {
+  /** Repository-relative file path. */
+  readonly path: string
+  /** Resolved content for each conflict hunk, in order. */
+  readonly hunks: ReadonlyArray<IHunkResolution>
+  /** Human-readable explanation of the resolution strategy for this file. */
+  readonly reasoning: string
+  /**
+   * For delete-vs-modify conflicts: `"keep"` to preserve the modified file
+   * or `"delete"` to accept the deletion. When present, `hunks` is empty.
+   */
+  readonly action?: 'keep' | 'delete'
 }
 
 /** A reference the model considered material to its decision. */
@@ -33,10 +73,10 @@ export interface ICopilotConflictReference {
   readonly id: string
 }
 
-/** Complete response from Copilot conflict resolution. */
+/** Complete response from Copilot conflict resolution (raw model output). */
 export interface ICopilotConflictResolutionResponse {
-  /** Resolution suggestions, one per conflicted file. */
-  readonly resolutions: ReadonlyArray<IFileResolution>
+  /** Per-file resolution with per-hunk resolved content (before reassembly). */
+  readonly resolutions: ReadonlyArray<IRawFileResolution>
   /**
    * Optional markdown summary of the conflict and the resolution strategy.
    * The system prompt requires the model to include exactly two `###`
@@ -50,6 +90,20 @@ export interface ICopilotConflictResolutionResponse {
    * decision. May be empty when the model omitted the field or none of
    * its references resolve.
    */
+  readonly references: ReadonlyArray<ICopilotConflictReference>
+}
+
+/**
+ * The conflict resolution response after reassembly — per-file resolutions
+ * contain the complete reassembled file content. This is what the rest of
+ * the app (UI, write path) consumes.
+ */
+export interface IReassembledConflictResolutionResponse {
+  /** Reassembled per-file resolutions with full file content. */
+  readonly resolutions: ReadonlyArray<IFileResolution>
+  /** Optional markdown summary (passed through from model). */
+  readonly summary: string | null
+  /** Structured references (passed through from model). */
   readonly references: ReadonlyArray<ICopilotConflictReference>
 }
 
@@ -134,72 +188,69 @@ export const MaxConcurrentChunks = 5
  * System prompt for the Copilot conflict resolution session.
  */
 export const ConflictResolutionSystemPrompt = `
-You have all the context you need below. Do NOT attempt to use tools. Respond ONLY with the JSON format specified.
+Respond ONLY with valid JSON in the format specified below. Do NOT use tools.
 
-You are an expert Git conflict resolver. Your task is to analyze conflicts from merge, rebase, or cherry-pick operations and produce correct, clean resolutions.
+You are an expert Git conflict resolver. Analyze conflicts from merge, rebase, or cherry-pick operations and produce correct, clean resolutions.
 
 You will receive:
-- Labels for both sides of the conflict (e.g., branch names or commit references)
-- The conflict markers from each conflicted file (ours, theirs, and optionally base content)
+- Labels for both sides (branch names or commit refs)
+- Conflict markers from each file (ours, theirs, optionally base)
 - Context lines surrounding each conflict
-- When available: recent commit messages from both sides explaining the intent behind changes
-- When available: the pull request title and description providing higher-level context
+- Delete-vs-modify conflicts where one side deleted a file and the other modified it
+- When available: recent commit messages and/or PR title/description for intent
 
 Your job:
-1. Understand the INTENT behind each side's changes using commit messages and PR context when available
-2. Resolve each conflict by producing the correct merged content
-3. Explain your per-file reasoning — what you kept and what you dropped or overrode in each file
-4. Produce a brief, skimmable markdown summary that orients the user to the conflict and your resolution at a glance
+1. Understand the INTENT behind each side's changes
+2. Resolve each conflict by producing the correct merged content for each conflict hunk
+3. For delete-vs-modify conflicts, recommend whether to keep or delete the file
+4. Explain your reasoning per file — terse but specific enough to verify the decision
+5. Produce a brief markdown summary orienting the user to the conflict and resolution
 
 Resolution guidelines:
-- Make the MINIMAL changes necessary to resolve the conflict — do not refactor, reformat, or alter code outside the conflicted regions
-- When both sides add complementary code (e.g., different imports, different functions), combine them
-- When both sides modify the same code differently, use commit messages and PR context to determine the correct resolution
-- When one side deletes code the other modifies, determine if the deletion was intentional
-- Preserve code correctness: imports, types, formatting must be valid
-- When in doubt, prefer the approach that maintains backward compatibility
+- Make MINIMAL changes — do not refactor, reformat, or alter code outside conflicted regions
+- When both sides add complementary code (e.g., different imports), combine them
+- When both sides modify the same code differently, use commit messages and PR context to decide
+- When one side deletes code the other modifies, check whether the content was relocated rather than simply removed — accept the deletion only when it was intentional
+- When conflicts involve dependency manifests or lock files, ensure version constraints and entries remain consistent across the resolved file
+- Preserve correctness: imports, types, formatting must remain valid
+- When in doubt, prefer backward compatibility
 
-You MUST respond with valid JSON in this exact format:
+Response format:
 {
-  "summary": "### Conflicting changes\\n<1-2 sentences of natural prose explaining what each side was doing and where they collided, attributing each side to its #PR or short SHA>\\n\\n### Resolution\\n<1 short sentence on how and why you resolved it; if a side's change was dropped or overridden, add one short **bold** clause naming that single trade-off>",
+  "summary": "### Conflicting changes\\n<1-2 sentences: what each side did and where they collided, attributing each to its #PR or short SHA>\\n\\n### Resolution\\n<1 sentence: how you resolved it; if a side was dropped, bold that trade-off>",
   "references": [
     { "type": "pullRequest", "id": "1234" },
-    { "type": "pullRequest", "id": "1250" },
     { "type": "commit", "id": "abc1234" }
   ],
   "resolutions": [
     {
       "path": "relative/file/path.ts",
-      "resolvedContent": "the complete resolved file content with all conflicts resolved",
-      "reasoning": "per-file audit detail: what each side changed in THIS file, what you kept, and specifically what you dropped or overrode and why. This is the home for the granular detail — be concrete here so the user can verify this file's resolution"
+      "hunks": [
+        { "resolvedContent": "merged content that replaces conflict 1" },
+        { "resolvedContent": "merged content that replaces conflict 2" }
+      ],
+      "reasoning": "What each side changed in this file, what you kept, and what you dropped or overrode."
+    },
+    {
+      "path": "deleted-or-modified/file.ts",
+      "action": "keep",
+      "hunks": [],
+      "reasoning": "The file was modified with important changes; the deletion was part of an incomplete refactor."
     }
   ]
 }
 
-Important:
-- resolvedContent must contain the COMPLETE file content (not just the conflicted sections)
-- All conflict markers must be removed in the resolved content
-- Include one resolution entry per conflicted file
+Field rules:
 
-Summary rules (read carefully — the summary is a brief banner rendered as markdown above the per-file resolutions; it must be skimmable in a few seconds):
-- The summary value MUST be a single markdown string with exactly two level-3 headings, in this order: "### Conflicting changes" and "### Resolution"
-- Write in natural, flowing prose — full sentences a developer would say to a teammate, NOT a terse list of identifiers. The summary should read like English, not like code with words between the symbols
-- Brevity is the priority: prefer the shortest wording that still lets a reader verify the decision. Do NOT enumerate every kept item, and do NOT describe which files merged mechanically — that granular, per-file detail belongs in each resolution's "reasoning", not here
-- "Conflicting changes": 1-2 sentences describing, in plain language, what each side was doing and where they collided. When many files conflicted, summarize them ("several menu components") rather than listing every filename. Attribute the incoming change to its "#1234" or short SHA, and the current side likewise
-- "Resolution": 1 short sentence on how and why you resolved it. If — and only if — a side's change was dropped or overridden, add one short clause naming that single most important trade-off and wrap it in **double asterisks** so it stands out
-- Refer to pull requests by id only — write "#1234" (no link, no URL). Refer to commits by their short SHA — write "abc1234" (no link, no URL). The application turns these into links itself. Attribute each side to its source id at most once; the Context list already lists them, so do not repeat the same id in every sentence
-- Do NOT include a third section, a "References" / "Links" section, or any URLs — those are rendered separately by the application
-- Use plain language. Do not name the speaker or address the user as "you" — write "the current branch", not "your branch"
+hunks: An ordered array with one entry per conflict in the file, matching the "Conflict 1 of N", "Conflict 2 of N" order from the input. Each entry's resolvedContent is ONLY the merged content that replaces that specific conflict marker block (the region between <<<<<<< and >>>>>>>). Do NOT include surrounding non-conflicted code — the application splices each resolution into the original file automatically. If the resolution is to accept one side entirely, return that side's content verbatim. For an intentional deletion, use an empty string. For delete-vs-modify conflicts, hunks must be an empty array.
 
-References rules (these populate the "Context" list — the user's map to the human story behind the conflict):
-- Goal: give the user the handful of references they would want to open to understand the conflict and check your resolution — typically a few items, not just one or two, but not an exhaustive dump of everything in context.
-- Include the pull requests behind the conflicting changes, and the commits whose messages add genuine human context (a clear description of intent or rationale).
-- Do not artificially limit yourself to one or two entries: when several pull requests or commits are each genuinely informative, include all of them.
-- Do not pad either: skip anything that does not help a human understand what changed or why.
-- Omit noise outright: merge commits, "WIP"/"fixup"/"squash"/"amend" commits, and commits with empty or low-signal messages.
-- When a commit is the squash/merge of a pull request that is also present, cite the pull request instead (never both).
-- "type" must be "pullRequest" or "commit"; "id" is a decimal pull-request number for PRs (no "#" prefix) or a short or full hex SHA for commits
-- Cite each item at most once. Only return an empty array when the context contains no pull requests and no commits at all; whenever any are present, cite at least the single most informative one
+action: Only for delete-vs-modify conflicts. Set to "keep" to preserve the modified file, or "delete" to accept the deletion. Use commit messages and PR context to determine intent — if the deletion was part of a refactoring that moved functionality elsewhere, prefer "delete"; if the modifications add important functionality that should be preserved, prefer "keep". Omit this field for regular text conflicts.
+
+reasoning: Terse, direct prose — enough detail to verify the decision, not a wall of text. State what each side did in this file, what you kept, and any trade-off. Typically 1-4 sentences depending on complexity.
+
+summary: A markdown banner with exactly two ### headings ("Conflicting changes" then "Resolution"). Write natural prose a developer would say to a teammate. Be brief — per-file detail belongs in reasoning, not here. When many files conflicted, summarize them ("several menu components") rather than listing each. Refer to PRs as "#1234" and commits as short SHAs (no URLs — the app linkifies them). Do not address the user as "you"; write "the current branch". Bold any trade-off where one side's change was dropped.
+
+references: The PRs and commits a reader would open to understand the conflict. Include every genuinely informative one — skip merge commits, WIP/fixup/squash commits, and low-signal messages. "type" is "pullRequest" or "commit"; "id" is the PR number (no #) or hex SHA. Cite the PR instead of its squash-merge commit when both exist. Return an empty array only when no PRs or commits exist in context.
 `
 
 // ---------------------------------------------------------------------------
@@ -323,7 +374,7 @@ export function parseCopilotConflictResolution(
     }
   }
 
-  const validated: Array<IFileResolution> = []
+  const validated: Array<IRawFileResolution> = []
 
   for (let i = 0; i < resolutions.length; i++) {
     const entry: unknown = resolutions[i]
@@ -335,7 +386,7 @@ export function parseCopilotConflictResolution(
     }
 
     const obj = entry as Record<string, unknown>
-    const { path, resolvedContent, reasoning } = obj
+    const { path, hunks: rawHunks, reasoning, action: rawAction } = obj
 
     if (typeof path !== 'string' || path.trim().length === 0) {
       throw new CopilotValidationError(
@@ -343,16 +394,59 @@ export function parseCopilotConflictResolution(
       )
     }
 
-    if (typeof resolvedContent !== 'string') {
+    if (!Array.isArray(rawHunks)) {
       throw new CopilotValidationError(
-        `Copilot returned an invalid conflict resolution payload: "resolvedContent" at index ${i} must be a string`
+        `Copilot returned an invalid conflict resolution payload: "hunks" at index ${i} must be an array`
       )
     }
 
-    if (/^<{7}\s/m.test(resolvedContent) && /^={7}$/m.test(resolvedContent)) {
+    // Parse optional action for delete-vs-modify conflicts
+    const action =
+      rawAction === 'keep' || rawAction === 'delete' ? rawAction : undefined
+
+    // Delete-vs-modify resolutions use action instead of hunks
+    if (action !== undefined) {
+      if (typeof reasoning !== 'string' || reasoning.trim().length === 0) {
+        throw new CopilotValidationError(
+          `Copilot returned an invalid conflict resolution payload: "reasoning" at index ${i} must be a non-empty string`
+        )
+      }
+      validated.push({
+        path: normalizeLLMPath(path),
+        hunks: [],
+        reasoning,
+        action,
+      })
+      continue
+    }
+
+    if (rawHunks.length === 0) {
       throw new CopilotValidationError(
-        `Copilot returned an invalid conflict resolution payload: "resolvedContent" at index ${i} still contains conflict markers`
+        `Copilot returned an invalid conflict resolution payload: "hunks" at index ${i} must not be empty`
       )
+    }
+
+    const validatedHunks: Array<IHunkResolution> = []
+    for (let j = 0; j < rawHunks.length; j++) {
+      const hunkEntry: unknown = rawHunks[j]
+      if (!isPlainObject(hunkEntry)) {
+        throw new CopilotValidationError(
+          `Copilot returned an invalid conflict resolution payload: hunk at index ${j} of file "${path}" must be an object`
+        )
+      }
+      const hunkObj = hunkEntry as Record<string, unknown>
+      if (typeof hunkObj.resolvedContent !== 'string') {
+        throw new CopilotValidationError(
+          `Copilot returned an invalid conflict resolution payload: "resolvedContent" at hunk ${j} of file "${path}" must be a string`
+        )
+      }
+      const rc = hunkObj.resolvedContent
+      if (/^<{7}\s/m.test(rc) && /^={7}$/m.test(rc)) {
+        throw new CopilotValidationError(
+          `Copilot returned an invalid conflict resolution payload: hunk ${j} of file "${path}" still contains conflict markers`
+        )
+      }
+      validatedHunks.push({ resolvedContent: rc })
     }
 
     if (typeof reasoning !== 'string' || reasoning.trim().length === 0) {
@@ -361,7 +455,11 @@ export function parseCopilotConflictResolution(
       )
     }
 
-    validated.push({ path: normalizeLLMPath(path), resolvedContent, reasoning })
+    validated.push({
+      path: normalizeLLMPath(path),
+      hunks: validatedHunks,
+      reasoning,
+    })
   }
 
   return { resolutions: validated, summary, references }
@@ -369,13 +467,17 @@ export function parseCopilotConflictResolution(
 
 /**
  * Validate that a parsed resolution response matches the expected set of
- * file paths. Throws CopilotValidationError on unexpected paths, duplicates,
- * or missing files.
+ * file paths and hunk counts. Throws CopilotValidationError on unexpected
+ * paths, duplicates, missing files, or wrong hunk counts.
  */
 export function validateResolutionPaths(
-  resolutions: ReadonlyArray<IFileResolution>,
-  expectedPaths: ReadonlySet<string>
+  resolutions: ReadonlyArray<IRawFileResolution>,
+  expectedFiles: ReadonlyArray<IFileConflictContext>
 ): void {
+  const expectedPaths = new Set(expectedFiles.map(f => f.path))
+  const expectedHunkCounts = new Map(
+    expectedFiles.map(f => [f.path, f.hunks.length])
+  )
   const returnedPaths = new Set(resolutions.map(r => r.path))
 
   for (const path of returnedPaths) {
@@ -403,6 +505,140 @@ export function validateResolutionPaths(
       `Copilot did not return resolutions for: ${missingPaths.join(', ')}`
     )
   }
+
+  for (const resolution of resolutions) {
+    // Delete-vs-modify resolutions use action instead of hunks — skip count check
+    if (resolution.action !== undefined) {
+      continue
+    }
+    const expectedCount = expectedHunkCounts.get(resolution.path) ?? 0
+    if (resolution.hunks.length !== expectedCount) {
+      throw new CopilotValidationError(
+        `Copilot returned ${resolution.hunks.length} hunk(s) for "${resolution.path}" but expected ${expectedCount}`
+      )
+    }
+  }
+}
+
+// Conflict markers used by reassembleResolvedFile to locate marker blocks.
+const reassemblyOursMarker = /^<{7}(?:\s|$)/
+const reassemblySeparatorMarker = /^={7}$/
+const reassemblyTheirsMarker = /^>{7}(?:\s|$)/
+
+/**
+ * Reassemble a fully resolved file by splicing per-hunk resolutions into
+ * the original file content (which still has conflict markers on disk).
+ *
+ * Walks the original file line-by-line. Non-conflicted lines are copied
+ * through verbatim. Each conflict marker block (`<<<<<<<` through
+ * `>>>>>>>`, with a `=======` separator in between) is replaced with the
+ * corresponding entry from `hunkResolutions` (matched by order, not by
+ * line number). This guarantees that all non-conflicted code is preserved
+ * exactly, and the model's output is only responsible for the small
+ * resolved sections.
+ *
+ * A `<<<<<<<` line that is not followed by both a `=======` separator and
+ * a closing `>>>>>>>` before EOF is treated as regular file content (not a
+ * conflict block) and copied through unchanged to avoid data loss from
+ * malformed or stray markers.
+ *
+ * @param rawContent - The full file content on disk, including conflict markers
+ * @param hunkResolutions - Per-hunk resolved content, in the order they appear in the file
+ * @returns The reassembled file with all conflicts resolved
+ */
+export function reassembleResolvedFile(
+  rawContent: string,
+  hunkResolutions: ReadonlyArray<IHunkResolution>
+): string {
+  const eol = rawContent.includes('\r\n') ? '\r\n' : '\n'
+  const lines = rawContent.split(/\r?\n/)
+  const resultLines: Array<string> = []
+  let hunkIndex = 0
+  let i = 0
+
+  while (i < lines.length) {
+    if (reassemblyOursMarker.test(lines[i])) {
+      // Look ahead to verify this is a well-formed conflict block:
+      // must have a ======= separator and a >>>>>>> closing marker.
+      let hasSeparator = false
+      let closingIndex = -1
+      for (let j = i + 1; j < lines.length; j++) {
+        if (reassemblySeparatorMarker.test(lines[j])) {
+          hasSeparator = true
+        } else if (reassemblyTheirsMarker.test(lines[j])) {
+          closingIndex = j
+          break
+        }
+      }
+
+      if (!hasSeparator || closingIndex === -1) {
+        // Malformed marker — copy through as regular content
+        resultLines.push(lines[i])
+        i++
+        continue
+      }
+
+      // Skip through the entire conflict marker block
+      i = closingIndex + 1
+
+      // Splice in the resolved content for this hunk
+      if (hunkIndex < hunkResolutions.length) {
+        const resolved = hunkResolutions[hunkIndex].resolvedContent
+        if (resolved.length > 0) {
+          resultLines.push(...resolved.split(/\r?\n/))
+        }
+      }
+      hunkIndex++
+    } else {
+      resultLines.push(lines[i])
+      i++
+    }
+  }
+
+  return resultLines.join(eol)
+}
+
+/**
+ * Combine raw per-hunk model resolutions with original file contexts to
+ * produce the final {@link IFileResolution} array that the rest of the app
+ * expects (each entry has the complete reassembled file content).
+ *
+ * This is the bridge between the model's lightweight per-hunk output and
+ * the existing UI and write path which need full file content.
+ */
+export function reassembleResolutions(
+  rawResolutions: ReadonlyArray<IRawFileResolution>,
+  fileContexts: ReadonlyArray<IFileConflictContext>
+): ReadonlyArray<IFileResolution> {
+  const contextByPath = new Map(fileContexts.map(f => [f.path, f]))
+
+  return rawResolutions.map(raw => {
+    // Delete-vs-modify resolutions carry an action, not hunk content.
+    // Pass through without reassembly — the resolution is applied as a
+    // ManualConflictResolution, not a file write.
+    if (raw.action !== undefined) {
+      return {
+        path: raw.path,
+        resolvedContent: '',
+        reasoning: raw.reasoning,
+        deleteConflictAction: raw.action,
+      }
+    }
+
+    const ctx = contextByPath.get(raw.path)
+    if (ctx?.rawContent === undefined) {
+      throw new CopilotValidationError(
+        `Cannot reassemble resolution for "${raw.path}": original file content is unavailable`
+      )
+    }
+
+    const resolvedContent = reassembleResolvedFile(ctx.rawContent, raw.hunks)
+    return {
+      path: raw.path,
+      resolvedContent,
+      reasoning: raw.reasoning,
+    }
+  })
 }
 
 /**
