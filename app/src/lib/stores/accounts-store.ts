@@ -1,7 +1,12 @@
 import { IDataStore, ISecureStore } from './stores'
 import { getKeyForAccount } from '../auth'
-import { Account, isDotComAccount } from '../../models/account'
+import {
+  Account,
+  isDotComAccount,
+  isGiteaAccount,
+} from '../../models/account'
 import { fetchUser, EmailVisibility, getEnterpriseAPIURL } from '../api'
+import { GiteaAPI } from '../gitea'
 import { fatalError } from '../fatal-error'
 import { TypedBaseStore } from './base-store'
 import { isGHE } from '../endpoint-capabilities'
@@ -60,6 +65,11 @@ interface IAccount {
   readonly id: number
   readonly name: string
   readonly plan?: string
+  /**
+   * The hosting provider for this account. Only set ('gitea') for accounts
+   * created by this fork's Gitea integration.
+   */
+  readonly provider?: 'gitea'
 }
 
 /** The store for logged in accounts. */
@@ -225,7 +235,12 @@ export class AccountsStore extends TypedBaseStore<ReadonlyArray<Account>> {
         account.avatarURL,
         account.id,
         account.name,
-        account.plan
+        account.plan,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        account.provider
       )
 
       const key = getKeyForAccount(accountWithoutToken)
@@ -262,6 +277,29 @@ async function updatedAccount(account: Account): Promise<Account> {
   if (!account.token) {
     return fatalError(
       `Cannot update an account which doesn't have a token: ${account.login}`
+    )
+  }
+
+  if (isGiteaAccount(account)) {
+    const user = await new GiteaAPI(
+      account.endpoint,
+      account.token
+    ).fetchGiteaUser()
+
+    return new Account(
+      user.login,
+      account.endpoint,
+      account.token,
+      [{ email: user.email, verified: true, primary: true, visibility: 'public' }],
+      user.avatar_url,
+      user.id,
+      user.full_name,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'gitea'
     )
   }
 
