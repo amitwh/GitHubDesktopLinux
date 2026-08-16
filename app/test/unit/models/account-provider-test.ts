@@ -1,10 +1,10 @@
-import { Account } from '../../../src/lib/api' // eslint-disable-line @typescript-eslint/no-unused-vars
-import { Account as ModelAccount, isGiteaAccount } from '../../../src/models/account'
-
-// The linter import above is deliberately avoided; use the model directly.
+import {
+  Account,
+  isGiteaAccount,
+} from '../../../src/models/account'
 
 const giteaAccount = () =>
-  new ModelAccount(
+  new Account(
     'amit',
     'https://git.concreteinfo.co.in/api/v1',
     'tok',
@@ -15,7 +15,7 @@ const giteaAccount = () =>
   )
 
 const giteaAccountWithProvider = () =>
-  new ModelAccount(
+  new Account(
     'amit',
     'https://git.concreteinfo.co.in/api/v1',
     'tok',
