@@ -1,7 +1,12 @@
 import { BaseStore } from './base-store'
 import { AccountsStore } from './accounts-store'
 import { IAPIRepository, API } from '../api'
-import { Account, accountEquals } from '../../models/account'
+import { GiteaAPI } from '../gitea'
+import {
+  Account,
+  accountEquals,
+  isGiteaAccount,
+} from '../../models/account'
 import { merge } from '../merge'
 
 /**
@@ -81,8 +86,8 @@ export interface IAccountRepositories {
  * A store responsible for providing lists of repositories
  * that the currently signed in user(s) have explicit access
  * to. It's primary purpose is to serve state required for
- * the application to present a list of cloneable repositories
- * for a particular user.
+ * the application to present a list of cloneable
+ * repositories for a particular user.
  */
 export class ApiRepositoriesStore extends BaseStore {
   /**
@@ -195,34 +200,45 @@ export class ApiRepositoriesStore extends BaseStore {
       this.updateAccount(account, { repositories: [...repositories.values()] })
     }
 
-    const api = API.fromAccount(resolveAccount(account, this.accountState))
+    const resolvedAccount = resolveAccount(account, this.accountState)
 
-    // The vast majority of users have few repositories and no org affiliations.
-    // We'll start by making one request to load all repositories available to
-    // the user regardless of affiliation and only if that request isn't enough
-    // to load all repositories will we divvy up the requests and load
-    // repositories by owner and collaborator+org affiliation separately. This
-    // way we can avoid making unnecessary requests to the API for the majority
-    // of users while still improving the user experience for those users who
-    // have access to a lot of repositories and orgs.
-    await api.streamUserRepositories(addPage, undefined, {
-      async continue() {
-        // If the continue callback is called we know that the first request
-        // wasn't enough to load all repositories.
-        //
-        // For these users (with access to more than 100 repositories) we'll
-        // stream each of the three different affiliation types concurrently to
-        // minimize the time it takes to load all repositories.
-        await Promise.all([
-          api.streamUserRepositories(addPage, 'owner'),
-          api.streamUserRepositories(addPage, 'collaborator'),
-          api.streamUserRepositories(addPage, 'organization_member'),
-        ])
+    if (isGiteaAccount(resolvedAccount)) {
+      // Gitea accounts load their repositories through the GiteaAPI client.
+      // Gitea's /user/repos endpoint returns every repository the user has
+      // access to regardless of affiliation so there is no need for the
+      // affiliation-based request splitting done for GitHub accounts below.
+      const gitea = GiteaAPI.fromAccount(resolvedAccount)
+      await gitea.streamUserRepositories(addPage)
+    } else {
+      const api = API.fromAccount(resolvedAccount)
 
-        // Don't load more than one page in the initial stream request.
-        return false
-      },
-    })
+      // The vast majority of users have few repositories and no org affiliations.
+      // We'll start by making one request to load all repositories available to
+      // the user regardless of affiliation and only if that request isn't enough
+      // to load all repositories will we divvy up the requests and load
+      // repositories by owner and collaborator+org affiliation separately. This
+      // way we can avoid making unnecessary requests to the API for the majority
+      // of users while still improving the user experience for those users who
+      // have access to a lot of repositories and orgs.
+      await api.streamUserRepositories(addPage, undefined, {
+        async continue() {
+          // If the continue callback is called we know that the first request
+          // wasn't enough to load all repositories.
+          //
+          // For these users (with access to more than 100 repositories) we'll
+          // stream each of the three different affiliation types concurrently to
+          // minimize the time it takes to load all repositories.
+          await Promise.all([
+            api.streamUserRepositories(addPage, 'owner'),
+            api.streamUserRepositories(addPage, 'collaborator'),
+            api.streamUserRepositories(addPage, 'organization_member'),
+          ])
+
+          // Don't load more than one page in the initial stream request.
+          return false
+        },
+      })
+    }
 
     if (missing.size) {
       missing.forEach((_, clone_url) => repositories.delete(clone_url))

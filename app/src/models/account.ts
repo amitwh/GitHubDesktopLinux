@@ -42,6 +42,9 @@ export class Account {
    * @param isCopilotDesktopEnabled Whether Copilot for Desktop is enabled for this account
    * @param features The Desktop-specific features available to this account
    * @param copilotLicenseType The user's Copilot license type
+   * @param provider The hosting provider for this account. Only set ('gitea') by
+   *                 this fork's Gitea integration; absent means GitHub.com or
+   *                 GitHub Enterprise (see isGiteaAccount).
    */
   public constructor(
     public readonly login: string,
@@ -55,7 +58,8 @@ export class Account {
     public readonly copilotEndpoint?: string,
     public readonly isCopilotDesktopEnabled?: boolean,
     public readonly features?: ReadonlyArray<string>,
-    public readonly copilotLicenseType?: string
+    public readonly copilotLicenseType?: string,
+    public readonly provider?: 'gitea'
   ) {}
 
   public withToken(token: string): Account {
@@ -71,7 +75,8 @@ export class Account {
       this.copilotEndpoint,
       this.isCopilotDesktopEnabled,
       this.features,
-      this.copilotLicenseType
+      this.copilotLicenseType,
+      this.provider
     )
   }
 
@@ -112,3 +117,13 @@ export const isDotComAccount = (account: Account) =>
  */
 export const isEnterpriseAccount = (account: Account) =>
   !isDotComAccount(account)
+
+/**
+ * Whether or not the given account authenticates against a Gitea instance
+ * (as opposed to GitHub.com or GitHub Enterprise).
+ *
+ * Used by this fork's Gitea integration to dispatch API requests, repository
+ * loading, and account refreshes to the GiteaAPI client.
+ */
+export const isGiteaAccount = (account: Account) =>
+  account.provider === 'gitea'
