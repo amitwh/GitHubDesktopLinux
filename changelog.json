@@ -1,5 +1,8 @@
 {
   "releases": {
+    "3.6.5-beta1-linux1": [
+      "[Sync] Merged upstream development (up to b17e06dd0f, 71 commits since cc90c4deb9): upstream 3.6.4 final and 3.6.5-beta1 releases, migration to @electron/packager 18 (legacy macOS icons preserved), security dependency refresh (dompurify 3.4.13, postcss 8.5.26, undici, nanoid, ip-address), Azure storage dependency removed, Markdown lint tooling upgrade, image diff alignment fix (#21535), abort-rebase-with-unstashed-changes fix (#22536), protected-branch error handling fix (#22655)"
+    ],
     "3.6.4-beta1-linux4": [
       "[Sync] Merged upstream development (commit cc90c4deb9) — picks up 4 commits in the worktree-path recovery series: Persist the main worktree path for missing-worktree recovery (74ebcd235f), Re-resolve the main worktree path when a repository is relocated (e78b21461a), Treat a recorded main worktree path as a hint, not the answer (7186c92efa)",
       "[Improved] worktree-test.ts gains 5 new tests for resolveMainWorktreePath covering: resolves from persisted path after worktree metadata is gone, falls back to git dir when no path was persisted, returns null when repository is already main, falls back when persisted path is stale, returns null when neither is available — resolution preserves all existing parsePruneVerboseOutput / lockWorktree / pruneWorktrees / getWorktreeDirtyState describes alongside the new one"
@@ -32,6 +35,18 @@
       "[New] About dialog now shows a fork attribution block that clearly identifies this as an unofficial community-maintained Linux build, credits GitHub, Inc. as the original developer, and links to both the fork and upstream repositories",
       "[New] Meld diff viewer: per-line git blame gutter (Phase 2 T1) shows author and short commit SHA next to each right-side line of the editable side-by-side view; click a cell to open that commit in a new Meld window",
       "[Improved] Meld diff viewer: 14 new unit tests for the blame-to-diff alignment helpers, 10 new React component tests for the BlameGutter, and a typed meld:get-blame IPC channel for the main-process git blame wrapper"
+    "3.6.5-beta1": [
+      "[Fixed] Hooks taking input via stdin no longer error on Windows - #22620",
+      "[Improved] Update Git for Windows to v2.53.0.windows.4",
+      "[Improved] Update Git Credential Manager to 2.9.0"
+    ],
+    "3.6.4": [
+      "[Improved] Update Git for Windows to v2.53.0.windows.4",
+      "[Improved] Update Git Credential Manager to 2.9.0"
+    ],
+    "3.6.4-beta2": [
+      "[Fixed] Restore keyboard focus to the control that opened a nested dialog after that nested dialog is dismissed, fixing an accessibility focus-order issue",
+      "[Fixed] Persist the main worktree path so Desktop can recover a repository after a linked worktree is removed, even after git prunes its worktree metadata. Thanks @francisrath!"
     ],
     "3.6.4-beta1": [
       "[Added] Add Copilot usage info, moving custom provider configuration into a link from the Copilot model picker and adding better support for accounts with multiple Copilot licenses",
