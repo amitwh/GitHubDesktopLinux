@@ -340,19 +340,19 @@ describe('git/worktree', () => {
     })
 
     it('parses a single Would-remove entry (dry-run)', () => {
-      const output = "Would remove worktrees/wt-a: /path/to/wt-a\n"
+      const output = 'Would remove worktrees/wt-a: /path/to/wt-a\n'
       assert.deepStrictEqual(parsePruneVerboseOutput(output), ['/path/to/wt-a'])
     })
 
     it('parses a single Removing entry (live run)', () => {
-      const output = "Removing worktrees/wt-a: /path/to/wt-a\n"
+      const output = 'Removing worktrees/wt-a: /path/to/wt-a\n'
       assert.deepStrictEqual(parsePruneVerboseOutput(output), ['/path/to/wt-a'])
     })
 
     it('parses multiple entries', () => {
       const output =
-        "Would remove worktrees/wt-a: /path/to/wt-a\n" +
-        "Would remove worktrees/wt-b: /path/to/wt-b\n"
+        'Would remove worktrees/wt-a: /path/to/wt-a\n' +
+        'Would remove worktrees/wt-b: /path/to/wt-b\n'
       assert.deepStrictEqual(parsePruneVerboseOutput(output), [
         '/path/to/wt-a',
         '/path/to/wt-b',
@@ -361,13 +361,13 @@ describe('git/worktree', () => {
 
     it('skips lines that do not look like prune entries', () => {
       const output =
-        "Removing worktrees/wt-a: /path/to/wt-a\n" +
-        "Some other diagnostic message\n"
+        'Removing worktrees/wt-a: /path/to/wt-a\n' +
+        'Some other diagnostic message\n'
       assert.deepStrictEqual(parsePruneVerboseOutput(output), ['/path/to/wt-a'])
     })
 
     it('skips lines whose tail is not an absolute path', () => {
-      const output = "Removing worktrees/wt-a: relative/path\n"
+      const output = 'Removing worktrees/wt-a: relative/path\n'
       assert.deepStrictEqual(parsePruneVerboseOutput(output), [])
     })
   })

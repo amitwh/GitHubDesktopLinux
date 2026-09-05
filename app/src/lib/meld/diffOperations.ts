@@ -115,7 +115,8 @@ export function applyEdit(
 ): IMeldEditState {
   const nextLeft = side === 'left' ? newContent : state.leftContent
   const nextRight = side === 'right' ? newContent : state.rightContent
-  const hasChanges = nextLeft !== state.leftOriginal || nextRight !== state.rightOriginal
+  const hasChanges =
+    nextLeft !== state.leftOriginal || nextRight !== state.rightOriginal
   return {
     leftContent: nextLeft,
     rightContent: nextRight,

@@ -39,9 +39,13 @@ export class MergeConflictDialog extends React.Component<
 
   private onAcceptOurs = async (event: React.MouseEvent<HTMLButtonElement>) => {
     const path = event.currentTarget.getAttribute('data-conflict-path')
-    if (path === null) {return}
+    if (path === null) {
+      return
+    }
     const file = this.conflictedFiles.find(f => f.path === path)
-    if (!file) {return}
+    if (!file) {
+      return
+    }
     await checkoutConflictedFile(
       this.props.repository,
       file,
@@ -55,11 +59,17 @@ export class MergeConflictDialog extends React.Component<
     })
   }
 
-  private onAcceptTheirs = async (event: React.MouseEvent<HTMLButtonElement>) => {
+  private onAcceptTheirs = async (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
     const path = event.currentTarget.getAttribute('data-conflict-path')
-    if (path === null) {return}
+    if (path === null) {
+      return
+    }
     const file = this.conflictedFiles.find(f => f.path === path)
-    if (!file) {return}
+    if (!file) {
+      return
+    }
     await checkoutConflictedFile(
       this.props.repository,
       file,
@@ -73,11 +83,17 @@ export class MergeConflictDialog extends React.Component<
     })
   }
 
-  private onMarkResolved = async (event: React.MouseEvent<HTMLButtonElement>) => {
+  private onMarkResolved = async (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
     const path = event.currentTarget.getAttribute('data-conflict-path')
-    if (path === null) {return}
+    if (path === null) {
+      return
+    }
     const file = this.conflictedFiles.find(f => f.path === path)
-    if (!file) {return}
+    if (!file) {
+      return
+    }
     await addConflictedFile(this.props.repository, file)
     this.setState(prev => {
       const resolved = new Set(prev.resolvedFiles)
@@ -95,12 +111,16 @@ export class MergeConflictDialog extends React.Component<
    */
   private onOpenInMeldWindow = (event: React.MouseEvent<HTMLButtonElement>) => {
     const path = event.currentTarget.getAttribute('data-conflict-path')
-    if (path === null) {return}
+    if (path === null) {
+      return
+    }
     const file = this.conflictedFiles.find(f => f.path === path)
-    if (!file) {return}
+    if (!file) {
+      return
+    }
     void this.props.dispatcher.openInMeldWindowMergeMode(
       this.props.repository,
-      file.path,
+      file.path
     )
   }
 
@@ -122,17 +142,28 @@ export class MergeConflictDialog extends React.Component<
             return (
               <Row key={file.path} className="conflict-file">
                 <span className={isResolved ? 'resolved' : 'conflicted'}>
-                  <Ref>{file.path} {isResolved && '(resolved)'}</Ref>
+                  <Ref>
+                    {file.path} {isResolved && '(resolved)'}
+                  </Ref>
                 </span>
                 {!isResolved && (
                   <div className="button-group">
-                    <Button onClick={this.onAcceptOurs} data-conflict-path={file.path}>
+                    <Button
+                      onClick={this.onAcceptOurs}
+                      data-conflict-path={file.path}
+                    >
                       Ours
                     </Button>
-                    <Button onClick={this.onAcceptTheirs} data-conflict-path={file.path}>
+                    <Button
+                      onClick={this.onAcceptTheirs}
+                      data-conflict-path={file.path}
+                    >
                       Theirs
                     </Button>
-                    <Button onClick={this.onMarkResolved} data-conflict-path={file.path}>
+                    <Button
+                      onClick={this.onMarkResolved}
+                      data-conflict-path={file.path}
+                    >
                       Resolved
                     </Button>
                     <Button

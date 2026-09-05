@@ -63,8 +63,8 @@ export class ResetModeDialog extends React.Component<
       >
         <DialogContent>
           <p id="reset-mode-message">
-            Choose how {this.props.commit.sha.slice(0, 7)} should be reset.
-            This action rewrites branch history — coordinate with collaborators
+            Choose how {this.props.commit.sha.slice(0, 7)} should be reset. This
+            action rewrites branch history — coordinate with collaborators
             before pushing.
           </p>
           <RadioGroup<GitResetMode>

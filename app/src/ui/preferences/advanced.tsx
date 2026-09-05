@@ -156,14 +156,15 @@ export class Advanced extends React.Component<
           <Checkbox
             label="Automatically fetch when the window regains focus"
             value={
-              this.props.autoFetchOnFocus
-                ? CheckboxValue.On
-                : CheckboxValue.Off
+              this.props.autoFetchOnFocus ? CheckboxValue.On : CheckboxValue.Off
             }
             onChange={this.onAutoFetchOnFocusChanged}
             ariaDescribedBy="auto-fetch-on-focus-description"
           />
-          <div id="auto-fetch-on-focus-description" className="settings-description">
+          <div
+            id="auto-fetch-on-focus-description"
+            className="settings-description"
+          >
             <p>
               When enabled, GitHub Desktop will run <code>git fetch</code> on
               the currently selected repository whenever the window regains

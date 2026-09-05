@@ -48,7 +48,10 @@ export class DeleteWorktreeDialog extends React.Component<
   public componentDidUpdate(prevProps: IDeleteWorktreeDialogProps) {
     // If the dirty state arrives asynchronously, reset forceConfirm to
     // false so the user is forced to acknowledge dirty worktrees.
-    if (prevProps.dirtyState === undefined && this.props.dirtyState !== undefined) {
+    if (
+      prevProps.dirtyState === undefined &&
+      this.props.dirtyState !== undefined
+    ) {
       const ds = this.props.dirtyState
       const isDirty =
         (ds?.modifiedCount ?? 0) > 0 || (ds?.untrackedCount ?? 0) > 0
@@ -70,7 +73,9 @@ export class DeleteWorktreeDialog extends React.Component<
         type="warning"
         onSubmit={this.onSubmit}
         onDismissed={this.props.onDismissed}
-        disabled={this.state.isDeleting || (isDirty && !this.state.forceConfirm)}
+        disabled={
+          this.state.isDeleting || (isDirty && !this.state.forceConfirm)
+        }
         loading={this.state.isDeleting}
         role="alertdialog"
         ariaDescribedBy="delete-worktree-confirmation"
@@ -90,9 +95,7 @@ export class DeleteWorktreeDialog extends React.Component<
             <Checkbox
               label="I understand that uncommitted changes will be lost"
               value={
-                this.state.forceConfirm
-                  ? CheckboxValue.On
-                  : CheckboxValue.Off
+                this.state.forceConfirm ? CheckboxValue.On : CheckboxValue.Off
               }
               onChange={this.onForceConfirmChanged}
             />

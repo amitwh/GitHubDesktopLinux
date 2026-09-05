@@ -27,9 +27,7 @@ describe('submodule status classification', () => {
     return 'clean'
   }
 
-  function parseShaAndPath(
-    line: string
-  ): { sha: string; path: string } | null {
+  function parseShaAndPath(line: string): { sha: string; path: string } | null {
     const remainder = line.substring(1).trimStart()
     const parts = remainder.split(/\s+/)
     const sha = parts[0] ?? ''
@@ -42,28 +40,36 @@ describe('submodule status classification', () => {
 
   it('classifies " " prefix as clean', () => {
     assert.strictEqual(
-      classify(' 1eaabe34fc6f486367a176207420378f587d3b48 vendor/lib (v2.16.0)'),
+      classify(
+        ' 1eaabe34fc6f486367a176207420378f587d3b48 vendor/lib (v2.16.0)'
+      ),
       'clean'
     )
   })
 
   it('classifies "+" prefix as modified', () => {
     assert.strictEqual(
-      classify('+abcdef1234567890abcdef1234567890abcdef12 vendor/lib (v2.16.0)'),
+      classify(
+        '+abcdef1234567890abcdef1234567890abcdef12 vendor/lib (v2.16.0)'
+      ),
       'modified'
     )
   })
 
   it('classifies "-" prefix as uninitialized', () => {
     assert.strictEqual(
-      classify('-abcdef1234567890abcdef1234567890abcdef12 vendor/lib (v2.16.0)'),
+      classify(
+        '-abcdef1234567890abcdef1234567890abcdef12 vendor/lib (v2.16.0)'
+      ),
       'uninitialized'
     )
   })
 
   it('classifies "U" (merge conflict) prefix as clean', () => {
     assert.strictEqual(
-      classify('Uabcdef1234567890abcdef1234567890abcdef12 vendor/lib (v2.16.0)'),
+      classify(
+        'Uabcdef1234567890abcdef1234567890abcdef12 vendor/lib (v2.16.0)'
+      ),
       'clean'
     )
   })

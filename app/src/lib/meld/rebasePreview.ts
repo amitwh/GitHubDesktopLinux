@@ -145,7 +145,12 @@ export async function runGitShortstat(
   sha: string,
   deps: { readonly git: IGitLike }
 ): Promise<IRebaseCommitStats> {
-  const args: ReadonlyArray<string> = ['diff', '--shortstat', '--no-color', `${sha}^`]
+  const args: ReadonlyArray<string> = [
+    'diff',
+    '--shortstat',
+    '--no-color',
+    `${sha}^`,
+  ]
   try {
     const result = await deps.git(
       args as string[],

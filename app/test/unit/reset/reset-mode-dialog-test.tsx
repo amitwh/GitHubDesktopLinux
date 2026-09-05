@@ -69,9 +69,7 @@ class FakeDispatcher {
 // by the time the module evaluates (it transitively imports the Dialog
 // component, which captures `ipcRenderer.send` at module load).
 const DialogLazy = () =>
-  import('../../../src/ui/reset/reset-mode-dialog').then(
-    m => m.ResetModeDialog
-  )
+  import('../../../src/ui/reset/reset-mode-dialog').then(m => m.ResetModeDialog)
 
 describe('ResetModeDialog', () => {
   let dispatcher: FakeDispatcher

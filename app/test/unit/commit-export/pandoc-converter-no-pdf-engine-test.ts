@@ -3,7 +3,7 @@ import { EventEmitter } from 'node:events'
 import { Readable, Writable } from 'node:stream'
 import { afterEach, describe, it, mock } from 'node:test'
 
-interface MockChild extends EventEmitter {
+interface IMockChild extends EventEmitter {
   readonly stdin: Writable
   readonly stderr: Readable
 }
@@ -15,14 +15,18 @@ interface MockChild extends EventEmitter {
  */
 mock.module('child_process', {
   namedExports: {
-    spawn: (_cmd: string, _args: ReadonlyArray<string>, _options: Record<string, unknown>) => {
+    spawn: (
+      _cmd: string,
+      _args: ReadonlyArray<string>,
+      _options: Record<string, unknown>
+    ) => {
       const stdin = new Writable({
         write(_chunk, _encoding, callback) {
           callback()
         },
       })
       const stderr = new Readable({ read() {} })
-      const child: MockChild = Object.assign(new EventEmitter(), {
+      const child: IMockChild = Object.assign(new EventEmitter(), {
         stdin,
         stderr,
       })
@@ -30,7 +34,9 @@ mock.module('child_process', {
       // not available — simulating a fresh install with no LaTeX or
       // HTML→PDF engine.
       process.nextTick(() => child.emit('close', 1))
-      return child as unknown as ReturnType<typeof import('node:child_process').spawn>
+      return child as unknown as ReturnType<
+        typeof import('node:child_process').spawn
+      >
     },
   },
 })

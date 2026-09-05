@@ -107,12 +107,7 @@ describe('blameAlignment/alignBlameToDiff', () => {
   })
 
   it('increments newLineNumber for both + and  lines', () => {
-    const diff = [
-      '@@ -1,3 +1,3 @@',
-      ' context1',
-      '+added',
-      ' context2',
-    ]
+    const diff = ['@@ -1,3 +1,3 @@', ' context1', '+added', ' context2']
     const hunks: IBlameHunk[] = [makeHunk(0, 3, 'aaa')]
     const result = alignBlameToDiff(diff.join('\n'), hunks)
     assert.strictEqual(result.length, 3)
@@ -125,13 +120,7 @@ describe('blameAlignment/alignBlameToDiff', () => {
   it('resets the cursor when a new hunk header appears', () => {
     // Two diff hunks, blame has two hunk ranges — second diff hunk's
     // first line (line 5 in right side) should re-resolve blame.
-    const diff = [
-      '@@ -1,2 +1,2 @@',
-      '+a',
-      '+b',
-      '@@ -10,1 +10,1 @@',
-      '+c',
-    ]
+    const diff = ['@@ -1,2 +1,2 @@', '+a', '+b', '@@ -10,1 +10,1 @@', '+c']
     const hunks: IBlameHunk[] = [makeHunk(0, 2, 'aaa'), makeHunk(9, 1, 'bbb')]
     const result = alignBlameToDiff(diff.join('\n'), hunks)
     assert.strictEqual(result.length, 3)

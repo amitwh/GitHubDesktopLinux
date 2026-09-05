@@ -36,7 +36,9 @@ describe('MeldThreeWayView', () => {
 
   it('renders the base content in the BASE pane', () => {
     const { container } = render(<MeldThreeWayView {...defaultProps} />)
-    const basePane = container.querySelector('.meld-three-way-pane[data-side="base"]')
+    const basePane = container.querySelector(
+      '.meld-three-way-pane[data-side="base"]'
+    )
     assert.ok(basePane !== null, 'expected BASE pane')
     const pre = basePane!.querySelector('.meld-three-way-pre')
     assert.ok(pre !== null, 'expected .meld-three-way-pre in BASE pane')
@@ -45,7 +47,9 @@ describe('MeldThreeWayView', () => {
 
   it('renders the local content in the LOCAL pane', () => {
     const { container } = render(<MeldThreeWayView {...defaultProps} />)
-    const localPane = container.querySelector('.meld-three-way-pane[data-side="local"]')
+    const localPane = container.querySelector(
+      '.meld-three-way-pane[data-side="local"]'
+    )
     assert.ok(localPane !== null, 'expected LOCAL pane')
     const pre = localPane!.querySelector('.meld-three-way-pre')
     assert.ok(pre !== null, 'expected .meld-three-way-pre in LOCAL pane')
@@ -54,7 +58,9 @@ describe('MeldThreeWayView', () => {
 
   it('renders the remote content in the REMOTE pane', () => {
     const { container } = render(<MeldThreeWayView {...defaultProps} />)
-    const remotePane = container.querySelector('.meld-three-way-pane[data-side="remote"]')
+    const remotePane = container.querySelector(
+      '.meld-three-way-pane[data-side="remote"]'
+    )
     assert.ok(remotePane !== null, 'expected REMOTE pane')
     const pre = remotePane!.querySelector('.meld-three-way-pre')
     assert.ok(pre !== null, 'expected .meld-three-way-pre in REMOTE pane')
@@ -67,7 +73,7 @@ describe('MeldThreeWayView', () => {
       localContent: 'line4',
       remoteContent: 'lineB',
       startLine: 3, // 0-indexed: line4 is at index 3
-      endLine: 4,   // inclusive, line4-end (1-indexed: line 4)
+      endLine: 4, // inclusive, line4-end (1-indexed: line 4)
     }
     const { container } = render(
       <MeldThreeWayView {...defaultProps} activeHunk={activeHunk} />

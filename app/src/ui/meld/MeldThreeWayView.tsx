@@ -144,8 +144,8 @@ class Pane extends React.Component<
       return side === 'base'
         ? hunk.baseContent
         : side === 'local'
-          ? hunk.localContent
-          : hunk.remoteContent
+        ? hunk.localContent
+        : hunk.remoteContent
     }
 
     const isActive = (hunk: IDetectedHunk): boolean => {
@@ -215,7 +215,11 @@ class Pane extends React.Component<
 
     return (
       <div className="meld-three-way-pane" data-side={side}>
-        <div className="meld-three-way-pane-header" role="heading" aria-level={3}>
+        <div
+          className="meld-three-way-pane-header"
+          role="heading"
+          aria-level={3}
+        >
           {title}
         </div>
         <div className="meld-three-way-pane-body">
@@ -235,10 +239,18 @@ class Pane extends React.Component<
   }
 }
 
-export class MeldThreeWayView extends React.Component<IMeldThreeWayViewProps, {}> {
+export class MeldThreeWayView extends React.Component<
+  IMeldThreeWayViewProps,
+  {}
+> {
   public render() {
-    const { baseContent, localContent, remoteContent, activeHunk, onHunkClicked } =
-      this.props
+    const {
+      baseContent,
+      localContent,
+      remoteContent,
+      activeHunk,
+      onHunkClicked,
+    } = this.props
 
     const baseLines = baseContent.split('\n')
     const localLines = localContent.split('\n')

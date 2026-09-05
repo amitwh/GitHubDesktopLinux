@@ -196,9 +196,7 @@ export type RequestResponseChannels = {
   // Worktree Phase 1: compute disk usage for a set of worktree paths so
   // the renderer never blocks the list rendering on the file-system walk.
   // The handler is best-effort — missing paths yield `null` entries.
-  'worktree:compute-sizes': (req: {
-    paths: ReadonlyArray<string>
-  }) => Promise<{
+  'worktree:compute-sizes': (req: { paths: ReadonlyArray<string> }) => Promise<{
     sizes: ReadonlyArray<{ path: string; size: number } | null>
   }>
 }

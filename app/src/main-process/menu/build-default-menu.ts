@@ -83,7 +83,9 @@ function buildOpenRecentSubmenu(): Electron.MenuItemConstructorOptions[] {
     return [
       {
         id: 'open-recent-empty',
-        label: __DARWIN__ ? 'No Recent Repositories' : 'No &recent repositories',
+        label: __DARWIN__
+          ? 'No Recent Repositories'
+          : 'No &recent repositories',
         enabled: false,
       },
     ]
@@ -513,13 +515,17 @@ export function buildDefaultMenuTemplate({
         click: emit('show-repository-settings'),
       },
       {
-        label: __DARWIN__ ? 'Export Commit History…' : 'Export commit &history…',
+        label: __DARWIN__
+          ? 'Export Commit History…'
+          : 'Export commit &history…',
         id: 'export-commit-history',
         click: emit('export-commit-history'),
       },
       { type: 'separator' },
       {
-        label: __DARWIN__ ? 'Open Current File in Meld Window' : 'Open current file in &Meld window',
+        label: __DARWIN__
+          ? 'Open Current File in Meld Window'
+          : 'Open current file in &Meld window',
         id: 'open-current-file-in-meld-window',
         accelerator: 'CmdOrCtrl+Shift+D',
         click: emit('open-current-file-in-meld-window'),
@@ -618,9 +624,7 @@ export function buildDefaultMenuTemplate({
         click: emit('discard-all-working-tree-changes'),
       },
       {
-        label: __DARWIN__
-          ? 'Clean Untracked Files…'
-          : 'Clean untracked files…',
+        label: __DARWIN__ ? 'Clean Untracked Files…' : 'Clean untracked files…',
         id: 'clean-untracked-files',
         click: emit('clean-untracked-files'),
       },

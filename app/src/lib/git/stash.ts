@@ -310,11 +310,7 @@ export async function dropStashByName(
   repository: Repository,
   stashName: string
 ): Promise<void> {
-  await git(
-    ['stash', 'drop', stashName],
-    repository.path,
-    'dropStashByName'
-  )
+  await git(['stash', 'drop', stashName], repository.path, 'dropStashByName')
 }
 
 function extractBranchFromMessage(message: string): string | null {

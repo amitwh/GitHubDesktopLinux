@@ -73,9 +73,9 @@ describe('MeldBlameGutter', () => {
     const { container } = render(
       <MeldBlameGutter lines={lines} onOpenCommit={() => undefined} />
     )
-    const cell = container.querySelector('.meld-blame-gutter-cell') as
-      | HTMLElement
-      | null
+    const cell = container.querySelector(
+      '.meld-blame-gutter-cell'
+    ) as HTMLElement | null
     assert.ok(cell !== null)
     const ariaLabel = cell!.getAttribute('aria-label') ?? ''
     assert.ok(
@@ -94,9 +94,9 @@ describe('MeldBlameGutter', () => {
     const { container } = render(
       <MeldBlameGutter lines={lines} onOpenCommit={() => undefined} />
     )
-    const cell = container.querySelector('.meld-blame-gutter-cell') as
-      | HTMLElement
-      | null
+    const cell = container.querySelector(
+      '.meld-blame-gutter-cell'
+    ) as HTMLElement | null
     assert.ok(cell !== null)
     const ariaLabel = cell!.getAttribute('aria-label') ?? ''
     assert.ok(ariaLabel.includes('Bob'), 'expected author in aria-label')
@@ -177,9 +177,9 @@ describe('MeldBlameGutter', () => {
     const { container } = render(
       <MeldBlameGutter lines={[null]} onOpenCommit={() => undefined} />
     )
-    const list = container.querySelector('ol.meld-blame-gutter') as
-      | HTMLElement
-      | null
+    const list = container.querySelector(
+      'ol.meld-blame-gutter'
+    ) as HTMLElement | null
     assert.ok(list !== null, 'expected an <ol> root')
     assert.strictEqual(
       list!.getAttribute('aria-label'),

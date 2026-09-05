@@ -55,7 +55,8 @@ describe('git/merge-file: parseMergeFileResult', () => {
     // git merge-file --union may return exit 0 even if it wrote markers;
     // the parser counts markers so this would be conflictCount > 0,
     // but the contract says exit 0 means clean per git merge-file spec
-    const contentWithMarkers = '<<<<<<< HEAD\ntext\n=======\ntext\n>>>>>>> branch'
+    const contentWithMarkers =
+      '<<<<<<< HEAD\ntext\n=======\ntext\n>>>>>>> branch'
     const result = parseMergeFileResult(contentWithMarkers, 0)
     // When exit is 0 we trust the exit code over marker count
     assert.strictEqual(result.clean, true)

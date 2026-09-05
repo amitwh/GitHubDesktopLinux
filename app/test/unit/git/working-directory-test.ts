@@ -1,6 +1,12 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
-import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync } from 'fs'
+import {
+  mkdtempSync,
+  writeFileSync,
+  readFileSync,
+  existsSync,
+  rmSync,
+} from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { Repository } from '../../../src/models/repository'

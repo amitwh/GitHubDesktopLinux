@@ -17,7 +17,10 @@ export interface IMeldCopyButtonsProps {
  * The buttons are presentational: they call back into the parent's
  * `onCopyLeft` / `onCopyRight` handlers with the hunk index.
  */
-export class MeldCopyButtons extends React.Component<IMeldCopyButtonsProps, {}> {
+export class MeldCopyButtons extends React.Component<
+  IMeldCopyButtonsProps,
+  {}
+> {
   private onCopyLeftClicked = () => {
     this.props.onCopyLeft(this.props.hunkIndex)
   }
@@ -32,7 +35,9 @@ export class MeldCopyButtons extends React.Component<IMeldCopyButtonsProps, {}> 
       <div
         className="meld-copy-buttons"
         role="group"
-        aria-label={label ? `Hunk ${hunkIndex + 1}: ${label}` : `Hunk ${hunkIndex + 1}`}
+        aria-label={
+          label ? `Hunk ${hunkIndex + 1}: ${label}` : `Hunk ${hunkIndex + 1}`
+        }
       >
         <button
           type="button"

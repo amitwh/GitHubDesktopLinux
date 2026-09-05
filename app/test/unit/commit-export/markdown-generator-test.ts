@@ -1,7 +1,10 @@
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
 
-import { generateMarkdown, IMarkdownGeneratorOptions } from '../../../src/lib/commit-export/markdown-generator'
+import {
+  generateMarkdown,
+  IMarkdownGeneratorOptions,
+} from '../../../src/lib/commit-export/markdown-generator'
 import { Commit } from '../../../src/models/commit'
 import { CommitIdentity } from '../../../src/models/commit-identity'
 
@@ -115,7 +118,10 @@ describe('commit-export/markdown-generator', () => {
     })
 
     it('omits the author line when includeAuthor is false', () => {
-      const commit = makeCommit({ authorName: 'Should Not Appear', summary: 'foo' })
+      const commit = makeCommit({
+        authorName: 'Should Not Appear',
+        summary: 'foo',
+      })
 
       const md = generateMarkdown([commit], 'demo-repo', {
         ...allFieldsOn,
@@ -127,7 +133,12 @@ describe('commit-export/markdown-generator', () => {
 
     it('omits the date line when includeDate is false', () => {
       const md = generateMarkdown(
-        [makeCommit({ summary: 'foo', authorDate: new Date('2030-01-01T00:00:00.000Z') })],
+        [
+          makeCommit({
+            summary: 'foo',
+            authorDate: new Date('2030-01-01T00:00:00.000Z'),
+          }),
+        ],
         'demo-repo',
         { ...allFieldsOn, includeDate: false }
       )
@@ -183,7 +194,9 @@ describe('commit-export/markdown-generator', () => {
       assert.ok(md.includes('*<author>*'))
       assert.ok(md.includes('feat: <script>alert("xss")</script>'))
       assert.ok(
-        md.includes('Body with `code` and **bold** and [link](http://example.com)')
+        md.includes(
+          'Body with `code` and **bold** and [link](http://example.com)'
+        )
       )
     })
 

@@ -35,7 +35,12 @@ describe('external-tool-args/substituteArgs', () => {
       rightPath: '/tmp/b.txt',
       basePath: '/tmp/base.txt',
     })
-    assert.deepEqual(result, ['meld', '/tmp/base.txt', '/tmp/a.txt', '/tmp/b.txt'])
+    assert.deepEqual(result, [
+      'meld',
+      '/tmp/base.txt',
+      '/tmp/a.txt',
+      '/tmp/b.txt',
+    ])
   })
 
   it('throws when %B is requested but basePath is not provided', () => {

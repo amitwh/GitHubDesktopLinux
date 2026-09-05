@@ -1,12 +1,7 @@
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
 import * as React from 'react'
-import {
-  mkdtempSync,
-  writeFileSync,
-  mkdirSync,
-  rmSync,
-} from 'fs'
+import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 

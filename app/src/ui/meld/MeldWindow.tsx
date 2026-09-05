@@ -5,13 +5,26 @@ import { IMeldEditState } from '../../models/meld-edit'
 import { IThreeWayState, IConflictHunk } from '../../models/meld-merge'
 import { MeldFileTree, IMeldFile } from './MeldFileTree'
 import { MeldDiffPane } from './MeldDiffPane'
-import { MeldToolbar, IMeldFilter, IMeldMode, IMeldEditMode } from './MeldToolbar'
+import {
+  MeldToolbar,
+  IMeldFilter,
+  IMeldMode,
+  IMeldEditMode,
+} from './MeldToolbar'
 import { MeldThreeWayView } from './MeldThreeWayView'
 import { MeldMergedPane } from './MeldMergedPane'
 import { MeldMergeControls } from './MeldMergeControls'
 import { MeldStashView } from './MeldStashView'
-import { applyEdit, revertEdits, copyHunk, IHunkRange } from '../../lib/meld/diffOperations'
-import { applyHunkResolution, buildConflictHunks } from '../../lib/meld/conflictMarkers'
+import {
+  applyEdit,
+  revertEdits,
+  copyHunk,
+  IHunkRange,
+} from '../../lib/meld/diffOperations'
+import {
+  applyHunkResolution,
+  buildConflictHunks,
+} from '../../lib/meld/conflictMarkers'
 
 export type IMeldWindowMode = 'working' | 'commit' | 'merge' | 'stash'
 
@@ -183,7 +196,10 @@ function editStateFromDiff(diff: IDiff | null): IMeldEditState | null {
   }
 }
 
-export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowState> {
+export class MeldWindow extends React.Component<
+  IMeldWindowProps,
+  IMeldWindowState
+> {
   public constructor(props: IMeldWindowProps) {
     super(props)
     this.state = {
@@ -257,8 +273,7 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
     } catch (e) {
       this.setState({
         diffLoading: false,
-        errorMessage:
-          e instanceof Error ? e.message : 'Failed to load diff',
+        errorMessage: e instanceof Error ? e.message : 'Failed to load diff',
       })
     }
   }
@@ -349,9 +364,10 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
         // Best-effort — fall through to the save.
       }
     }
-    const content = side === 'left'
-      ? this.state.editState.leftContent
-      : this.state.editState.rightContent
+    const content =
+      side === 'left'
+        ? this.state.editState.leftContent
+        : this.state.editState.rightContent
     const result = await this.props.onSaveEdit(
       this.props.repositoryID,
       this.props.filePath,
@@ -388,10 +404,7 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
     }
   }
 
-  private onCopyHunk = (
-    hunkIndex: number,
-    direction: 'left' | 'right'
-  ) => {
+  private onCopyHunk = (hunkIndex: number, direction: 'left' | 'right') => {
     if (this.state.editState === null) {
       return
     }
@@ -399,12 +412,14 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
     // For 1b we use the entire content as the source/target — a
     // simpler approximation of the per-hunk copy that will be
     // refined in 1c once we have structured hunk ranges.
-    const target = direction === 'left'
-      ? this.state.editState.leftContent
-      : this.state.editState.rightContent
-    const source = direction === 'left'
-      ? this.state.editState.rightContent
-      : this.state.editState.leftContent
+    const target =
+      direction === 'left'
+        ? this.state.editState.leftContent
+        : this.state.editState.rightContent
+    const source =
+      direction === 'left'
+        ? this.state.editState.rightContent
+        : this.state.editState.leftContent
     const range: IHunkRange = { start: hunkIndex, end: hunkIndex }
     const next = copyHunk(source, target, range)
     this.onEditorChange(direction, next)
@@ -445,7 +460,11 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
    * space (which would require accounting for conflict marker lines that
    * exist only in the MERGED file).
    */
-  private computeBaseHunks(baseLines: ReadonlyArray<string>, localLines: ReadonlyArray<string>, remoteLines: ReadonlyArray<string>): IConflictHunk[] {
+  private computeBaseHunks(
+    baseLines: ReadonlyArray<string>,
+    localLines: ReadonlyArray<string>,
+    remoteLines: ReadonlyArray<string>
+  ): IConflictHunk[] {
     const hunks: IConflictHunk[] = []
     let i = 0
 
@@ -495,7 +514,9 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
    */
   private getActiveHunk(hunkIndex: number): IConflictHunk | null {
     const { threeWayState } = this.props
-    if (!threeWayState) {return null}
+    if (!threeWayState) {
+      return null
+    }
 
     const baseLines = threeWayState.baseContent.split('\n')
     const localLines = threeWayState.localContent.split('\n')
@@ -505,9 +526,14 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
     return baseHunks[hunkIndex] ?? null
   }
 
-  private onMergeHunkResolved = (hunkIndex: number, side: 'base' | 'local' | 'remote') => {
+  private onMergeHunkResolved = (
+    hunkIndex: number,
+    side: 'base' | 'local' | 'remote'
+  ) => {
     const { mergedContent } = this.state
-    if (!mergedContent) {return}
+    if (!mergedContent) {
+      return
+    }
 
     const updated = applyHunkResolution(mergedContent, hunkIndex, side)
     this.setState({ mergedContent: updated })
@@ -518,17 +544,19 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
         this.props.repositoryID,
         this.props.filePath,
         hunkIndex,
-        side,
+        side
       )
     }
   }
 
   private onMergeAutoMerge = async () => {
-    if (!this.props.onAutoMerge) {return}
+    if (!this.props.onAutoMerge) {
+      return
+    }
     try {
       const result = await this.props.onAutoMerge(
         this.props.repositoryID,
-        this.props.filePath,
+        this.props.filePath
       )
       this.setState({ mergedContent: result.mergedContent })
     } catch (e) {
@@ -540,15 +568,19 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
 
   private onMergeMarkResolved = async () => {
     const { mergedContent } = this.state
-    if (!mergedContent || !this.props.onMarkMergeResolved) {return}
+    if (!mergedContent || !this.props.onMarkMergeResolved) {
+      return
+    }
 
     const result = await this.props.onMarkMergeResolved(
       this.props.repositoryID,
       this.props.filePath,
-      mergedContent,
+      mergedContent
     )
     if (!result.success) {
-      this.setState({ errorMessage: result.error || 'Failed to mark as resolved' })
+      this.setState({
+        errorMessage: result.error || 'Failed to mark as resolved',
+      })
     }
   }
 
@@ -560,19 +592,53 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
     // Find the index of this hunk in BASE-coord space by matching startLine/endLine.
     // (The hunk was produced by computeBaseHunks so we can use index lookup.)
     const { threeWayState } = this.props
-    if (!threeWayState) {return}
+    if (!threeWayState) {
+      return
+    }
 
     const baseLines = threeWayState.baseContent.split('\n')
     const localLines = threeWayState.localContent.split('\n')
     const remoteLines = threeWayState.remoteContent.split('\n')
     const baseHunks = this.computeBaseHunks(baseLines, localLines, remoteLines)
-    const idx = baseHunks.findIndex(h => h.startLine === hunk.startLine && h.endLine === hunk.endLine)
+    const idx = baseHunks.findIndex(
+      h => h.startLine === hunk.startLine && h.endLine === hunk.endLine
+    )
     this.setState({ activeHunkIndex: idx >= 0 ? idx : null })
   }
 
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
+
+  private handleGetStashes = async () => {
+    const getStashes = this.props.onGetStashes
+
+    if (getStashes === undefined) {
+      return []
+    }
+
+    return getStashes(this.props.repositoryID)
+  }
+
+  private handleGetStashFiles = async (stashSha: string) => {
+    const getStashFiles = this.props.onGetStashFiles
+
+    if (getStashFiles === undefined) {
+      return []
+    }
+
+    return getStashFiles(this.props.repositoryID, stashSha)
+  }
+
+  private handleStashFileSelected = (stashSha: string, filePath: string) => {
+    const onStashFileSelected = this.props.onStashFileSelected
+
+    if (onStashFileSelected === undefined) {
+      return
+    }
+
+    void onStashFileSelected(this.props.repositoryID, stashSha, filePath)
+  }
 
   public render() {
     const { files, availableTools, filePath, mode: windowMode } = this.props
@@ -666,7 +732,9 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
         activeHunkIndex !== null ? this.getActiveHunk(activeHunkIndex) : null
 
       // Recompute conflict hunks in MERGED space for the action bars.
-      const mergedHunks = buildConflictHunks(mergedContent ?? threeWayState.mergedContent)
+      const mergedHunks = buildConflictHunks(
+        mergedContent ?? threeWayState.mergedContent
+      )
       const hasUnresolvedConflicts = mergedHunks.length > 0
 
       return (
@@ -729,13 +797,9 @@ export class MeldWindow extends React.Component<IMeldWindowProps, IMeldWindowSta
           {errorBanner}
           <div className="meld-window-body meld-stash-body">
             <MeldStashView
-              onGetStashes={async () => getStashes(this.props.repositoryID)}
-              onGetStashFiles={async sha =>
-                getStashFiles(this.props.repositoryID, sha)
-              }
-              onFileSelected={async (sha, filePath) =>
-                onStashFileSelected(this.props.repositoryID, sha, filePath)
-              }
+              onGetStashes={this.handleGetStashes}
+              onGetStashFiles={this.handleGetStashFiles}
+              onFileSelected={this.handleStashFileSelected}
             />
           </div>
           {footer}

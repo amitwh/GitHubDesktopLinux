@@ -1688,7 +1688,10 @@ export class Dispatcher {
   }
 
   /** Open the Meld-style diff viewer for the given file. */
-  public openInMeldWindow(repository: Repository, filePath: string): Promise<void> {
+  public openInMeldWindow(
+    repository: Repository,
+    filePath: string
+  ): Promise<void> {
     // Track the session in app-state and ask main process to open the
     // BrowserWindow. Main process owns the lifecycle.
     void this.appStore._addMeldSession({
@@ -1714,7 +1717,9 @@ export class Dispatcher {
 
   /** Close a Meld window session. */
   public closeMeldWindow(sessionID: string): Promise<void> {
-    return this.appStore._removeMeldSession(sessionID) as unknown as Promise<void>
+    return this.appStore._removeMeldSession(
+      sessionID
+    ) as unknown as Promise<void>
   }
 
   /** Read the configured list of external diff tools. */
@@ -1739,10 +1744,7 @@ export class Dispatcher {
    * in-memory only; the user must click Save to flush to disk and
    * stage, or Discard to drop it.
    */
-  public setMeldPendingEdit(
-    sessionID: string,
-    content: string
-  ): Promise<void> {
+  public setMeldPendingEdit(sessionID: string, content: string): Promise<void> {
     this.appStore._setMeldPendingEdit(sessionID, content)
     return Promise.resolve()
   }
@@ -1785,9 +1787,7 @@ export class Dispatcher {
    * Phase 1b: drop the pending edit for a Meld session. Called when
    * the user clicks Discard or closes the Meld window without saving.
    */
-  public discardMeldEdit(
-    sessionID: string
-  ): Promise<void> {
+  public discardMeldEdit(sessionID: string): Promise<void> {
     this.appStore._clearMeldPendingEdit(sessionID)
     return Promise.resolve()
   }
@@ -1864,7 +1864,9 @@ export class Dispatcher {
     commitSha: string
   ): Promise<void> {
     if (typeof commitSha !== 'string' || commitSha.length === 0) {
-      throw new Error('openInMeldWindowCommitMode requires a non-empty commitSha')
+      throw new Error(
+        'openInMeldWindowCommitMode requires a non-empty commitSha'
+      )
     }
     const sessionID = `${repository.id}:${filePath}:commit:${commitSha}`
     void this.appStore._addMeldSession({
@@ -1889,9 +1891,7 @@ export class Dispatcher {
    * The renderer mounts `MeldStashView` and the user can browse stash
    * entries and drill into file diffs.
    */
-  public openInMeldWindowStashMode(
-    repository: Repository
-  ): Promise<void> {
+  public openInMeldWindowStashMode(repository: Repository): Promise<void> {
     const sessionID = `${repository.id}:stash:list`
     void this.appStore._addMeldSession({
       id: sessionID,
@@ -1915,10 +1915,7 @@ export class Dispatcher {
    * `openInMeldWindowCommitMode` that the `reflog-dialog` calls from
    * its per-row "Open in Meld" button.
    */
-  public openReflogInMeld(
-    repository: Repository,
-    sha: string
-  ): Promise<void> {
+  public openReflogInMeld(repository: Repository, sha: string): Promise<void> {
     return this.openInMeldWindowCommitMode(repository, '.', sha)
   }
 
@@ -1944,24 +1941,24 @@ export class Dispatcher {
     const { buildConflictHunks } = conflictMarkersModule
 
     // Resolve the local / theirs / merge-base SHAs via the shared helper.
-    const { theirsSha, mergeBaseSha } = await this._resolveMergeShas(
-      repository
-    )
+    const { theirsSha, mergeBaseSha } = await this._resolveMergeShas(repository)
 
     // Read the three sides of the conflict.
-    const { baseContent, localContent, remoteContent } = await readThreeWayContents(
-      repository,
-      filePath,
-      mergeBaseSha ?? '',
-      theirsSha
-    )
+    const { baseContent, localContent, remoteContent } =
+      await readThreeWayContents(
+        repository,
+        filePath,
+        mergeBaseSha ?? '',
+        theirsSha
+      )
 
     // The MERGED content is read from the working tree (it contains conflict
     // markers if the file is still unresolved).
     const { readWorkingDirectoryFile } = await import(
       '../../lib/git/working-directory'
     )
-    const mergedContent = (await readWorkingDirectoryFile(repository, filePath)) ?? ''
+    const mergedContent =
+      (await readWorkingDirectoryFile(repository, filePath)) ?? ''
 
     // Parse conflict hunks from the MERGED file.
     const hunks = buildConflictHunks(mergedContent)
@@ -1990,9 +1987,11 @@ export class Dispatcher {
    * renderer via the URL hash, so the window can fetch the state on
    * mount without needing another round-trip through the dispatcher).
    */
-  private async _resolveMergeShas(
-    repository: Repository
-  ): Promise<{ localSha: string; theirsSha: string; mergeBaseSha: string | null }> {
+  private async _resolveMergeShas(repository: Repository): Promise<{
+    localSha: string
+    theirsSha: string
+    mergeBaseSha: string | null
+  }> {
     const { getMergeBase } = await import('../../lib/git/merge')
 
     const repositoryState = this.repositoryStateManager.get(repository)
@@ -2080,12 +2079,13 @@ export class Dispatcher {
     }
 
     const mergeBaseSha = await getMergeBase(repository, localSha, theirsSha)
-    const { baseContent, localContent, remoteContent } = await readThreeWayContents(
-      repository,
-      filePath,
-      mergeBaseSha ?? '',
-      theirsSha
-    )
+    const { baseContent, localContent, remoteContent } =
+      await readThreeWayContents(
+        repository,
+        filePath,
+        mergeBaseSha ?? '',
+        theirsSha
+      )
 
     // Write the three sides to temp files for `git merge-file`.
     const { writeFile, mkdtemp, rm } = await import('fs/promises')
@@ -2106,7 +2106,12 @@ export class Dispatcher {
 
       const { gitMergeFile } = await import('../../lib/git/merge-file')
       // gitMergeFile writes merged output to basePath in place.
-      const result = await gitMergeFile(repository, basePath, oursPath, theirsPath)
+      const result = await gitMergeFile(
+        repository,
+        basePath,
+        oursPath,
+        theirsPath
+      )
 
       // Read back the merged result from basePath (git merge-file writes in-place).
       const { readFile } = await import('fs/promises')
@@ -2131,9 +2136,8 @@ export class Dispatcher {
   ): Promise<{ success: boolean; error?: string }> {
     const sessionID = `${repository.id}:${filePath}:merge`
     try {
-      const { writeWorkingDirectoryFile, stageWorkingDirectoryFile } = await import(
-        '../../lib/git/working-directory'
-      )
+      const { writeWorkingDirectoryFile, stageWorkingDirectoryFile } =
+        await import('../../lib/git/working-directory')
       await writeWorkingDirectoryFile(repository, filePath, mergedContent)
       await stageWorkingDirectoryFile(repository, filePath)
       this.appStore._clearMeldPendingEdit(sessionID)
@@ -3130,7 +3134,10 @@ export class Dispatcher {
    * and dispatches an `ICompareToBranch` action with `Behind` mode, which
    * is the default "what would I merge in?" comparison.
    */
-  public openCompareView(repository: Repository, branch: Branch): Promise<void> {
+  public openCompareView(
+    repository: Repository,
+    branch: Branch
+  ): Promise<void> {
     return this.executeCompare(repository, {
       kind: HistoryTabMode.Compare,
       branch,
@@ -5181,8 +5188,7 @@ export class Dispatcher {
     // from the working-directory state; if for some reason it's not
     // available we just pass an empty list and let the dialog render.
     const repoState = this.repositoryStateManager.get(repository)
-    const files =
-      repoState.changesState.workingDirectory.files ?? []
+    const files = repoState.changesState.workingDirectory.files ?? []
 
     this.showPopup({
       type: PopupType.ConfirmDiscardChanges,

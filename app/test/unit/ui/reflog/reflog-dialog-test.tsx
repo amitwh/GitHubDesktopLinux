@@ -35,7 +35,10 @@ describe('ReflogDialog wiring contract', () => {
       lastFetched: null,
     } as never
 
-    const result: Promise<void> = fakeDispatcher.openReflogInMeld(fakeRepo, 'abc123')
+    const result: Promise<void> = fakeDispatcher.openReflogInMeld(
+      fakeRepo,
+      'abc123'
+    )
 
     assert.strictEqual(captured.sha, 'abc123')
     assert.strictEqual(captured.repo, fakeRepo)

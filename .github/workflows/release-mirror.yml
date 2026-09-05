@@ -27,7 +27,10 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version. Must match ^[0-9]+\.[0-9]+\.[0-9]+(-[a-z0-9.]+)?$ (e.g. 3.6.4-beta1-linux3 or 3.6.4-beta1-windows). Leave empty to derive from app/package.json.'
+        description:
+          'Release version. Must match ^[0-9]+\.[0-9]+\.[0-9]+(-[a-z0-9.]+)?$
+          (e.g. 3.6.4-beta1-linux3 or 3.6.4-beta1-windows). Leave empty to
+          derive from app/package.json.'
         required: false
         default: ''
         type: string
@@ -41,7 +44,9 @@ on:
           - windows
           - both
       notes:
-        description: 'Optional release notes (Markdown). Capped at 16 KiB; shell-expansion patterns are rejected.'
+        description:
+          'Optional release notes (Markdown). Capped at 16 KiB; shell-expansion
+          patterns are rejected.'
         required: false
         default: ''
         type: string
@@ -150,8 +155,12 @@ jobs:
       - name: Production build
         run: yarn build:prod
 
-      - name: Package Linux (deb + AppImage + snap; flatpak skipped — requires flatpak CLI on host)
-        run: npx electron-builder --linux deb AppImage snap --prepackaged dist/GithubDesktopLinux-linux-x64 --publish never
+      - name:
+          Package Linux (deb + AppImage + snap; flatpak skipped — requires
+          flatpak CLI on host)
+        run:
+          npx electron-builder --linux deb AppImage snap --prepackaged
+          dist/GithubDesktopLinux-linux-x64 --publish never
 
       - name: Publish to public mirror
         uses: softprops/action-gh-release@e7a8f85e1c67a31e6ed99a94b41bd0b71bbee6b8 # v2.0.9

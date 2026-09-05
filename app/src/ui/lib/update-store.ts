@@ -381,4 +381,6 @@ class UpdateStore {
 // `ipcRenderer` events that don't exist in the main process, so only
 // instantiate the singleton in the renderer.
 export const updateStore =
-  typeof window !== 'undefined' ? new UpdateStore() : (undefined as unknown as UpdateStore)
+  typeof window !== 'undefined'
+    ? new UpdateStore()
+    : (undefined as unknown as UpdateStore)

@@ -842,8 +842,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
    * Background fetch interval in minutes. Defaults to 15; persisted via the
    * Performance preferences tab.
    */
-  private maxBackgroundFetchInterval: number =
-    maxBackgroundFetchIntervalDefault
+  private maxBackgroundFetchInterval: number = maxBackgroundFetchIntervalDefault
 
   /**
    * Whether performance tracing is enabled in the renderer. Defaults to
@@ -859,7 +858,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
     new Map()
   private byokProviders: ReadonlyArray<IBYOKProvider> = []
   private meldSessions: ReadonlyArray<IMeldSession> = []
-  private externalTools: ReadonlyArray<IExternalTool> = getDefaultExternalTools()
+  private externalTools: ReadonlyArray<IExternalTool> =
+    getDefaultExternalTools()
   private meldPendingEdits: ReadonlyMap<string, string> = new Map()
   private meldThreeWayStates: ReadonlyMap<string, IThreeWayState> = new Map()
 
@@ -2815,7 +2815,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
       autoFetchOnFocusDefault
     )
     this.useMeldForDiff = getBoolean(useMeldForDiffKey, useMeldForDiffDefault)
-    this.useMeldForMerge = getBoolean(useMeldForMergeKey, useMeldForMergeDefault)
+    this.useMeldForMerge = getBoolean(
+      useMeldForMergeKey,
+      useMeldForMergeDefault
+    )
     this.fallbackToInlineDiff = getBoolean(
       fallbackToInlineDiffKey,
       fallbackToInlineDiffDefault

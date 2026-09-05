@@ -859,24 +859,16 @@ export class Preferences extends React.Component<
       case PreferencesTab.Performance:
         View = (
           <Performance
-            disableHardwareAcceleration={
-              this.state.disableHardwareAcceleration
-            }
+            disableHardwareAcceleration={this.state.disableHardwareAcceleration}
             enableSmoothScrolling={this.state.enableSmoothScrolling}
             limitConcurrentGitOps={this.state.limitConcurrentGitOps}
-            maxBackgroundFetchInterval={
-              this.state.maxBackgroundFetchInterval
-            }
+            maxBackgroundFetchInterval={this.state.maxBackgroundFetchInterval}
             enablePerfTracing={this.state.enablePerfTracing}
             onDisableHardwareAccelerationChanged={
               this.onDisableHardwareAccelerationChanged
             }
-            onEnableSmoothScrollingChanged={
-              this.onEnableSmoothScrollingChanged
-            }
-            onLimitConcurrentGitOpsChanged={
-              this.onLimitConcurrentGitOpsChanged
-            }
+            onEnableSmoothScrollingChanged={this.onEnableSmoothScrollingChanged}
+            onLimitConcurrentGitOpsChanged={this.onLimitConcurrentGitOpsChanged}
             onMaxBackgroundFetchIntervalChanged={
               this.onMaxBackgroundFetchIntervalChanged
             }
@@ -1342,9 +1334,7 @@ export class Preferences extends React.Component<
     if (this.props.useMeldForMerge !== this.state.useMeldForMerge) {
       dispatcher.setUseMeldForMerge(this.state.useMeldForMerge)
     }
-    if (
-      this.props.fallbackToInlineDiff !== this.state.fallbackToInlineDiff
-    ) {
+    if (this.props.fallbackToInlineDiff !== this.state.fallbackToInlineDiff) {
       dispatcher.setFallbackToInlineDiff(this.state.fallbackToInlineDiff)
     }
     if (this.props.confirmShellOpen !== this.state.confirmShellOpen) {

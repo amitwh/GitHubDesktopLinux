@@ -4,11 +4,7 @@ export type { IMeldWindowProps, IMeldWindowMode } from './MeldWindow'
 export { MeldStashView } from './MeldStashView'
 export type { IMeldStashViewProps } from './MeldStashView'
 export { MeldFileTree } from './MeldFileTree'
-export type {
-  IMeldFile,
-  IMeldFileTreeProps,
-  IFileStatus,
-} from './MeldFileTree'
+export type { IMeldFile, IMeldFileTreeProps, IFileStatus } from './MeldFileTree'
 export { MeldDiffPane } from './MeldDiffPane'
 export type { IMeldDiffPaneProps } from './MeldDiffPane'
 export { MeldToolbar } from './MeldToolbar'

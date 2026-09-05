@@ -8,7 +8,7 @@ export interface IMeldMergedPaneProps {
   readonly onContentChange: (content: string) => void
   readonly onHunkResolved: (
     hunkIndex: number,
-    side: 'base' | 'local' | 'remote',
+    side: 'base' | 'local' | 'remote'
   ) => void
 }
 
@@ -27,9 +27,11 @@ class HunkActionBar extends React.Component<
   {}
 > {
   private handleClick = (event: React.MouseEvent<HTMLButtonElement>): void => {
-    const side = event.currentTarget.getAttribute(
-      'data-side'
-    ) as 'base' | 'local' | 'remote' | null
+    const side = event.currentTarget.getAttribute('data-side') as
+      | 'base'
+      | 'local'
+      | 'remote'
+      | null
     if (side === null) {
       return
     }
@@ -124,7 +126,7 @@ export class MeldMergedPane extends React.Component<IMeldMergedPaneProps> {
 
   private onResolveClick = (
     hunkIndex: number,
-    side: 'base' | 'local' | 'remote',
+    side: 'base' | 'local' | 'remote'
   ) => {
     this.props.onHunkResolved(hunkIndex, side)
   }
@@ -133,16 +135,12 @@ export class MeldMergedPane extends React.Component<IMeldMergedPaneProps> {
     const { hunks, readOnly } = this.props
 
     const lineCount = Math.max(1, this.draft.split('\n').length)
-    const lineNumbers = Array.from(
-      { length: lineCount },
-      (_, i) => i + 1,
-    ).join('\n')
+    const lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1).join(
+      '\n'
+    )
 
     return (
-      <div
-        className="meld-merged-pane"
-        data-readonly={readOnly}
-      >
+      <div className="meld-merged-pane" data-readonly={readOnly}>
         <div className="meld-merged-pane-header" role="heading" aria-level={3}>
           <span className="meld-merged-pane-title">Merged Output</span>
         </div>

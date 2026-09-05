@@ -1,16 +1,5 @@
 import * as React from 'react'
 
-import { Branch } from '../../models/branch'
-import { Repository } from '../../models/repository'
-import { Dispatcher } from '../dispatcher'
-
-interface ICompareWithBranchDialogProps {
-  readonly dispatcher: Dispatcher
-  readonly repository: Repository
-  readonly branches: ReadonlyArray<Branch>
-  readonly onDismissed: () => void
-}
-
 /**
  * Deferred picker — shell for the full SearchableBranchList UI.
  *
@@ -36,7 +25,7 @@ interface ICompareWithBranchDialogProps {
  *   5. Mount this component via `PopupType.CompareWithBranch` in
  *      `app.tsx`'s `popupContent` switch.
  */
-export class CompareWithBranchDialog extends React.Component<ICompareWithBranchDialogProps> {
+export class CompareWithBranchDialog extends React.Component {
   public render() {
     // Deferred picker — see the JSDoc above. Rendering an empty fragment
     // keeps the type-checker happy and lets us ship the wiring (menu event,

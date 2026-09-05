@@ -2,7 +2,10 @@ import assert from 'node:assert'
 import { describe, it } from 'node:test'
 import * as React from 'react'
 import { render } from '../../../helpers/ui/render'
-import { MeldWindow, IMeldWindowProps } from '../../../../src/ui/meld/MeldWindow'
+import {
+  MeldWindow,
+  IMeldWindowProps,
+} from '../../../../src/ui/meld/MeldWindow'
 import { IDiff, DiffType, ITextDiff } from '../../../../src/models/diff'
 import { IThreeWayState } from '../../../../src/models/meld-merge'
 
@@ -43,7 +46,13 @@ describe('MeldWindow', () => {
       { path: 'README.md', status: 'added' },
     ],
     availableTools: [
-      { id: 'meld', name: 'Meld', command: 'meld', args: '%L %R', builtIn: true },
+      {
+        id: 'meld',
+        name: 'Meld',
+        command: 'meld',
+        args: '%L %R',
+        builtIn: true,
+      },
     ],
     onGetDiff: async () => sampleTextDiff as IDiff,
     onLaunchExternalTool: async () => ({ success: true }),
@@ -96,28 +105,23 @@ describe('MeldWindow', () => {
       render(<MeldWindow {...mergeProps} />)
       assert.ok(
         document.querySelector('.meld-three-way-view'),
-        'MeldThreeWayView should render',
+        'MeldThreeWayView should render'
       )
       assert.ok(
         document.querySelector('.meld-merged-pane'),
-        'MeldMergedPane should render',
+        'MeldMergedPane should render'
       )
       assert.ok(
         document.querySelector('.meld-merge-controls'),
-        'MeldMergeControls should render',
+        'MeldMergeControls should render'
       )
     })
 
     it('shows loading state when threeWayState is undefined', () => {
-      render(
-        <MeldWindow
-          {...mergeProps}
-          threeWayState={undefined}
-        />,
-      )
+      render(<MeldWindow {...mergeProps} threeWayState={undefined} />)
       assert.ok(
         document.querySelector('.meld-merge-loading'),
-        'Loading placeholder should render when threeWayState is missing',
+        'Loading placeholder should render when threeWayState is missing'
       )
     })
 
@@ -125,15 +129,15 @@ describe('MeldWindow', () => {
       render(<MeldWindow {...defaultProps} mode="working" />)
       assert.ok(
         document.querySelector('.meld-file-tree'),
-        'file tree should render in working mode',
+        'file tree should render in working mode'
       )
       assert.ok(
         document.querySelector('.meld-diff-pane'),
-        'diff pane should render in working mode',
+        'diff pane should render in working mode'
       )
       assert.ok(
         !document.querySelector('.meld-three-way-view'),
-        'three-way view should NOT render in working mode',
+        'three-way view should NOT render in working mode'
       )
     })
 
@@ -148,12 +152,12 @@ describe('MeldWindow', () => {
             resolvedHunkIndex = hunkIndex
             resolvedSide = side
           }}
-        />,
+        />
       )
 
       // Click "Accept LOCAL" on the first (and only) hunk action bar
       const localBtn = document.querySelector(
-        '[data-testid="resolve-local-0"]',
+        '[data-testid="resolve-local-0"]'
       ) as Element | null
       assert.ok(localBtn, 'resolve-local-0 button should exist')
       localBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
@@ -169,7 +173,7 @@ describe('MeldWindow', () => {
       render(<MeldWindow {...mergeProps} />)
 
       const textarea = document.querySelector(
-        '[data-testid="merged-textarea"]',
+        '[data-testid="merged-textarea"]'
       ) as HTMLTextAreaElement | null
       assert.ok(textarea, 'merged textarea should exist')
 
@@ -177,7 +181,7 @@ describe('MeldWindow', () => {
 
       // Click "Accept LOCAL" for the first conflict block
       const localBtn = document.querySelector(
-        '[data-testid="resolve-local-0"]',
+        '[data-testid="resolve-local-0"]'
       ) as Element | null
       assert.ok(localBtn)
       localBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
@@ -187,17 +191,17 @@ describe('MeldWindow', () => {
 
       // After resolution, the conflict markers for hunk 0 should be gone
       const updatedTextarea = document.querySelector(
-        '[data-testid="merged-textarea"]',
+        '[data-testid="merged-textarea"]'
       ) as HTMLTextAreaElement | null
       assert.ok(updatedTextarea, 'textarea should still exist after re-render')
       assert.notStrictEqual(
         updatedTextarea.value,
         initialValue,
-        'textarea value should change after resolving a hunk',
+        'textarea value should change after resolving a hunk'
       )
       assert.ok(
         !updatedTextarea.value.includes('<<<<<<< HEAD'),
-        'resolved hunk markers should be removed from merged content',
+        'resolved hunk markers should be removed from merged content'
       )
     })
 
@@ -211,11 +215,11 @@ describe('MeldWindow', () => {
             autoMergeCalled = true
             return { mergedContent: 'auto-merged result', clean: true }
           }}
-        />,
+        />
       )
 
       const autoMergeBtn = document.querySelector(
-        '[data-testid="meld-merge-controls-auto-merge"]',
+        '[data-testid="meld-merge-controls-auto-merge"]'
       ) as Element | null
       assert.ok(autoMergeBtn, 'auto-merge button should exist')
       autoMergeBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
@@ -246,21 +250,24 @@ describe('MeldWindow', () => {
             markResolvedCalled = true
             return { success: true }
           }}
-        />,
+        />
       )
 
       const markBtn = document.querySelector(
-        '[data-testid="meld-merge-controls-mark-resolved"]',
+        '[data-testid="meld-merge-controls-mark-resolved"]'
       ) as Element | null
       assert.ok(markBtn, 'mark-resolved button should exist')
       assert.ok(
         !(markBtn as HTMLButtonElement).disabled,
-        'mark-resolved button should be enabled when no conflicts remain',
+        'mark-resolved button should be enabled when no conflicts remain'
       )
       markBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
 
       await new Promise(resolve => setTimeout(resolve, 0))
-      assert.ok(markResolvedCalled, 'onMarkMergeResolved should have been called')
+      assert.ok(
+        markResolvedCalled,
+        'onMarkMergeResolved should have been called'
+      )
     })
   })
 })

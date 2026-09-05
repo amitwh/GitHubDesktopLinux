@@ -64,7 +64,11 @@ export class InteractiveRebaseDialog extends React.Component<
   }
 
   public async componentDidMount() {
-    const commits = await getCommits(this.props.repository, this.props.branchName, 100)
+    const commits = await getCommits(
+      this.props.repository,
+      this.props.branchName,
+      100
+    )
     this.setState({
       commits: commits.map(c => ({
         sha: c.sha,
@@ -82,15 +86,15 @@ export class InteractiveRebaseDialog extends React.Component<
     }
     const action = event.currentTarget.value as ICommitAction['action']
     this.setState(prev => ({
-      commits: prev.commits.map(c =>
-        c.sha === sha ? { ...c, action } : c
-      ),
+      commits: prev.commits.map(c => (c.sha === sha ? { ...c, action } : c)),
     }))
   }
 
   private onMoveUp = (event: React.MouseEvent<HTMLButtonElement>) => {
     const index = Number(event.currentTarget.getAttribute('data-index'))
-    if (Number.isNaN(index) || index === 0) {return}
+    if (Number.isNaN(index) || index === 0) {
+      return
+    }
     this.setState(prev => {
       const commits = [...prev.commits]
       const temp = commits[index]
@@ -102,9 +106,13 @@ export class InteractiveRebaseDialog extends React.Component<
 
   private onMoveDown = (event: React.MouseEvent<HTMLButtonElement>) => {
     const index = Number(event.currentTarget.getAttribute('data-index'))
-    if (Number.isNaN(index)) {return}
+    if (Number.isNaN(index)) {
+      return
+    }
     this.setState(prev => {
-      if (index >= prev.commits.length - 1) {return prev}
+      if (index >= prev.commits.length - 1) {
+        return prev
+      }
       const commits = [...prev.commits]
       const temp = commits[index]
       commits[index] = commits[index + 1]
@@ -127,7 +135,11 @@ export class InteractiveRebaseDialog extends React.Component<
       const todoPath = Path.join(repository.path, '.git', 'rebase-todo.txt')
       await Fs.writeFile(todoPath, todoLines.join('\n'), 'utf-8')
 
-      await rebaseInteractive(repository, todoPath, `${branchName}~${commits.length}`)
+      await rebaseInteractive(
+        repository,
+        todoPath,
+        `${branchName}~${commits.length}`
+      )
 
       this.props.onDismissed()
     } catch (err) {
@@ -141,7 +153,7 @@ export class InteractiveRebaseDialog extends React.Component<
     }
   }
 
-  private isDropped(sha: string): boolean {
+  private isDropped = (sha: string): boolean => {
     const commit = this.state.commits.find(c => c.sha === sha)
     return commit !== undefined && commit.action === 'drop'
   }
@@ -159,9 +171,7 @@ export class InteractiveRebaseDialog extends React.Component<
       >
         <DialogContent>
           {loading && <Row>Loading commits…</Row>}
-          {!loading && commits.length === 0 && (
-            <Row>No commits to rebase.</Row>
-          )}
+          {!loading && commits.length === 0 && <Row>No commits to rebase.</Row>}
           {!loading &&
             commits.map((commit, index) => (
               <Row key={commit.sha} className="rebase-commit">
@@ -171,13 +181,31 @@ export class InteractiveRebaseDialog extends React.Component<
                   data-sha={commit.sha}
                 >
                   {actions.map(a => (
-                    <option key={a} value={a}>{a}</option>
+                    <option key={a} value={a}>
+                      {a}
+                    </option>
                   ))}
                 </Select>
-                <span className="rebase-sha"><Ref>{commit.sha.substring(0, 7)}</Ref></span>{' '}
-                <span className="rebase-summary"><Ref>{commit.summary}</Ref></span>
-                <Button onClick={this.onMoveUp} data-index={index} disabled={index === 0}>↑</Button>
-                <Button onClick={this.onMoveDown} data-index={index} disabled={index === commits.length - 1}>↓</Button>
+                <span className="rebase-sha">
+                  <Ref>{commit.sha.substring(0, 7)}</Ref>
+                </span>{' '}
+                <span className="rebase-summary">
+                  <Ref>{commit.summary}</Ref>
+                </span>
+                <Button
+                  onClick={this.onMoveUp}
+                  data-index={index}
+                  disabled={index === 0}
+                >
+                  ↑
+                </Button>
+                <Button
+                  onClick={this.onMoveDown}
+                  data-index={index}
+                  disabled={index === commits.length - 1}
+                >
+                  ↓
+                </Button>
               </Row>
             ))}
           {/* Phase 3: per-commit diff preview (insertions/deletions
@@ -194,7 +222,7 @@ export class InteractiveRebaseDialog extends React.Component<
                 }))}
                 stats={this.props.stats ?? {}}
                 loading={this.props.loading}
-                isDropped={sha => this.isDropped(sha)}
+                isDropped={this.isDropped}
                 onViewDiff={this.onViewDiff}
               />
             </Row>

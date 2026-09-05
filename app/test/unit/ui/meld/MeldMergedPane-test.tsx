@@ -91,10 +91,7 @@ describe('MeldMergedPane', () => {
       'context after',
     ].join('\n')
 
-    const hunks = [
-      makeHunk(1, 7),
-      makeHunk(9, 15),
-    ]
+    const hunks = [makeHunk(1, 7), makeHunk(9, 15)]
 
     const { container } = render(
       <MeldMergedPane
@@ -162,7 +159,11 @@ describe('MeldMergedPane', () => {
     const buttonTexts = Array.from(
       container.querySelectorAll('.meld-merged-hunk-bar button')
     ).map(b => b.textContent)
-    assert.deepStrictEqual(buttonTexts, ['Accept LOCAL', 'Accept REMOTE', 'Use BASE'])
+    assert.deepStrictEqual(buttonTexts, [
+      'Accept LOCAL',
+      'Accept REMOTE',
+      'Use BASE',
+    ])
   })
 
   // -------------------------------------------------------------------------
@@ -183,7 +184,10 @@ describe('MeldMergedPane', () => {
     ].join('\n')
     const hunks = [makeHunk(1, 7)]
 
-    let captured: { hunkIndex: number; side: 'base' | 'local' | 'remote' } | null = null
+    let captured: {
+      hunkIndex: number
+      side: 'base' | 'local' | 'remote'
+    } | null = null
     const { container } = render(
       <MeldMergedPane
         content={merged}
@@ -217,7 +221,10 @@ describe('MeldMergedPane', () => {
     ].join('\n')
     const hunks = [makeHunk(1, 7)]
 
-    let captured: { hunkIndex: number; side: 'base' | 'local' | 'remote' } | null = null
+    let captured: {
+      hunkIndex: number
+      side: 'base' | 'local' | 'remote'
+    } | null = null
     const { container } = render(
       <MeldMergedPane
         content={merged}
@@ -251,7 +258,10 @@ describe('MeldMergedPane', () => {
     ].join('\n')
     const hunks = [makeHunk(1, 7)]
 
-    let captured: { hunkIndex: number; side: 'base' | 'local' | 'remote' } | null = null
+    let captured: {
+      hunkIndex: number
+      side: 'base' | 'local' | 'remote'
+    } | null = null
     const { container } = render(
       <MeldMergedPane
         content={merged}
@@ -314,7 +324,10 @@ describe('MeldMergedPane', () => {
     ].join('\n')
     const hunks = [makeHunk(1, 7), makeHunk(9, 15)]
 
-    let captured: { hunkIndex: number; side: 'base' | 'local' | 'remote' } | null = null
+    let captured: {
+      hunkIndex: number
+      side: 'base' | 'local' | 'remote'
+    } | null = null
     const { container } = render(
       <MeldMergedPane
         content={merged}

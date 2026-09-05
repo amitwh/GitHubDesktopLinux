@@ -49,8 +49,8 @@ export class ExternalToolsSettings extends React.Component<
       <div className="external-tools-settings">
         <h2>External diff tools</h2>
         <p>
-          Add or edit the diff tools you can launch from the Meld window.
-          Use <code>%L</code> for the left/old path, <code>%R</code> for the
+          Add or edit the diff tools you can launch from the Meld window. Use{' '}
+          <code>%L</code> for the left/old path, <code>%R</code> for the
           right/new path, and <code>%B</code> for the base path (3-way merge
           only).
         </p>
@@ -101,9 +101,7 @@ export class ExternalToolsSettings extends React.Component<
             <input
               type="text"
               value={this.state.newToolCommand}
-              onChange={e =>
-                this.setState({ newToolCommand: e.target.value })
-              }
+              onChange={e => this.setState({ newToolCommand: e.target.value })}
               aria-label="Tool command"
               placeholder="e.g. meld or /usr/local/bin/meld"
             />

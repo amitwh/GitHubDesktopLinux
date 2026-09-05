@@ -467,7 +467,7 @@
     padding: 4px 12px;
     cursor: pointer;
     font-size: 12px;
-    &[aria-checked="true"] {
+    &[aria-checked='true'] {
       background-color: var(--meld-accent, #e5461f);
       color: white;
     }

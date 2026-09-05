@@ -10,8 +10,6 @@ import { Repository } from '../../models/repository'
  *
  * @param repository The repository whose working tree should be reset.
  */
-export async function discardAllChanges(
-  repository: Repository
-): Promise<void> {
+export async function discardAllChanges(repository: Repository): Promise<void> {
   await git(['checkout', '--', '.'], repository.path, 'discardAllChanges')
 }

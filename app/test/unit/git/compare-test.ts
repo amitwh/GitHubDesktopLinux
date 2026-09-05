@@ -64,10 +64,7 @@ describe('git/compare', () => {
       assert.ok(previous !== null)
 
       // cat-file -t should print "commit" for a valid commit SHA.
-      const { stdout } = await exec(
-        ['cat-file', '-t', previous!],
-        repo.path
-      )
+      const { stdout } = await exec(['cat-file', '-t', previous!], repo.path)
       assert.strictEqual(stdout.trim(), 'commit')
     })
   })

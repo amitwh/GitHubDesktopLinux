@@ -2,7 +2,11 @@ import assert from 'node:assert'
 import { describe, it } from 'node:test'
 import * as React from 'react'
 import { fireEvent, render, screen } from '../../../helpers/ui/render'
-import { MeldFileTree, IMeldFileTreeProps, IMeldFile } from '../../../../src/ui/meld/MeldFileTree'
+import {
+  MeldFileTree,
+  IMeldFileTreeProps,
+  IMeldFile,
+} from '../../../../src/ui/meld/MeldFileTree'
 
 describe('MeldFileTree', () => {
   const defaultProps: IMeldFileTreeProps = {
@@ -75,15 +79,21 @@ describe('MeldFileTree', () => {
         />
       )
       assert.ok(
-        container.querySelector('.meld-submodule-badge[data-submodule-status="clean"]'),
+        container.querySelector(
+          '.meld-submodule-badge[data-submodule-status="clean"]'
+        ),
         'expected clean submodule badge'
       )
       assert.ok(
-        container.querySelector('.meld-submodule-badge[data-submodule-status="modified"]'),
+        container.querySelector(
+          '.meld-submodule-badge[data-submodule-status="modified"]'
+        ),
         'expected modified submodule badge'
       )
       assert.ok(
-        container.querySelector('.meld-submodule-badge[data-submodule-status="uninitialized"]'),
+        container.querySelector(
+          '.meld-submodule-badge[data-submodule-status="uninitialized"]'
+        ),
         'expected uninitialized submodule badge'
       )
     })

@@ -469,7 +469,10 @@ interface IMeldMergeLoaderProps {
  * Phase 1c: keeps the async fetch out of MeldWindow itself, which
  * remains purely a presentation component.
  */
-class MeldMergeLoader extends React.Component<IMeldMergeLoaderProps, { readonly state: IThreeWayState | null; readonly error: string | null }> {
+class MeldMergeLoader extends React.Component<
+  IMeldMergeLoaderProps,
+  { readonly state: IThreeWayState | null; readonly error: string | null }
+> {
   public constructor(props: IMeldMergeLoaderProps) {
     super(props)
     this.state = { state: null, error: null }
@@ -481,9 +484,9 @@ class MeldMergeLoader extends React.Component<IMeldMergeLoaderProps, { readonly 
 
   private async load() {
     try {
-      const repo = appStore.getState().repositories.find(
-        r => r.id === this.props.repositoryID,
-      )
+      const repo = appStore
+        .getState()
+        .repositories.find(r => r.id === this.props.repositoryID)
       if (!repo || !(repo instanceof Repository)) {
         this.setState({ error: 'Repository not found' })
         return
@@ -492,7 +495,7 @@ class MeldMergeLoader extends React.Component<IMeldMergeLoaderProps, { readonly 
       // `repositoryStateManager` and reads BASE/LOCAL/REMOTE from git.
       const mergeState = await this.props.dispatcher.getThreeWayState(
         repo,
-        this.props.filePath,
+        this.props.filePath
       )
       this.setState({ state: mergeState })
     } catch (e) {
@@ -567,18 +570,18 @@ function MeldWindowContainer(props: {
         }
       }}
       onAutoMerge={async (repositoryID, filePath) => {
-        const repo = appStore.getState().repositories.find(
-          r => r.id === repositoryID,
-        )
+        const repo = appStore
+          .getState()
+          .repositories.find(r => r.id === repositoryID)
         if (!repo || !(repo instanceof Repository)) {
           return { mergedContent: '', clean: false }
         }
         return props.dispatcher.autoMergeThreeWay(repo, filePath)
       }}
       onMarkMergeResolved={async (repositoryID, filePath, mergedContent) => {
-        const repo = appStore.getState().repositories.find(
-          r => r.id === repositoryID,
-        )
+        const repo = appStore
+          .getState()
+          .repositories.find(r => r.id === repositoryID)
         if (!repo || !(repo instanceof Repository)) {
           return { success: false, error: 'Repository not found' }
         }
@@ -591,9 +594,9 @@ function MeldWindowContainer(props: {
         // Phase 2 (T1, BlameGutter): open a new Meld window in commit
         // mode for the referenced commit. The new window will fetch
         // its own diff; we just need the dispatcher entry point.
-        const repo = appStore.getState().repositories.find(
-          r => r.id === repositoryID,
-        )
+        const repo = appStore
+          .getState()
+          .repositories.find(r => r.id === repositoryID)
         if (!repo || !(repo instanceof Repository)) {
           return
         }
@@ -608,9 +611,9 @@ function MeldWindowContainer(props: {
         // via the main-process `meld:get-blame` IPC channel. Resolve
         // the repository path from the AppStore (the window only has
         // the numeric ID).
-        const repo = appStore.getState().repositories.find(
-          r => r.id === repositoryID,
-        )
+        const repo = appStore
+          .getState()
+          .repositories.find(r => r.id === repositoryID)
         if (!repo || !(repo instanceof Repository)) {
           return []
         }
@@ -618,7 +621,14 @@ function MeldWindowContainer(props: {
           ReadonlyArray<import('../lib/git/blame').IBlameHunk>
         >(resolve => {
           const w = window as unknown as {
-            electron?: { ipcRenderer?: { invoke: (channel: string, ...args: unknown[]) => Promise<unknown> } }
+            electron?: {
+              ipcRenderer?: {
+                invoke: (
+                  channel: string,
+                  ...args: unknown[]
+                ) => Promise<unknown>
+              }
+            }
           }
           const ipcRenderer = w.electron?.ipcRenderer
           if (!ipcRenderer) {
@@ -633,9 +643,7 @@ function MeldWindowContainer(props: {
             .then(
               (result: unknown) =>
                 resolve(
-                  result as ReadonlyArray<
-                    import('../lib/git/blame').IBlameHunk
-                  >
+                  result as ReadonlyArray<import('../lib/git/blame').IBlameHunk>
                 ),
               (err: Error) => {
                 console.warn('[meld:get-blame] failed:', err.message)
@@ -647,7 +655,14 @@ function MeldWindowContainer(props: {
       onLaunchExternalTool={async (tool, left, right, base) => {
         return new Promise<{ success: boolean; error?: string }>(resolve => {
           const w = window as unknown as {
-            electron?: { ipcRenderer?: { invoke: (channel: string, ...args: unknown[]) => Promise<unknown> } }
+            electron?: {
+              ipcRenderer?: {
+                invoke: (
+                  channel: string,
+                  ...args: unknown[]
+                ) => Promise<unknown>
+              }
+            }
           }
           const ipcRenderer = w.electron?.ipcRenderer
           if (!ipcRenderer) {
@@ -669,9 +684,9 @@ function MeldWindowContainer(props: {
         })
       }}
       onGetStashes={async repositoryID => {
-        const repo = appStore.getState().repositories.find(
-          r => r.id === repositoryID,
-        )
+        const repo = appStore
+          .getState()
+          .repositories.find(r => r.id === repositoryID)
         if (!repo || !(repo instanceof Repository)) {
           return []
         }
@@ -679,7 +694,14 @@ function MeldWindowContainer(props: {
           ReadonlyArray<import('../lib/git/stash').IAllStashEntry>
         >(resolve => {
           const w = window as unknown as {
-            electron?: { ipcRenderer?: { invoke: (channel: string, ...args: unknown[]) => Promise<unknown> } }
+            electron?: {
+              ipcRenderer?: {
+                invoke: (
+                  channel: string,
+                  ...args: unknown[]
+                ) => Promise<unknown>
+              }
+            }
           }
           const ipcRenderer = w.electron?.ipcRenderer
           if (!ipcRenderer) {
@@ -705,9 +727,9 @@ function MeldWindowContainer(props: {
         })
       }}
       onGetStashFiles={async (repositoryID, stashSha) => {
-        const repo = appStore.getState().repositories.find(
-          r => r.id === repositoryID,
-        )
+        const repo = appStore
+          .getState()
+          .repositories.find(r => r.id === repositoryID)
         if (!repo || !(repo instanceof Repository)) {
           return []
         }
@@ -715,7 +737,14 @@ function MeldWindowContainer(props: {
           ReadonlyArray<import('../models/status').CommittedFileChange>
         >(resolve => {
           const w = window as unknown as {
-            electron?: { ipcRenderer?: { invoke: (channel: string, ...args: unknown[]) => Promise<unknown> } }
+            electron?: {
+              ipcRenderer?: {
+                invoke: (
+                  channel: string,
+                  ...args: unknown[]
+                ) => Promise<unknown>
+              }
+            }
           }
           const ipcRenderer = w.electron?.ipcRenderer
           if (!ipcRenderer) {
@@ -742,9 +771,9 @@ function MeldWindowContainer(props: {
         })
       }}
       onStashFileSelected={async (repositoryID, stashSha, filePath) => {
-        const repo = appStore.getState().repositories.find(
-          r => r.id === repositoryID,
-        )
+        const repo = appStore
+          .getState()
+          .repositories.find(r => r.id === repositoryID)
         if (!repo || !(repo instanceof Repository)) {
           return
         }
@@ -787,7 +816,11 @@ ReactDOM.render(
           mode={args.mode}
           files={[]}
           availableTools={appStore._getExternalTools()}
-          onGetDiff={async (_id: number, filePath: string, _mode: 'working' | 'commit' | 'merge' | 'stash') => {
+          onGetDiff={async (
+            _id: number,
+            filePath: string,
+            _mode: 'working' | 'commit' | 'merge' | 'stash'
+          ) => {
             // Phase 1a stub: real implementation lives in app.tsx wiring
             // (Task 18) and talks to git via the dispatcher.
             return {
@@ -799,35 +832,45 @@ ReactDOM.render(
             }
           }}
           onLaunchExternalTool={async (tool, left, right, base) => {
-            return new Promise<{ success: boolean; error?: string }>(resolve => {
-              const w = window as unknown as {
-                electron?: { ipcRenderer?: { invoke: (channel: string, ...args: unknown[]) => Promise<unknown> } }
+            return new Promise<{ success: boolean; error?: string }>(
+              resolve => {
+                const w = window as unknown as {
+                  electron?: {
+                    ipcRenderer?: {
+                      invoke: (
+                        channel: string,
+                        ...args: unknown[]
+                      ) => Promise<unknown>
+                    }
+                  }
+                }
+                const ipcRenderer = w.electron?.ipcRenderer
+                if (!ipcRenderer) {
+                  resolve({ success: false, error: 'IPC unavailable' })
+                  return
+                }
+                ipcRenderer
+                  .invoke('meld:launch-external-tool', {
+                    tool,
+                    leftPath: left,
+                    rightPath: right,
+                    basePath: base,
+                  })
+                  .then(
+                    (result: unknown) =>
+                      resolve(result as { success: boolean; error?: string }),
+                    (err: Error) =>
+                      resolve({ success: false, error: err.message })
+                  )
               }
-              const ipcRenderer = w.electron?.ipcRenderer
-              if (!ipcRenderer) {
-                resolve({ success: false, error: 'IPC unavailable' })
-                return
-              }
-              ipcRenderer
-                .invoke('meld:launch-external-tool', {
-                  tool,
-                  leftPath: left,
-                  rightPath: right,
-                  basePath: base,
-                })
-                .then(
-                  (result: unknown) =>
-                    resolve(result as { success: boolean; error?: string }),
-                  (err: Error) => resolve({ success: false, error: err.message })
-                )
-            })
+            )
           }}
           onClose={() => window.close()}
           onOpenCommit={async (repositoryID, filePath, commitSha) => {
             // Phase 2 (T1, BlameGutter): see the merge-mode block above.
-            const repo = appStore.getState().repositories.find(
-              r => r.id === repositoryID,
-            )
+            const repo = appStore
+              .getState()
+              .repositories.find(r => r.id === repositoryID)
             if (!repo || !(repo instanceof Repository)) {
               return
             }
@@ -839,9 +882,9 @@ ReactDOM.render(
           }}
           onGetBlame={async (repositoryID, filePath) => {
             // Phase 2 (T1, BlameGutter): see the merge-mode block above.
-            const repo = appStore.getState().repositories.find(
-              r => r.id === repositoryID,
-            )
+            const repo = appStore
+              .getState()
+              .repositories.find(r => r.id === repositoryID)
             if (!repo || !(repo instanceof Repository)) {
               return []
             }
@@ -849,7 +892,14 @@ ReactDOM.render(
               ReadonlyArray<import('../lib/git/blame').IBlameHunk>
             >(resolve => {
               const w = window as unknown as {
-                electron?: { ipcRenderer?: { invoke: (channel: string, ...args: unknown[]) => Promise<unknown> } }
+                electron?: {
+                  ipcRenderer?: {
+                    invoke: (
+                      channel: string,
+                      ...args: unknown[]
+                    ) => Promise<unknown>
+                  }
+                }
               }
               const ipcRenderer = w.electron?.ipcRenderer
               if (!ipcRenderer) {
@@ -879,9 +929,9 @@ ReactDOM.render(
             // Phase 2 (T2, MeldStashView): fetch all stash entries for
             // the current repository via the `meld:list-stashes` IPC
             // channel registered in the main process.
-            const repo = appStore.getState().repositories.find(
-              r => r.id === repositoryID,
-            )
+            const repo = appStore
+              .getState()
+              .repositories.find(r => r.id === repositoryID)
             if (!repo || !(repo instanceof Repository)) {
               return []
             }
@@ -889,7 +939,14 @@ ReactDOM.render(
               ReadonlyArray<import('../lib/git/stash').IAllStashEntry>
             >(resolve => {
               const w = window as unknown as {
-                electron?: { ipcRenderer?: { invoke: (channel: string, ...args: unknown[]) => Promise<unknown> } }
+                electron?: {
+                  ipcRenderer?: {
+                    invoke: (
+                      channel: string,
+                      ...args: unknown[]
+                    ) => Promise<unknown>
+                  }
+                }
               }
               const ipcRenderer = w.electron?.ipcRenderer
               if (!ipcRenderer) {
@@ -918,9 +975,9 @@ ReactDOM.render(
             // Phase 2 (T2, MeldStashView): fetch the list of files
             // changed in a specific stash entry via the
             // `meld:get-stash-files` IPC channel.
-            const repo = appStore.getState().repositories.find(
-              r => r.id === repositoryID,
-            )
+            const repo = appStore
+              .getState()
+              .repositories.find(r => r.id === repositoryID)
             if (!repo || !(repo instanceof Repository)) {
               return []
             }
@@ -928,7 +985,14 @@ ReactDOM.render(
               ReadonlyArray<import('../models/status').CommittedFileChange>
             >(resolve => {
               const w = window as unknown as {
-                electron?: { ipcRenderer?: { invoke: (channel: string, ...args: unknown[]) => Promise<unknown> } }
+                electron?: {
+                  ipcRenderer?: {
+                    invoke: (
+                      channel: string,
+                      ...args: unknown[]
+                    ) => Promise<unknown>
+                  }
+                }
               }
               const ipcRenderer = w.electron?.ipcRenderer
               if (!ipcRenderer) {
@@ -948,10 +1012,7 @@ ReactDOM.render(
                       >
                     ),
                   (err: Error) => {
-                    console.warn(
-                      '[meld:get-stash-files] failed:',
-                      err.message
-                    )
+                    console.warn('[meld:get-stash-files] failed:', err.message)
                     resolve([])
                   }
                 )
@@ -960,9 +1021,9 @@ ReactDOM.render(
           onStashFileSelected={async (repositoryID, stashSha, filePath) => {
             // Phase 2 (T2, MeldStashView): open the stash's commit
             // version of the file in a new Meld window.
-            const repo = appStore.getState().repositories.find(
-              r => r.id === repositoryID,
-            )
+            const repo = appStore
+              .getState()
+              .repositories.find(r => r.id === repositoryID)
             if (!repo || !(repo instanceof Repository)) {
               return
             }
@@ -984,8 +1045,8 @@ ReactDOM.render(
       gitHubUserStore={gitHubUserStore}
       aheadBehindStore={aheadBehindStore}
       notificationsDebugStore={notificationsDebugStore}
-    startTime={startTime}
-  />
+      startTime={startTime}
+    />
   ),
   document.getElementById('desktop-app-container')!
 )

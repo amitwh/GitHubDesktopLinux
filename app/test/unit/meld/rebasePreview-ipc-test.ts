@@ -58,7 +58,6 @@ describe('meld:get-rebase-commit-stats handler composition', () => {
     mock.module('../../../src/lib/git/core', {
       namedExports: {
         git: fakeExec,
-        IGitResult: class {},
       },
     })
 
@@ -68,7 +67,9 @@ describe('meld:get-rebase-commit-stats handler composition', () => {
     )
 
     const repo = { path: '/tmp/repo' }
-    const stats = await runGitShortstat(repo, 'abc123', { git: fakeExec as never })
+    const stats = await runGitShortstat(repo, 'abc123', {
+      git: fakeExec as never,
+    })
 
     assert.deepStrictEqual(stats, {
       filesChanged: 2,

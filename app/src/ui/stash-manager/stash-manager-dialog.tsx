@@ -2,7 +2,11 @@ import * as React from 'react'
 import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { Repository } from '../../models/repository'
-import { getAllStashes, dropStashByName, IAllStashEntry } from '../../lib/git/stash'
+import {
+  getAllStashes,
+  dropStashByName,
+  IAllStashEntry,
+} from '../../lib/git/stash'
 import { Ref } from '../lib/ref'
 import { Row } from '../lib/row'
 import { Button } from '../lib/button'
@@ -56,16 +60,22 @@ export class StashManagerDialog extends React.Component<
       >
         <DialogContent>
           {loading && <Row>Loading stashes…</Row>}
-          {!loading && entries.length === 0 && (
-            <Row>No stashes found.</Row>
-          )}
+          {!loading && entries.length === 0 && <Row>No stashes found.</Row>}
           {!loading &&
             entries.map(entry => (
               <Row key={entry.name} className="stash-entry">
-                <span className="stash-name"><Ref>{entry.name}</Ref></span>{' '}
-                <span className="stash-sha"><Ref>{entry.stashSha.substring(0, 7)}</Ref></span>{' '}
-                <span className="stash-message"><Ref>{entry.message}</Ref></span>{' '}
-                <Button onClick={this.onDrop} data-stash-name={entry.name}>Drop</Button>
+                <span className="stash-name">
+                  <Ref>{entry.name}</Ref>
+                </span>{' '}
+                <span className="stash-sha">
+                  <Ref>{entry.stashSha.substring(0, 7)}</Ref>
+                </span>{' '}
+                <span className="stash-message">
+                  <Ref>{entry.message}</Ref>
+                </span>{' '}
+                <Button onClick={this.onDrop} data-stash-name={entry.name}>
+                  Drop
+                </Button>
               </Row>
             ))}
         </DialogContent>

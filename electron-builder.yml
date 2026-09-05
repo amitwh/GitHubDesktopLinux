@@ -18,7 +18,9 @@ linux:
         - x-github-client
   vendor: GitHub, Inc.
   synopsis: Simple collaboration from your desktop
-  description: GitHub Desktop is an open source Electron-based GitHub app written in TypeScript and React.
+  description:
+    GitHub Desktop is an open source Electron-based GitHub app written in
+    TypeScript and React.
   target:
     - target: deb
       arch: x64
@@ -48,10 +50,10 @@ snap:
     - password-manager-service
 flatpak:
   runtime: org.freedesktop.Platform
-  runtimeVersion: "23.08"
+  runtimeVersion: '23.08'
   sdk: org.freedesktop.Sdk
   base: org.electronjs.Electron2.BaseApp
-  baseVersion: "23.08"
+  baseVersion: '23.08'
   finishArgs:
     - --share=ipc
     - --socket=x11

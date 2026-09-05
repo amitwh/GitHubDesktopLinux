@@ -52,16 +52,26 @@ describe('lib/meld/rebasePreview/parseShortStat', () => {
 
   it('returns zero stats for the empty output (initial commit / no changes)', () => {
     const out = parseShortStat('')
-    assert.deepStrictEqual(out, { filesChanged: 0, insertions: 0, deletions: 0 })
+    assert.deepStrictEqual(out, {
+      filesChanged: 0,
+      insertions: 0,
+      deletions: 0,
+    })
   })
 
   it('returns zero stats for the undefined-like "no output" sentinel', () => {
     const out = parseShortStat('\n')
-    assert.deepStrictEqual(out, { filesChanged: 0, insertions: 0, deletions: 0 })
+    assert.deepStrictEqual(out, {
+      filesChanged: 0,
+      insertions: 0,
+      deletions: 0,
+    })
   })
 
   it('handles trailing whitespace and leading whitespace robustly', () => {
-    const out = parseShortStat('  5 files changed, 42 insertions(+), 17 deletions(-)  \n')
+    const out = parseShortStat(
+      '  5 files changed, 42 insertions(+), 17 deletions(-)  \n'
+    )
     assert.deepStrictEqual(out, {
       filesChanged: 5,
       insertions: 42,
@@ -117,10 +127,7 @@ describe('lib/meld/rebasePreview/formatStatsSummary', () => {
       insertions: 42,
       deletions: 17,
     }
-    assert.strictEqual(
-      formatStatsSummary(stats),
-      '42 insertions, 17 deletions'
-    )
+    assert.strictEqual(formatStatsSummary(stats), '42 insertions, 17 deletions')
   })
 
   it('handles large numbers without thousands separators (renderer-side formats them)', () => {

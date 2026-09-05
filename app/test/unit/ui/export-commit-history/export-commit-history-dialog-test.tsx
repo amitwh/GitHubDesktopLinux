@@ -124,11 +124,17 @@ function getSelectForFormat(): HTMLSelectElement {
 function getExportButton(): HTMLButtonElement {
   // The button label flips between "Export" and "Exporting…" while in
   // flight; a substring match covers both states.
-  return screen.getByRole('button', { name: /Export/, hidden: true }) as HTMLButtonElement
+  return screen.getByRole('button', {
+    name: /Export/,
+    hidden: true,
+  }) as HTMLButtonElement
 }
 
 function getCancelButton(): HTMLButtonElement {
-  return screen.getByRole('button', { name: /Cancel/, hidden: true }) as HTMLButtonElement
+  return screen.getByRole('button', {
+    name: /Cancel/,
+    hidden: true,
+  }) as HTMLButtonElement
 }
 
 describe('ExportCommitHistoryDialog', () => {
@@ -152,12 +158,7 @@ describe('ExportCommitHistoryDialog', () => {
   describe('rendering', () => {
     it('renders a format selector with all supported formats', () => {
       const onDismissed = mock.fn()
-      render(
-        <Dialog
-          repository={makeRepository()}
-          onDismissed={onDismissed}
-        />
-      )
+      render(<Dialog repository={makeRepository()} onDismissed={onDismissed} />)
 
       const select = getSelectForFormat()
       const options = Array.from(select.options).map(o => o.value)
@@ -174,12 +175,7 @@ describe('ExportCommitHistoryDialog', () => {
     })
 
     it('defaults the format to pdf and the include-* checkboxes to on (except stats)', () => {
-      render(
-        <Dialog
-          repository={makeRepository()}
-          onDismissed={() => {}}
-        />
-      )
+      render(<Dialog repository={makeRepository()} onDismissed={() => {}} />)
 
       const select = getSelectForFormat()
       assert.strictEqual(select.value, 'pdf')
@@ -203,18 +199,20 @@ describe('ExportCommitHistoryDialog', () => {
         'Include commit message',
       ]
       for (const label of otherLabels) {
-        const cb = screen.getByRole('checkbox', { name: label, hidden: true }) as HTMLInputElement
-        assert.strictEqual(cb.checked, true, `expected "${label}" to be checked`)
+        const cb = screen.getByRole('checkbox', {
+          name: label,
+          hidden: true,
+        }) as HTMLInputElement
+        assert.strictEqual(
+          cb.checked,
+          true,
+          `expected "${label}" to be checked`
+        )
       }
     })
 
     it('renders the expected labels for the include-* checkboxes', () => {
-      render(
-        <Dialog
-          repository={makeRepository()}
-          onDismissed={() => {}}
-        />
-      )
+      render(<Dialog repository={makeRepository()} onDismissed={() => {}} />)
 
       assert.ok(screen.getByText('Include commit hash'))
       assert.ok(screen.getByText('Include author'))
@@ -226,12 +224,7 @@ describe('ExportCommitHistoryDialog', () => {
 
   describe('format selection', () => {
     it('updates the format when the user picks a different value', () => {
-      render(
-        <Dialog
-          repository={makeRepository()}
-          onDismissed={() => {}}
-        />
-      )
+      render(<Dialog repository={makeRepository()} onDismissed={() => {}} />)
 
       const select = getSelectForFormat()
       assert.strictEqual(select.value, 'pdf')
@@ -307,12 +300,7 @@ describe('ExportCommitHistoryDialog', () => {
     })
 
     it('honors toggled-off checkboxes when invoking exportCommitHistory', async () => {
-      render(
-        <Dialog
-          repository={makeRepository()}
-          onDismissed={() => {}}
-        />
-      )
+      render(<Dialog repository={makeRepository()} onDismissed={() => {}} />)
 
       // Toggle "Include commit hash" off (it defaults to checked).
       const hashCheckbox = screen.getByRole('checkbox', {
@@ -360,12 +348,7 @@ describe('ExportCommitHistoryDialog', () => {
     it('shows the export error in a DialogError banner when exportCommitHistory fails', async () => {
       exportError = new Error('pandoc exited with code 1: some stderr text')
 
-      render(
-        <Dialog
-          repository={makeRepository()}
-          onDismissed={() => {}}
-        />
-      )
+      render(<Dialog repository={makeRepository()} onDismissed={() => {}} />)
 
       fireEvent.click(getExportButton())
       // Let the export promise resolve and the React state update flush.
@@ -385,12 +368,7 @@ describe('ExportCommitHistoryDialog', () => {
       // are present in our `makeRepository` helper.
       const repo = makeRepository('plain-local-repo')
       assert.doesNotThrow(() =>
-        render(
-          <Dialog
-            repository={repo}
-            onDismissed={() => {}}
-          />
-        )
+        render(<Dialog repository={repo} onDismissed={() => {}} />)
       )
       // The default save dialog filename is derived from repository.name.
       const select = getSelectForFormat()
@@ -403,12 +381,7 @@ describe('ExportCommitHistoryDialog', () => {
       // non-empty name.
       const repo = makeRepository('')
       assert.doesNotThrow(() =>
-        render(
-          <Dialog
-            repository={repo}
-            onDismissed={() => {}}
-          />
-        )
+        render(<Dialog repository={repo} onDismissed={() => {}} />)
       )
     })
   })

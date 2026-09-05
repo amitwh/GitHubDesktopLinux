@@ -238,16 +238,13 @@ export function buildCommitContextMenu(
   const { row, commit } = inputs
   const isLocal = inputs.isLocalCommit(commit.sha)
 
-  const canBeUndone =
-    inputs.canUndoCommits === true && isLocal && row === 0
+  const canBeUndone = inputs.canUndoCommits === true && isLocal && row === 0
   const canBeAmended = inputs.canAmendCommits === true && row === 0
   // The user can reset to any commit up to the first non-local one (included).
   // They cannot reset to the most recent commit... because they're already
   // in it.
-  const isResettableCommit =
-    row > 0 && row <= inputs.localCommitSHAs.length
-  const canBeResetTo =
-    inputs.canResetToCommits === true && isResettableCommit
+  const isResettableCommit = row > 0 && row <= inputs.localCommitSHAs.length
+  const canBeResetTo = inputs.canResetToCommits === true && isResettableCommit
   const canBeCheckedOut = row > 0 //Cannot checkout the current commit
 
   let viewOnGitHubLabel = 'View on GitHub'

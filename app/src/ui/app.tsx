@@ -750,10 +750,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     try {
       return await this.props.dispatcher.getPreviousCommitSha(repository)
     } catch (err) {
-      log.error(
-        '[resetHeadToParent] failed to resolve HEAD~1',
-        err as Error
-      )
+      log.error('[resetHeadToParent] failed to resolve HEAD~1', err as Error)
       this.props.dispatcher.showPopup({
         type: PopupType.Error,
         error: err as Error,
@@ -771,10 +768,10 @@ export class App extends React.Component<IAppProps, IAppState> {
    */
   private async openRecentRepository(path: string) {
     const { repositories } = this.state
-    const existing = matchExistingRepository(
-      repositories,
-      path
-    ) as Repository | CloningRepository | null
+    const existing = matchExistingRepository(repositories, path) as
+      | Repository
+      | CloningRepository
+      | null
 
     if (existing !== null && existing !== undefined) {
       await this.props.dispatcher.selectRepository(existing)
@@ -2180,14 +2177,10 @@ export class App extends React.Component<IAppProps, IAppState> {
             confirmShellOpen={this.state.confirmShellOpen}
             openShellOnRepoOpen={this.state.openShellOnRepoOpen}
             customShellPath={this.state.customShellPath}
-            disableHardwareAcceleration={
-              this.state.disableHardwareAcceleration
-            }
+            disableHardwareAcceleration={this.state.disableHardwareAcceleration}
             enableSmoothScrolling={this.state.enableSmoothScrolling}
             limitConcurrentGitOps={this.state.limitConcurrentGitOps}
-            maxBackgroundFetchInterval={
-              this.state.maxBackgroundFetchInterval
-            }
+            maxBackgroundFetchInterval={this.state.maxBackgroundFetchInterval}
             enablePerfTracing={this.state.enablePerfTracing}
             onEditGlobalGitConfig={this.editGlobalGitConfig}
             underlineLinks={this.state.underlineLinks}

@@ -13,12 +13,8 @@ describe('MeldCopyButtons', () => {
         onCopyRight={() => undefined}
       />
     )
-    const left = container.querySelector(
-      'button[aria-label="Copy to left"]'
-    )
-    const right = container.querySelector(
-      'button[aria-label="Copy to right"]'
-    )
+    const left = container.querySelector('button[aria-label="Copy to left"]')
+    const right = container.querySelector('button[aria-label="Copy to right"]')
     assert.ok(left !== null, 'expected a Copy to left button')
     assert.ok(right !== null, 'expected a Copy to right button')
   })

@@ -52,7 +52,10 @@ interface IMeldStashViewState {
   readonly loading: boolean
   readonly error: string | null
   readonly expanded: ReadonlyMap<string, IExpandedStash>
-  readonly selected: { readonly stashSha: string; readonly filePath: string } | null
+  readonly selected: {
+    readonly stashSha: string
+    readonly filePath: string
+  } | null
 }
 
 /**
@@ -99,6 +102,10 @@ export class MeldStashView extends React.Component<
     }
   }
 
+  private toggleStash = (stashSha: string) => () => {
+    void this.expandStash(stashSha)
+  }
+
   private expandStash = async (stashSha: string) => {
     // Toggle: if already expanded with loaded files, collapse.
     const existing = this.state.expanded.get(stashSha)
@@ -141,6 +148,10 @@ export class MeldStashView extends React.Component<
     }
   }
 
+  private openStashFile = (stashSha: string, filePath: string) => () => {
+    this.selectFile(stashSha, filePath)
+  }
+
   private selectFile = (stashSha: string, filePath: string) => {
     this.setState({ selected: { stashSha, filePath } })
     this.props.onFileSelected(stashSha, filePath)
@@ -176,11 +187,7 @@ export class MeldStashView extends React.Component<
     return (
       <div className="meld-stash-view">
         {errorBanner}
-        <div
-          className="meld-stash-list"
-          role="tree"
-          aria-label="Stash entries"
-        >
+        <div className="meld-stash-list" role="tree" aria-label="Stash entries">
           {stashes.map(stash => this.renderStashNode(stash, expanded))}
         </div>
         <div className="meld-stash-selection">
@@ -219,7 +226,7 @@ export class MeldStashView extends React.Component<
           className="meld-stash-toggle"
           aria-expanded={isExpanded}
           data-testid={`meld-stash-toggle-${stash.stashSha}`}
-          onClick={() => void this.expandStash(stash.stashSha)}
+          onClick={this.toggleStash(stash.stashSha)}
         >
           <span className="meld-stash-marker">{isExpanded ? '▾' : '▸'}</span>
           <span className="meld-stash-name">{stash.name}</span>
@@ -233,10 +240,7 @@ export class MeldStashView extends React.Component<
     )
   }
 
-  private renderExpandedBody(
-    stash: IAllStashEntry,
-    ex: IExpandedStash
-  ) {
+  private renderExpandedBody(stash: IAllStashEntry, ex: IExpandedStash) {
     if (ex.loading) {
       return (
         <div className="meld-stash-files meld-stash-files-loading">
@@ -270,10 +274,7 @@ export class MeldStashView extends React.Component<
     )
   }
 
-  private renderStashFileRow(
-    stashSha: string,
-    file: CommittedFileChange
-  ) {
+  private renderStashFileRow(stashSha: string, file: CommittedFileChange) {
     const isSelected =
       this.state.selected !== null &&
       this.state.selected.stashSha === stashSha &&
@@ -290,11 +291,16 @@ export class MeldStashView extends React.Component<
         <button
           type="button"
           className="meld-stash-file-button"
-          onClick={() => this.selectFile(stashSha, file.path)}
-          aria-label={`Open diff for ${file.path} in stash ${stashSha.substring(0, 7)}`}
+          onClick={this.openStashFile(stashSha, file.path)}
+          aria-label={`Open diff for ${file.path} in stash ${stashSha.substring(
+            0,
+            7
+          )}`}
         >
           <span
-            className={`meld-file-status meld-file-status-${stashFileStatus(file)}`}
+            className={`meld-file-status meld-file-status-${stashFileStatus(
+              file
+            )}`}
             aria-hidden="true"
           >
             {stashFileStatusIcon(file)}

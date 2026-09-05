@@ -53,11 +53,7 @@ export class MeldBlameGutter extends React.Component<IMeldBlameGutterProps> {
     )
   }
 
-  private renderCell(
-    line: IBlameHunk | null,
-    index: number,
-    loading: boolean
-  ) {
+  private renderCell(line: IBlameHunk | null, index: number, loading: boolean) {
     if (loading) {
       return (
         <li
@@ -92,11 +88,7 @@ export class MeldBlameGutter extends React.Component<IMeldBlameGutterProps> {
     const ariaLabel = `Blame: ${line.author}, ${line.sha}, ${dateStr}, ${line.summary}`
 
     return (
-      <li
-        key={index}
-        className="meld-blame-gutter-cell"
-        aria-label={ariaLabel}
-      >
+      <li key={index} className="meld-blame-gutter-cell" aria-label={ariaLabel}>
         <button
           type="button"
           className="meld-blame-gutter-button"

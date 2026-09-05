@@ -23,9 +23,7 @@ export class MeldCharDiff extends React.Component<IMeldCharDiffProps, {}> {
     const { parts, className } = this.props
     return (
       <span
-        className={
-          className ? `meld-char-diff ${className}` : 'meld-char-diff'
-        }
+        className={className ? `meld-char-diff ${className}` : 'meld-char-diff'}
       >
         {parts.map((p, i) => this.renderPart(p, i))}
       </span>
@@ -35,11 +33,7 @@ export class MeldCharDiff extends React.Component<IMeldCharDiffProps, {}> {
   private renderPart(part: ICharDiffPart, index: number) {
     if (part.added) {
       return (
-        <span
-          key={index}
-          className="meld-char-diff-added"
-          data-diff="added"
-        >
+        <span key={index} className="meld-char-diff-added" data-diff="added">
           {part.value}
         </span>
       )

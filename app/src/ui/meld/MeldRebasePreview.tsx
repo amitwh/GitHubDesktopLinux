@@ -117,11 +117,13 @@ export class MeldRebasePreview extends React.Component<IMeldRebasePreviewProps> 
     )
   }
 
+  private onViewDiffClick = (sha: string) => () => {
+    this.props.onViewDiff(sha)
+  }
+
   private renderRow(commit: IRebaseCommit) {
     const { sha } = commit
-    const isDropped = this.props.isDropped
-      ? this.props.isDropped(sha)
-      : false
+    const isDropped = this.props.isDropped ? this.props.isDropped(sha) : false
     const stats = this.props.stats[sha]
     // An entry is "loading" when:
     //   - the parent explicitly marked it loading (`loading[sha] === true`)
@@ -132,8 +134,7 @@ export class MeldRebasePreview extends React.Component<IMeldRebasePreviewProps> 
     const isLoading =
       (this.props.loading !== undefined && this.props.loading[sha] === true) ||
       (stats === undefined &&
-        (this.props.loading === undefined ||
-          this.props.loading[sha] !== false))
+        (this.props.loading === undefined || this.props.loading[sha] !== false))
 
     return (
       <div
@@ -168,7 +169,7 @@ export class MeldRebasePreview extends React.Component<IMeldRebasePreviewProps> 
                 ? `View diff for ${shortSha(sha)} (dropped)`
                 : `View diff for ${shortSha(sha)}`
             }
-            onClick={() => this.props.onViewDiff(sha)}
+            onClick={this.onViewDiffClick(sha)}
           >
             View diff
           </button>
@@ -183,10 +184,7 @@ export class MeldRebasePreview extends React.Component<IMeldRebasePreviewProps> 
   ): React.ReactNode {
     if (isLoading) {
       return (
-        <span
-          className="meld-rebase-preview-stats-loading"
-          aria-live="polite"
-        >
+        <span className="meld-rebase-preview-stats-loading" aria-live="polite">
           Loading stats…
         </span>
       )

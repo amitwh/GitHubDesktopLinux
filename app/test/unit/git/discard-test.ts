@@ -18,10 +18,7 @@ describe('git/discard', () => {
       })
 
       // Modify the tracked file in the working tree.
-      await writeFile(
-        path.join(repo.path, 'README.md'),
-        'modified content\n'
-      )
+      await writeFile(path.join(repo.path, 'README.md'), 'modified content\n')
 
       // Verify there is a modified file before discarding.
       const before = await exec(['status', '--porcelain'], repo.path)
@@ -37,10 +34,7 @@ describe('git/discard', () => {
       assert.strictEqual(after.stdout.trim(), '')
 
       // File contents should match the committed version.
-      const { stdout } = await exec(
-        ['show', 'HEAD:README.md'],
-        repo.path
-      )
+      const { stdout } = await exec(['show', 'HEAD:README.md'], repo.path)
       assert.strictEqual(stdout, 'initial content\n')
     })
 

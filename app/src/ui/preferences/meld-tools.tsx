@@ -58,9 +58,7 @@ export default class MeldTools extends React.Component<
           <Checkbox
             label="Always use Meld for 2-file diffs"
             value={
-              this.props.useMeldForDiff
-                ? CheckboxValue.On
-                : CheckboxValue.Off
+              this.props.useMeldForDiff ? CheckboxValue.On : CheckboxValue.Off
             }
             onChange={this.onUseMeldForDiffChanged}
           />
@@ -69,9 +67,7 @@ export default class MeldTools extends React.Component<
           <Checkbox
             label="Use Meld for conflict resolution (3-way merge)"
             value={
-              this.props.useMeldForMerge
-                ? CheckboxValue.On
-                : CheckboxValue.Off
+              this.props.useMeldForMerge ? CheckboxValue.On : CheckboxValue.Off
             }
             onChange={this.onUseMeldForMergeChanged}
           />

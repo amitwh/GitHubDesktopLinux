@@ -2,7 +2,10 @@ import assert from 'node:assert'
 import { describe, it } from 'node:test'
 import * as React from 'react'
 import { fireEvent, render, screen } from '../../../helpers/ui/render'
-import { MeldMergeControls, IMeldMergeControlsProps } from '../../../../src/ui/meld/MeldMergeControls'
+import {
+  MeldMergeControls,
+  IMeldMergeControlsProps,
+} from '../../../../src/ui/meld/MeldMergeControls'
 
 describe('MeldMergeControls', () => {
   const defaultProps: IMeldMergeControlsProps = {
@@ -47,14 +50,22 @@ describe('MeldMergeControls', () => {
   })
 
   it('disables Mark as resolved when hasUnresolvedConflicts is true', () => {
-    render(<MeldMergeControls {...defaultProps} hasUnresolvedConflicts={true} />)
-    const button = screen.getByTestId('meld-merge-controls-mark-resolved') as HTMLButtonElement
+    render(
+      <MeldMergeControls {...defaultProps} hasUnresolvedConflicts={true} />
+    )
+    const button = screen.getByTestId(
+      'meld-merge-controls-mark-resolved'
+    ) as HTMLButtonElement
     assert.strictEqual(button.disabled, true)
   })
 
   it('enables Mark as resolved when hasUnresolvedConflicts is false', () => {
-    render(<MeldMergeControls {...defaultProps} hasUnresolvedConflicts={false} />)
-    const button = screen.getByTestId('meld-merge-controls-mark-resolved') as HTMLButtonElement
+    render(
+      <MeldMergeControls {...defaultProps} hasUnresolvedConflicts={false} />
+    )
+    const button = screen.getByTestId(
+      'meld-merge-controls-mark-resolved'
+    ) as HTMLButtonElement
     assert.strictEqual(button.disabled, false)
   })
 })

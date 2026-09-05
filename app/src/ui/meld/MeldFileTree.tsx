@@ -140,7 +140,9 @@ export class MeldFileTree extends React.Component<
           aria-expanded={isExpanded}
           data-testid={`meld-submodule-toggle-${f.path}`}
           onClick={() => this.toggleExpanded(f.path)}
-          aria-label={`${isExpanded ? 'Collapse' : 'Expand'} submodule ${f.path}`}
+          aria-label={`${isExpanded ? 'Collapse' : 'Expand'} submodule ${
+            f.path
+          }`}
         >
           <span className="meld-submodule-caret" aria-hidden="true">
             {isExpanded ? '▾' : '▸'}

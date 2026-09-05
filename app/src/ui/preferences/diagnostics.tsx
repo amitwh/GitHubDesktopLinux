@@ -130,9 +130,9 @@ export class Diagnostics extends React.Component<
         <div className="advanced-section">
           <h2>{DiagnosticsAppName}</h2>
           <p className="settings-description">
-            Diagnostic information about your installation. Use the copy
-            buttons or the "Open upstream issue tracker" link below when
-            reporting a bug.
+            Diagnostic information about your installation. Use the copy buttons
+            or the "Open upstream issue tracker" link below when reporting a
+            bug.
           </p>
         </div>
 

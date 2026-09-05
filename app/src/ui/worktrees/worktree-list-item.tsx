@@ -30,8 +30,7 @@ function formatSize(bytes: number): string {
     unitIndex++
   }
   // One decimal for KB+, no decimal for bytes.
-  const display =
-    unitIndex === 0 ? value.toFixed(0) : value.toFixed(1)
+  const display = unitIndex === 0 ? value.toFixed(0) : value.toFixed(1)
   return `${display} ${units[unitIndex]}`
 }
 
@@ -52,7 +51,9 @@ export class WorktreeListItem extends React.Component<IWorktreeListItemProps> {
     const isStale = !folderExists
 
     const sizeText =
-      sizeBytes === null || sizeBytes === undefined ? '—' : formatSize(sizeBytes)
+      sizeBytes === null || sizeBytes === undefined
+        ? '—'
+        : formatSize(sizeBytes)
 
     return (
       <div className={className}>
@@ -75,27 +76,25 @@ export class WorktreeListItem extends React.Component<IWorktreeListItemProps> {
         >
           {description}
         </TooltippedContent>
-        <span className="badges" aria-label="worktree status">
+        <span className="badges" role="group" aria-label="Worktree status">
           {worktree.isLocked ? (
-            <span
-              className="badge badge-locked"
-              title="Locked — run 'git worktree unlock' from the context menu to remove."
-            >
-              <Octicon symbol={octicons.lock} />
-              <span className="badge-text">Locked</span>
-            </span>
+            <TooltippedContent tooltip="Locked — run 'git worktree unlock' from the context menu to remove.">
+              <span className="badge badge-locked">
+                <Octicon symbol={octicons.lock} />
+                <span className="badge-text">Locked</span>
+              </span>
+            </TooltippedContent>
           ) : null}
           {isStale ? (
-            <span
-              className="badge badge-stale"
-              title="The worktree directory is missing on disk."
-            >
-              <Octicon symbol={octicons.alert} />
-              <span className="badge-text">Stale — folder missing</span>
-            </span>
+            <TooltippedContent tooltip="The worktree directory is missing on disk.">
+              <span className="badge badge-stale">
+                <Octicon symbol={octicons.alert} />
+                <span className="badge-text">Stale — folder missing</span>
+              </span>
+            </TooltippedContent>
           ) : null}
         </span>
-        <span className="size" aria-label="disk usage">
+        <span className="size" role="group" aria-label="Disk usage">
           {sizeText}
         </span>
       </div>

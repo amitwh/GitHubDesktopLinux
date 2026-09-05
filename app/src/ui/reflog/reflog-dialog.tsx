@@ -73,10 +73,16 @@ export class ReflogDialog extends React.Component<
           {!loading &&
             entries.map(entry => (
               <Row key={entry.reflogName} className="reflog-entry">
-                <span className="reflog-sha"><Ref>{entry.sha.substring(0, 7)}</Ref></span>{' '}
-                <span className="reflog-subject"><Ref>{entry.subject}</Ref></span>{' '}
+                <span className="reflog-sha">
+                  <Ref>{entry.sha.substring(0, 7)}</Ref>
+                </span>{' '}
+                <span className="reflog-subject">
+                  <Ref>{entry.subject}</Ref>
+                </span>{' '}
                 <span className="reflog-meta">
-                  <Ref>{entry.author} · {entry.timestamp.toLocaleString()}</Ref>
+                  <Ref>
+                    {entry.author} · {entry.timestamp.toLocaleString()}
+                  </Ref>
                 </span>{' '}
                 {showOpenInMeld && (
                   <Button

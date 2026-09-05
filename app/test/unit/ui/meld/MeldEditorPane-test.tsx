@@ -217,9 +217,7 @@ describe('MeldEditorPane', () => {
         onDiscard={() => undefined}
       />
     )
-    const gutter = container.querySelector(
-      'pre[data-testid="gutter-left"]'
-    )!
+    const gutter = container.querySelector('pre[data-testid="gutter-left"]')!
     assert.strictEqual(gutter.textContent, '1\n2\n3')
   })
 

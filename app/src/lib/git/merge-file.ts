@@ -35,9 +35,7 @@ export function parseMergeFileResult(
   exitCode: number
 ): IGitMergeFileResult {
   const conflictCount =
-    exitCode === 0
-      ? 0
-      : (mergedContent.match(/<<<<<<</g)?.length ?? 0)
+    exitCode === 0 ? 0 : mergedContent.match(/<<<<<<</g)?.length ?? 0
 
   return {
     mergedContent,
@@ -71,13 +69,7 @@ export async function gitMergeFile(
   oursPath: string,
   theirsPath: string
 ): Promise<IGitMergeFileResult> {
-  const args = [
-    'merge-file',
-    '--ours',
-    currentPath,
-    oursPath,
-    theirsPath,
-  ]
+  const args = ['merge-file', '--ours', currentPath, oursPath, theirsPath]
 
   // git merge-file writes the merged result to currentPath in place
   // and emits the merged content to stdout.

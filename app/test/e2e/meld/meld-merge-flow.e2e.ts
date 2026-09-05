@@ -45,7 +45,7 @@ test.describe('Meld 3-way merge flow', () => {
 
     // 7. Click Mark as resolved
     const markBtn = meldPage.locator(
-      '[data-testid="meld-merge-controls-mark-resolved"]',
+      '[data-testid="meld-merge-controls-mark-resolved"]'
     )
     await expect(markBtn).toBeEnabled()
     await markBtn.click()

@@ -80,9 +80,7 @@ export default class Shell extends React.Component<IShellProps> {
           <Checkbox
             label="Always confirm before opening shell"
             value={
-              this.props.confirmShellOpen
-                ? CheckboxValue.On
-                : CheckboxValue.Off
+              this.props.confirmShellOpen ? CheckboxValue.On : CheckboxValue.Off
             }
             onChange={this.onConfirmShellOpenChanged}
           />

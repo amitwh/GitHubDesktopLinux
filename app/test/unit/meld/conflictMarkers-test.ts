@@ -58,9 +58,16 @@ describe('conflictMarkers/parseConflictMarkers', () => {
     ].join('\n')
     const regions = parseConflictMarkers(merged)
     const conflictRegion = regions.find(r => r.kind === 'conflict')
-    assert.ok(conflictRegion !== undefined, 'expected at least one conflict region')
+    assert.ok(
+      conflictRegion !== undefined,
+      'expected at least one conflict region'
+    )
     if (conflictRegion.kind === 'conflict') {
-      assert.strictEqual(conflictRegion.hunk.baseContent, '', 'baseContent should be empty for 3-marker variant')
+      assert.strictEqual(
+        conflictRegion.hunk.baseContent,
+        '',
+        'baseContent should be empty for 3-marker variant'
+      )
       assert.strictEqual(conflictRegion.hunk.localContent, 'local line')
       assert.strictEqual(conflictRegion.hunk.remoteContent, 'remote line')
     }
@@ -103,7 +110,11 @@ describe('conflictMarkers/parseConflictMarkers', () => {
     assert.ok(conflictRegion !== undefined)
     if (conflictRegion.kind === 'conflict') {
       assert.strictEqual(conflictRegion.hunk.startLine, 1)
-      assert.strictEqual(conflictRegion.hunk.endLine, 5, 'endLine is inclusive of >>>>>>> line')
+      assert.strictEqual(
+        conflictRegion.hunk.endLine,
+        5,
+        'endLine is inclusive of >>>>>>> line'
+      )
     }
   })
 })
@@ -197,15 +208,24 @@ describe('conflictMarkers/applyHunkResolution', () => {
     assert.ok(!result.includes('======='), 'should not contain ======= marker')
     assert.ok(!result.includes('>>>>>>>'), 'should not contain >>>>>>> marker')
     assert.ok(result.includes('local content'), 'should contain local content')
-    assert.ok(result.includes('context before'), 'should preserve context before')
+    assert.ok(
+      result.includes('context before'),
+      'should preserve context before'
+    )
     assert.ok(result.includes('context after'), 'should preserve context after')
   })
 
   it('side remote replaces the conflict with remoteContent', () => {
     const result = applyHunkResolution(merged, 0, 'remote')
     assert.ok(!result.includes('<<<<<<<'), 'should not contain <<<<<<< marker')
-    assert.ok(result.includes('remote content'), 'should contain remote content')
-    assert.ok(result.includes('context before'), 'should preserve context before')
+    assert.ok(
+      result.includes('remote content'),
+      'should contain remote content'
+    )
+    assert.ok(
+      result.includes('context before'),
+      'should preserve context before'
+    )
     assert.ok(result.includes('context after'), 'should preserve context after')
   })
 
@@ -213,7 +233,10 @@ describe('conflictMarkers/applyHunkResolution', () => {
     const result = applyHunkResolution(merged, 0, 'base')
     assert.ok(!result.includes('<<<<<<<'), 'should not contain <<<<<<< marker')
     assert.ok(result.includes('base content'), 'should contain base content')
-    assert.ok(result.includes('context before'), 'should preserve context after')
+    assert.ok(
+      result.includes('context before'),
+      'should preserve context after'
+    )
   })
 
   it('side base replaces with empty when baseContent is empty (3-marker variant)', () => {
@@ -262,7 +285,10 @@ describe('conflictMarkers/applyHunkResolution', () => {
     assert.ok(result.includes('<<<<<<<'), 'first conflict should remain')
     assert.ok(result.includes('L1'), 'first local should remain')
     // Second conflict should be resolved
-    assert.ok(!result.split('>>>>>>> b1')[1].includes('<<<<<<<'), 'second conflict should be resolved')
+    assert.ok(
+      !result.split('>>>>>>> b1')[1].includes('<<<<<<<'),
+      'second conflict should be resolved'
+    )
   })
 })
 
@@ -288,7 +314,11 @@ describe('conflictMarkers/buildConflictHunks', () => {
       'end',
     ].join('\n')
     const hunks = buildConflictHunks(merged)
-    assert.strictEqual(hunks.length, 2, 'should have 2 hunks for 2 <<<<<<< markers')
+    assert.strictEqual(
+      hunks.length,
+      2,
+      'should have 2 hunks for 2 <<<<<<< markers'
+    )
   })
 
   it('returns empty array when no conflicts', () => {
@@ -328,7 +358,11 @@ describe('conflictMarkers/buildConflictHunks', () => {
     ].join('\n')
     const hunks = buildConflictHunks(merged)
     assert.strictEqual(hunks.length, 1)
-    assert.strictEqual(hunks[0].baseContent, '', 'baseContent should be empty for 3-marker')
+    assert.strictEqual(
+      hunks[0].baseContent,
+      '',
+      'baseContent should be empty for 3-marker'
+    )
     assert.strictEqual(hunks[0].localContent, 'local')
     assert.strictEqual(hunks[0].remoteContent, 'remote')
   })

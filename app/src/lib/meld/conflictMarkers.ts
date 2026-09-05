@@ -46,7 +46,7 @@ const MARKER_END = '>>>>>>> '
  * Line numbers are 0-indexed. `endLine` is inclusive.
  */
 export function parseConflictMarkers(
-  merged: string,
+  merged: string
 ): ReadonlyArray<IConflictRegion> {
   const lines = merged.split('\n')
   const regions: IConflictRegion[] = []
@@ -70,7 +70,12 @@ export function parseConflictMarkers(
       }
       // endLine is one past the last non-conflict line (or lines.length)
       const content = lines.slice(startLine, endLine).join('\n')
-      regions.push({ kind: 'context', content, startLine, endLine: endLine - 1 })
+      regions.push({
+        kind: 'context',
+        content,
+        startLine,
+        endLine: endLine - 1,
+      })
       pos = endLine
     }
   }
@@ -97,7 +102,7 @@ export function parseConflictMarkers(
  */
 function parseConflictBlock(
   lines: string[],
-  startLineIdx: number,
+  startLineIdx: number
 ): IConflictHunk {
   let localContent = ''
   let baseContent = ''
@@ -176,7 +181,7 @@ export function synthesizeMerge(
   regions: ReadonlyArray<
     | { readonly kind: 'context'; readonly content: string }
     | { readonly kind: 'conflict'; readonly hunk: IConflictHunk }
-  >,
+  >
 ): string {
   const parts: string[] = []
 
@@ -219,13 +224,13 @@ export function synthesizeMerge(
 export function applyHunkResolution(
   merged: string,
   hunkIndex: number,
-  side: 'base' | 'local' | 'remote',
+  side: 'base' | 'local' | 'remote'
 ): string {
   const hunks = buildConflictHunks(merged)
 
   if (hunkIndex < 0 || hunkIndex >= hunks.length) {
     throw new Error(
-      `applyHunkResolution: hunkIndex ${hunkIndex} out of range (${hunks.length} hunks)`,
+      `applyHunkResolution: hunkIndex ${hunkIndex} out of range (${hunks.length} hunks)`
     )
   }
 
@@ -239,8 +244,8 @@ export function applyHunkResolution(
     side === 'local'
       ? target.localContent
       : side === 'remote'
-        ? target.remoteContent
-        : target.baseContent
+      ? target.remoteContent
+      : target.baseContent
 
   return [...preLines, replacement, ...postLines].join('\n')
 }
@@ -256,7 +261,9 @@ export function applyHunkResolution(
  *
  * Returns an empty array when `merged` contains no conflict markers.
  */
-export function buildConflictHunks(merged: string): ReadonlyArray<IConflictHunk> {
+export function buildConflictHunks(
+  merged: string
+): ReadonlyArray<IConflictHunk> {
   const lines = merged.split('\n')
   const hunks: IConflictHunk[] = []
 

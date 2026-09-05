@@ -23,7 +23,10 @@ interface IMeldToolbarState {
   readonly toolDropdownOpen: boolean
 }
 
-export class MeldToolbar extends React.Component<IMeldToolbarProps, IMeldToolbarState> {
+export class MeldToolbar extends React.Component<
+  IMeldToolbarProps,
+  IMeldToolbarState
+> {
   public constructor(props: IMeldToolbarProps) {
     super(props)
     this.state = { toolDropdownOpen: false }
@@ -35,7 +38,8 @@ export class MeldToolbar extends React.Component<IMeldToolbarProps, IMeldToolbar
   }
 
   public render() {
-    const { repositoryName, filePath, filter, mode, editMode, availableTools } = this.props
+    const { repositoryName, filePath, filter, mode, editMode, availableTools } =
+      this.props
     return (
       <div className="meld-toolbar" role="toolbar" aria-label="Meld toolbar">
         <span className="meld-toolbar-repository">{repositoryName}</span>
@@ -44,7 +48,11 @@ export class MeldToolbar extends React.Component<IMeldToolbarProps, IMeldToolbar
         </span>
         <span className="meld-toolbar-file">{filePath}</span>
 
-        <div className="meld-toolbar-edit-toggle" role="radiogroup" aria-label="Edit mode">
+        <div
+          className="meld-toolbar-edit-toggle"
+          role="radiogroup"
+          aria-label="Edit mode"
+        >
           <button
             type="button"
             role="radio"

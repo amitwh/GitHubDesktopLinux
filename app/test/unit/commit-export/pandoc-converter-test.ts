@@ -3,21 +3,21 @@ import { EventEmitter } from 'node:events'
 import { Readable, Writable } from 'node:stream'
 import { afterEach, describe, it, mock } from 'node:test'
 
-interface SpawnCall {
+interface ISpawnCall {
   readonly cmd: string
   readonly args: ReadonlyArray<string>
   readonly options: Readonly<Record<string, unknown>>
 }
 
 /** Captured spawn() calls made against child_process. */
-let spawnCalls: SpawnCall[] = []
+let spawnCalls: ISpawnCall[] = []
 
-interface MockChild extends EventEmitter {
+interface IMockChild extends EventEmitter {
   readonly stdin: Writable
   readonly stderr: Readable
 }
 
-interface ChildBehavior {
+interface IChildBehavior {
   /** Emit an `error` event with this error. */
   readonly error?: Error
   /** Emit a `close` event with this exit code (default 0 = success). */
@@ -26,7 +26,7 @@ interface ChildBehavior {
   readonly stderrText?: string
 }
 
-type BehaviorFn = (child: MockChild) => void
+type BehaviorFn = (child: IMockChild) => void
 
 const defaultBehavior: BehaviorFn = child => {
   process.nextTick(() => {
@@ -47,7 +47,7 @@ let persistentBehavior: BehaviorFn = defaultBehavior
  */
 let nextChildBehavior: BehaviorFn | null = null
 
-function buildBehaviorFn(behavior: ChildBehavior): BehaviorFn {
+function buildBehaviorFn(behavior: IChildBehavior): BehaviorFn {
   return child => {
     if (behavior.error) {
       child.emit('error', behavior.error)
@@ -65,7 +65,7 @@ function buildBehaviorFn(behavior: ChildBehavior): BehaviorFn {
   }
 }
 
-function setNextChildBehavior(behavior: ChildBehavior) {
+function setNextChildBehavior(behavior: IChildBehavior) {
   nextChildBehavior = buildBehaviorFn(behavior)
 }
 
@@ -81,7 +81,11 @@ function setNextChildBehavior(behavior: ChildBehavior) {
  */
 mock.module('child_process', {
   namedExports: {
-    spawn: (cmd: string, args: ReadonlyArray<string>, options: Record<string, unknown>) => {
+    spawn: (
+      cmd: string,
+      args: ReadonlyArray<string>,
+      options: Record<string, unknown>
+    ) => {
       spawnCalls.push({ cmd, args: [...args], options })
 
       const stdin = new Writable({
@@ -91,7 +95,7 @@ mock.module('child_process', {
       })
       const stderr = new Readable({ read() {} })
 
-      const child: MockChild = Object.assign(new EventEmitter(), {
+      const child: IMockChild = Object.assign(new EventEmitter(), {
         stdin,
         stderr,
       })
@@ -101,7 +105,9 @@ mock.module('child_process', {
       // Schedule on next tick so callers can attach listeners first.
       process.nextTick(() => behavior(child))
 
-      return child as unknown as ReturnType<typeof import('node:child_process').spawn>
+      return child as unknown as ReturnType<
+        typeof import('node:child_process').spawn
+      >
     },
   },
 })
@@ -161,10 +167,14 @@ describe('commit-export/pandoc-converter', () => {
       assert.ok(pandocCall, 'expected a call to spawn pandoc')
 
       assert.deepStrictEqual(pandocCall.args, [
-        '-f', 'markdown',
-        '-t', 'html',
-        '-o', '/tmp/out.html',
-        '--resource-path', '/tmp',
+        '-f',
+        'markdown',
+        '-t',
+        'html',
+        '-o',
+        '/tmp/out.html',
+        '--resource-path',
+        '/tmp',
       ])
       // PDF engine flag should NOT appear for non-PDF outputs
       assert.ok(
@@ -191,7 +201,10 @@ describe('commit-export/pandoc-converter', () => {
         engineArg,
         `expected --pdf-engine=<name> in args: ${pandocCall.args.join(' ')}`
       )
-      assert.match(engineArg!, /^--pdf-engine=(xelatex|pdflatex|lualatex|wkhtmltopdf|weasyprint)$/)
+      assert.match(
+        engineArg!,
+        /^--pdf-engine=(xelatex|pdflatex|lualatex|wkhtmltopdf|weasyprint)$/
+      )
     })
 
     it('resolves when pandoc exits with code 0', async () => {

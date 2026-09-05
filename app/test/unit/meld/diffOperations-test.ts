@@ -35,7 +35,10 @@ describe('diffOperations/computeCharDiff', () => {
   })
 
   it('returns a mix of equal, removed, and added parts for a typical change', () => {
-    const parts: ReadonlyArray<ICharDiffPart> = computeCharDiff('foo bar', 'foo baz')
+    const parts: ReadonlyArray<ICharDiffPart> = computeCharDiff(
+      'foo bar',
+      'foo baz'
+    )
     const equalText = parts
       .filter(p => !p.added && !p.removed)
       .map(p => p.value)

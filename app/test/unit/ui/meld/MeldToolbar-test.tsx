@@ -2,13 +2,22 @@ import assert from 'node:assert'
 import { describe, it } from 'node:test'
 import * as React from 'react'
 import { fireEvent, render, screen } from '../../../helpers/ui/render'
-import { MeldToolbar, IMeldToolbarProps } from '../../../../src/ui/meld/MeldToolbar'
+import {
+  MeldToolbar,
+  IMeldToolbarProps,
+} from '../../../../src/ui/meld/MeldToolbar'
 import { IExternalTool } from '../../../../src/models/external-tool'
 
 describe('MeldToolbar', () => {
   const tools: IExternalTool[] = [
     { id: 'meld', name: 'Meld', command: 'meld', args: '%L %R', builtIn: true },
-    { id: 'kdiff3', name: 'KDiff3', command: 'kdiff3', args: '%L %R', builtIn: true },
+    {
+      id: 'kdiff3',
+      name: 'KDiff3',
+      command: 'kdiff3',
+      args: '%L %R',
+      builtIn: true,
+    },
   ]
 
   const defaultProps: IMeldToolbarProps = {

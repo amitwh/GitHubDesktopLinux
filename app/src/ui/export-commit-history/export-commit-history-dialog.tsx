@@ -5,10 +5,7 @@ import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { Select } from '../lib/select'
 import { Row } from '../lib/row'
 import { Repository } from '../../models/repository'
-import {
-  exportCommitHistory,
-  PandocFormat,
-} from '../../lib/commit-export'
+import { exportCommitHistory, PandocFormat } from '../../lib/commit-export'
 
 interface IExportCommitHistoryDialogProps {
   readonly repository: Repository
@@ -62,7 +59,9 @@ export class ExportCommitHistoryDialog extends React.Component<
     this.setState({ includeHash: event.currentTarget.checked })
   }
 
-  private onIncludeAuthorChange = (event: React.FormEvent<HTMLInputElement>) => {
+  private onIncludeAuthorChange = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
     this.setState({ includeAuthor: event.currentTarget.checked })
   }
 
@@ -70,7 +69,9 @@ export class ExportCommitHistoryDialog extends React.Component<
     this.setState({ includeDate: event.currentTarget.checked })
   }
 
-  private onIncludeMessageChange = (event: React.FormEvent<HTMLInputElement>) => {
+  private onIncludeMessageChange = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
     this.setState({ includeMessage: event.currentTarget.checked })
   }
 
@@ -93,15 +94,12 @@ export class ExportCommitHistoryDialog extends React.Component<
 
     try {
       const { invoke } = await import('../../lib/ipc-renderer')
-      const outputPath = await invoke(
-        'show-save-dialog',
-        {
-          defaultPath: `${repository.name}-commits.${format === 'markdown' ? 'md' : format}`,
-          filters: [
-            { name: 'All Files', extensions: ['*'] },
-          ],
-        }
-      )
+      const outputPath = await invoke('show-save-dialog', {
+        defaultPath: `${repository.name}-commits.${
+          format === 'markdown' ? 'md' : format
+        }`,
+        filters: [{ name: 'All Files', extensions: ['*'] }],
+      })
 
       if (outputPath === undefined || outputPath === null) {
         this.setState({ isExporting: false })
@@ -146,7 +144,11 @@ export class ExportCommitHistoryDialog extends React.Component<
       >
         <DialogContent>
           <Row>
-            <Select label="Format" value={format} onChange={this.onFormatChange}>
+            <Select
+              label="Format"
+              value={format}
+              onChange={this.onFormatChange}
+            >
               {formats.map(f => (
                 <option key={f.value} value={f.value}>
                   {f.label}
@@ -195,9 +197,7 @@ export class ExportCommitHistoryDialog extends React.Component<
             />
           </Row>
 
-          {exportError && (
-            <DialogError>{exportError.message}</DialogError>
-          )}
+          {exportError && <DialogError>{exportError.message}</DialogError>}
         </DialogContent>
 
         <DialogFooter>

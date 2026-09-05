@@ -76,10 +76,14 @@ export async function convertWithPandoc(
   format: PandocFormat
 ): Promise<void> {
   const args: string[] = [
-    '-f', 'markdown',
-    '-t', format,
-    '-o', outputPath,
-    '--resource-path', path.dirname(outputPath),
+    '-f',
+    'markdown',
+    '-t',
+    format,
+    '-o',
+    outputPath,
+    '--resource-path',
+    path.dirname(outputPath),
   ]
 
   if (format === 'pdf') {
@@ -113,17 +117,25 @@ export async function convertWithPandoc(
 
     child.on('error', (err: Error) => {
       clearTimeout(timeout)
-      reject(new Error(`Failed to spawn pandoc: ${err.message}. Is pandoc installed?`))
+      reject(
+        new Error(
+          `Failed to spawn pandoc: ${err.message}. Is pandoc installed?`
+        )
+      )
     })
 
-    child.stdin.write(markdownContent, 'utf-8', (err: Error | null | undefined) => {
-      if (err) {
-        clearTimeout(timeout)
-        reject(new Error(`Failed to write to pandoc stdin: ${err.message}`))
-        return
+    child.stdin.write(
+      markdownContent,
+      'utf-8',
+      (err: Error | null | undefined) => {
+        if (err) {
+          clearTimeout(timeout)
+          reject(new Error(`Failed to write to pandoc stdin: ${err.message}`))
+          return
+        }
+        child.stdin.end()
       }
-      child.stdin.end()
-    })
+    )
   })
 }
 

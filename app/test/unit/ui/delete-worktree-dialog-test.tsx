@@ -58,9 +58,7 @@ describe('DeleteWorktreeDialog', () => {
       />
     )
 
-    assert.ok(
-      screen.getByText(/2 modified and 3 untracked files/) !== null
-    )
+    assert.ok(screen.getByText(/2 modified and 3 untracked files/) !== null)
   })
 
   it('does not render the dirty warning when dirtyState is zero', () => {
@@ -106,11 +104,7 @@ describe('DeleteWorktreeDialog', () => {
     }
     let lastForceArg: boolean | undefined
 
-    const onDelete = async (
-      _r: Repository,
-      _p: string,
-      force?: boolean
-    ) => {
+    const onDelete = async (_r: Repository, _p: string, force?: boolean) => {
       lastForceArg = force
     }
 
@@ -154,11 +148,7 @@ describe('DeleteWorktreeDialog', () => {
     }
     let lastForceArg: boolean | undefined
 
-    const onDelete = async (
-      _r: Repository,
-      _p: string,
-      force?: boolean
-    ) => {
+    const onDelete = async (_r: Repository, _p: string, force?: boolean) => {
       lastForceArg = force
     }
 

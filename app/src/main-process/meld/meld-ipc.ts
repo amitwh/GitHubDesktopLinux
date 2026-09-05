@@ -87,7 +87,10 @@ export function registerMeldIpcHandlers() {
       const [cmd, ...cmdArgs] = args
       const child = spawn(cmd!, cmdArgs, { detached: true, stdio: 'ignore' })
       child.on('error', err => {
-        resolve({ success: false, error: `Failed to launch tool: ${err.message}` })
+        resolve({
+          success: false,
+          error: `Failed to launch tool: ${err.message}`,
+        })
       })
       child.on('spawn', () => {
         child.unref()
@@ -139,7 +142,12 @@ export function registerMeldIpcHandlers() {
         writeFile(theirsPath, r.remoteContent, 'utf8'),
       ])
 
-      const result = await gitMergeFile(repository, basePath, oursPath, theirsPath)
+      const result = await gitMergeFile(
+        repository,
+        basePath,
+        oursPath,
+        theirsPath
+      )
 
       // git merge-file writes the merged result to basePath in place.
       const mergedContent = await readFile(basePath, 'utf8')
@@ -170,7 +178,10 @@ export function registerMeldIpcHandlers() {
    */
   ipcMain.handle('meld:get-blame', async (_event, req: unknown) => {
     const r = req as IGetBlameRequest
-    if (typeof r.repositoryPath !== 'string' || typeof r.filePath !== 'string') {
+    if (
+      typeof r.repositoryPath !== 'string' ||
+      typeof r.filePath !== 'string'
+    ) {
       return [] as ReadonlyArray<IBlameHunk>
     }
     const repository: Repository = {
@@ -227,8 +238,8 @@ export function registerMeldIpcHandlers() {
         const stdout = Buffer.isBuffer(result.stdout)
           ? result.stdout.toString('utf8')
           : typeof result.stdout === 'string'
-            ? result.stdout
-            : ''
+          ? result.stdout
+          : ''
         return parseShortStat(stdout)
       } catch (err) {
         console.warn(
@@ -264,8 +275,8 @@ export function registerMeldIpcHandlers() {
         const stdout = Buffer.isBuffer(result.stdout)
           ? result.stdout.toString('utf8')
           : typeof result.stdout === 'string'
-            ? result.stdout
-            : ''
+          ? result.stdout
+          : ''
         return stdout
       } catch (err) {
         // Defensive: never throw to the renderer; instead log and
@@ -321,7 +332,10 @@ export function registerMeldIpcHandlers() {
    */
   ipcMain.handle('meld:get-stash-files', async (_event, req: unknown) => {
     const r = req as IGetStashFilesRequest
-    if (typeof r.repositoryPath !== 'string' || typeof r.stashSha !== 'string') {
+    if (
+      typeof r.repositoryPath !== 'string' ||
+      typeof r.stashSha !== 'string'
+    ) {
       return [] as ReadonlyArray<CommittedFileChange>
     }
     const repository: Repository = {
@@ -379,33 +393,30 @@ export function registerMeldIpcHandlers() {
    * empty string when the submodule has no diff or git could not
    * produce one (e.g. uninitialized submodule).
    */
-  ipcMain.handle(
-    'meld:get-submodule-diff',
-    async (_event, req: unknown) => {
-      const r = req as IGetSubmoduleDiffRequest
-      if (
-        typeof r.repositoryPath !== 'string' ||
-        typeof r.submodulePath !== 'string'
-      ) {
-        return ''
-      }
-      const repository: Repository = {
-        id: -1,
-        name: '',
-        path: r.repositoryPath,
-        hash: '',
-        lastFetched: null,
-      } as unknown as Repository
-
-      try {
-        return await getSubmoduleDiff(repository, r.submodulePath)
-      } catch (err) {
-        console.warn(
-          `[meld:get-submodule-diff] failed for ${r.submodulePath}:`,
-          err instanceof Error ? err.message : String(err)
-        )
-        return ''
-      }
+  ipcMain.handle('meld:get-submodule-diff', async (_event, req: unknown) => {
+    const r = req as IGetSubmoduleDiffRequest
+    if (
+      typeof r.repositoryPath !== 'string' ||
+      typeof r.submodulePath !== 'string'
+    ) {
+      return ''
     }
-  )
+    const repository: Repository = {
+      id: -1,
+      name: '',
+      path: r.repositoryPath,
+      hash: '',
+      lastFetched: null,
+    } as unknown as Repository
+
+    try {
+      return await getSubmoduleDiff(repository, r.submodulePath)
+    } catch (err) {
+      console.warn(
+        `[meld:get-submodule-diff] failed for ${r.submodulePath}:`,
+        err instanceof Error ? err.message : String(err)
+      )
+      return ''
+    }
+  })
 }

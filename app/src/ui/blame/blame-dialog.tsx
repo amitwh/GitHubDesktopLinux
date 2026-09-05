@@ -50,11 +50,19 @@ export class BlameDialog extends React.Component<
           {!loading &&
             hunks.map(hunk => (
               <Row key={`${hunk.sha}-${hunk.startLine}`} className="blame-hunk">
-                <span className="blame-sha"><Ref>{hunk.sha.substring(0, 7)}</Ref></span>{' '}
-                <span className="blame-author"><Ref>{hunk.author}</Ref></span>{' '}
-                <span className="blame-summary"><Ref>{hunk.summary}</Ref></span>{' '}
+                <span className="blame-sha">
+                  <Ref>{hunk.sha.substring(0, 7)}</Ref>
+                </span>{' '}
+                <span className="blame-author">
+                  <Ref>{hunk.author}</Ref>
+                </span>{' '}
+                <span className="blame-summary">
+                  <Ref>{hunk.summary}</Ref>
+                </span>{' '}
                 <span className="blame-lines">
-                  <Ref>lines {hunk.startLine + 1}–{hunk.startLine + hunk.lineCount}</Ref>
+                  <Ref>
+                    lines {hunk.startLine + 1}–{hunk.startLine + hunk.lineCount}
+                  </Ref>
                 </span>
               </Row>
             ))}

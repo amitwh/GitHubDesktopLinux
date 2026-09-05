@@ -8,7 +8,10 @@ import { test, expect } from '@playwright/test'
  * dev app via `yarn start` and manually opening a Meld window from the changes list.
  */
 test.describe('Meld basic flow', () => {
-  test.skip('opens Meld window from context menu and shows diff', async ({ page, context }) => {
+  test.skip('opens Meld window from context menu and shows diff', async ({
+    page,
+    context,
+  }) => {
     await page.goto('/')
 
     // Right-click on a changed file
@@ -28,7 +31,10 @@ test.describe('Meld basic flow', () => {
     await expect(meldPage.locator('.meld-diff-pane')).toBeVisible()
   })
 
-  test.skip('external tool dropdown lists configured tools', async ({ page, context }) => {
+  test.skip('external tool dropdown lists configured tools', async ({
+    page,
+    context,
+  }) => {
     await page.goto('/')
     const fileRow = page.locator('[data-testid="changed-file"]').first()
     await fileRow.click({ button: 'right' })

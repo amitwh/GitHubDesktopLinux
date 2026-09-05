@@ -50,7 +50,12 @@ describe('git/three-way-resolve', () => {
     // Modify the working tree file without committing
     writeFileSync(join(repo.path, 'localfile.txt'), 'local version modified\n')
 
-    const result = await readThreeWayContents(repo, 'localfile.txt', 'HEAD', 'HEAD')
+    const result = await readThreeWayContents(
+      repo,
+      'localfile.txt',
+      'HEAD',
+      'HEAD'
+    )
     assert.strictEqual(result.localContent, 'local version modified\n')
   })
 

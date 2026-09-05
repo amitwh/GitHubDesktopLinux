@@ -119,9 +119,7 @@ async function computeDirectorySize(path: string): Promise<number> {
   return size
 }
 
-async function computeSizes(
-  paths: ReadonlyArray<string>
-): Promise<{
+async function computeSizes(paths: ReadonlyArray<string>): Promise<{
   sizes: ReadonlyArray<{ path: string; size: number } | null>
 }> {
   const sizes: Array<{ path: string; size: number } | null> = []

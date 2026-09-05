@@ -2,9 +2,15 @@ import assert from 'node:assert'
 import { describe, it } from 'node:test'
 import * as React from 'react'
 import { fireEvent, render, screen } from '../../../helpers/ui/render'
-import { MeldStashView, IMeldStashViewProps } from '../../../../src/ui/meld/MeldStashView'
+import {
+  MeldStashView,
+  IMeldStashViewProps,
+} from '../../../../src/ui/meld/MeldStashView'
 import { IAllStashEntry } from '../../../../src/lib/git/stash'
-import { CommittedFileChange, AppFileStatusKind } from '../../../../src/models/status'
+import {
+  CommittedFileChange,
+  AppFileStatusKind,
+} from '../../../../src/models/status'
 
 function makeStash(name: string, sha: string, message: string): IAllStashEntry {
   return {
@@ -26,8 +32,16 @@ function makeFile(path: string, kind: AppFileStatusKind): CommittedFileChange {
 
 describe('MeldStashView', () => {
   const stashes: ReadonlyArray<IAllStashEntry> = [
-    makeStash('stash@{0}', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'WIP: tweak a'),
-    makeStash('stash@{1}', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'WIP: tweak b'),
+    makeStash(
+      'stash@{0}',
+      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      'WIP: tweak a'
+    ),
+    makeStash(
+      'stash@{1}',
+      'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+      'WIP: tweak b'
+    ),
   ]
   const filesBySha: Record<string, ReadonlyArray<CommittedFileChange>> = {
     aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa: [
@@ -136,7 +150,10 @@ describe('MeldStashView', () => {
       document.querySelector('[data-testid="meld-stash-file-src/a.ts"] button')!
     )
 
-    assert.strictEqual(capturedStashSha, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+    assert.strictEqual(
+      capturedStashSha,
+      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+    )
     assert.strictEqual(capturedFile, 'src/a.ts')
   })
 
@@ -155,7 +172,9 @@ describe('MeldStashView', () => {
       'expected an error banner to render after fetch failure'
     )
     assert.ok(
-      document.querySelector('.meld-error-banner')!.textContent!.includes('boom')
+      document
+        .querySelector('.meld-error-banner')!
+        .textContent!.includes('boom')
     )
   })
 

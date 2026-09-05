@@ -42,7 +42,10 @@ export class MeldEditorPane extends React.Component<
     // revert), sync the local draft so the textarea reflects the new
     // truth. We only re-sync when the parent's `content` diverges from
     // our local draft, which is a signal that an external reset happened.
-    if (prevProps.content !== this.props.content && this.props.content !== this.state.draft) {
+    if (
+      prevProps.content !== this.props.content &&
+      this.props.content !== this.state.draft
+    ) {
       this.setState({ draft: this.props.content })
     }
   }

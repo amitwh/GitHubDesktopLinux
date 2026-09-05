@@ -16,9 +16,12 @@ export type IBlameLine = IBlameHunk
  * `IDiff` → `text` (raw unified diff text). The header is always the
  * first non-empty line of a hunk block.
  */
-export function parseHunkHeader(
-  header: string
-): { readonly oldStart: number; readonly oldCount: number; readonly newStart: number; readonly newCount: number } | null {
+export function parseHunkHeader(header: string): {
+  readonly oldStart: number
+  readonly oldCount: number
+  readonly newStart: number
+  readonly newCount: number
+} | null {
   // Match `@@ -<start>[,<count>] +<start>[,<count>] @@`
   const m = header.match(/^@@\s+-(\d+)(?:,(\d+))?\s+\+(\d+)(?:,(\d+))?\s+@@/)
   if (!m) {
@@ -162,7 +165,10 @@ function resolveHunkForLine(
   // Fallback: linear scan from the cursor (usually O(1) amortized).
   for (let i = hunkIndex; i < hunks.length; i++) {
     const h = hunks[i]
-    if (newLineNumber >= h.startLine && newLineNumber < h.startLine + h.lineCount) {
+    if (
+      newLineNumber >= h.startLine &&
+      newLineNumber < h.startLine + h.lineCount
+    ) {
       return h
     }
     if (h.startLine > newLineNumber) {

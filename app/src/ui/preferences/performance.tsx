@@ -34,13 +34,14 @@ const FetchIntervalChoices: ReadonlyArray<{ value: string }> = [
  * `AppStore._setX` so changes survive an app restart, but most take effect
  * only on the next launch (hence the footer note).
  */
-export class Performance extends React.Component<IPerformancePreferencesProps, {}> {
+export class Performance extends React.Component<
+  IPerformancePreferencesProps,
+  {}
+> {
   private onDisableHardwareAccelerationChanged = (
     event: React.FormEvent<HTMLInputElement>
   ) => {
-    this.props.onDisableHardwareAccelerationChanged(
-      event.currentTarget.checked
-    )
+    this.props.onDisableHardwareAccelerationChanged(event.currentTarget.checked)
   }
 
   private onEnableSmoothScrollingChanged = (
@@ -115,8 +116,8 @@ export class Performance extends React.Component<IPerformancePreferencesProps, {
             className="settings-description"
           >
             When enabled, list virtualization tries to keep the visible rows
-            mounted across the duration of a scroll gesture so the renderer
-            does not show empty gaps during a fast fling.
+            mounted across the duration of a scroll gesture so the renderer does
+            not show empty gaps during a fast fling.
           </p>
         </div>
 
@@ -136,9 +137,9 @@ export class Performance extends React.Component<IPerformancePreferencesProps, {
             id="limit-concurrent-git-ops-description"
             className="settings-description"
           >
-            When enabled, the Git operation queue caps the number of
-            concurrent git processes to a small fixed number to keep large
-            multi-repo workspaces responsive.
+            When enabled, the Git operation queue caps the number of concurrent
+            git processes to a small fixed number to keep large multi-repo
+            workspaces responsive.
           </p>
 
           <Select

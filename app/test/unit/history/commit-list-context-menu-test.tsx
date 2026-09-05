@@ -45,8 +45,7 @@ function makeInputs(
     isLocalCommit: overrides.isLocalCommit ?? (() => true),
     canReorder: overrides.canReorder ?? (() => false),
     canCherryPick: overrides.canCherryPick ?? (() => false),
-    getDeleteTagsMenuItem:
-      overrides.getDeleteTagsMenuItem ?? (() => null),
+    getDeleteTagsMenuItem: overrides.getDeleteTagsMenuItem ?? (() => null),
     onAmendCommit: overrides.onAmendCommit,
     onUndoCommit: overrides.onUndoCommit,
     onResetToCommit: overrides.onResetToCommit,
@@ -118,10 +117,7 @@ describe('buildCommitContextMenu', () => {
         onResetToCommit: undefined,
       })
     )
-    assert.strictEqual(
-      findItem(noCallback, 'Reset to commit…').enabled,
-      false
-    )
+    assert.strictEqual(findItem(noCallback, 'Reset to commit…').enabled, false)
 
     let captured: unknown = null
     const withCallback = buildCommitContextMenu(

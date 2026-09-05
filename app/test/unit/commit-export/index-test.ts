@@ -52,8 +52,12 @@ mock.module('../../../src/lib/commit-export/pandoc-converter', {
       convertCalls.push({ content, outputPath, format })
     },
     getFormatFromExtension: (ext: string) => {
-      if (ext === '.pdf') return 'pdf'
-      if (ext === '.docx') return 'docx'
+      if (ext === '.pdf') {
+        return 'pdf'
+      }
+      if (ext === '.docx') {
+        return 'docx'
+      }
       return undefined
     },
   },
@@ -63,7 +67,10 @@ mock.module('../../../src/lib/commit-export/pandoc-converter', {
  * Captured `fs.writeFile` calls. We mock `fs/promises` rather than mutate
  * it (its named exports are read-only).
  */
-const writeFileCalls: Array<{ readonly path: string; readonly content: string }> = []
+const writeFileCalls: Array<{
+  readonly path: string
+  readonly content: string
+}> = []
 
 let writeFileError: Error | null = null
 

@@ -47,9 +47,9 @@ describe('MeldCharDiff', () => {
     const { container } = render(<MeldCharDiff parts={parts} />)
     const wrapper = container.querySelector('.meld-char-diff')!
     assert.strictEqual(wrapper.textContent, 'abcd')
-    const ordered = Array.from(
-      container.querySelectorAll('[data-diff]')
-    ).map(el => el.getAttribute('data-diff'))
+    const ordered = Array.from(container.querySelectorAll('[data-diff]')).map(
+      el => el.getAttribute('data-diff')
+    )
     assert.deepStrictEqual(ordered, ['equal', 'added', 'equal', 'removed'])
   })
 

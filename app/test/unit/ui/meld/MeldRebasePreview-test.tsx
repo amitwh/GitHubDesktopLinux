@@ -116,14 +116,13 @@ describe('MeldRebasePreview', () => {
 
   it('shows a loading indicator when stats for a commit are not yet known', () => {
     const { container } = render(
-      <MeldRebasePreview
-        {...baseProps}
-        loading={{ bbbbbbbb: true }}
-      />
+      <MeldRebasePreview {...baseProps} loading={{ bbbbbbbb: true }} />
     )
     const rows = container.querySelectorAll('.meld-rebase-preview-row')
     assert.strictEqual(rows.length, 3)
-    const loading = container.querySelectorAll('.meld-rebase-preview-stats-loading')
+    const loading = container.querySelectorAll(
+      '.meld-rebase-preview-stats-loading'
+    )
     assert.ok(loading.length >= 1, 'expected at least one loading indicator')
   })
 })

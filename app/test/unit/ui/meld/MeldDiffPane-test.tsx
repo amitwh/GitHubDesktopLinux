@@ -2,7 +2,10 @@ import assert from 'node:assert'
 import { describe, it } from 'node:test'
 import * as React from 'react'
 import { render, screen, fireEvent } from '../../../helpers/ui/render'
-import { MeldDiffPane, IMeldDiffPaneProps } from '../../../../src/ui/meld/MeldDiffPane'
+import {
+  MeldDiffPane,
+  IMeldDiffPaneProps,
+} from '../../../../src/ui/meld/MeldDiffPane'
 import { IDiff, DiffType, ITextDiff } from '../../../../src/models/diff'
 import { IMeldEditState } from '../../../../src/models/meld-edit'
 
@@ -96,8 +99,7 @@ describe('MeldDiffPane', () => {
     const multiHunk: ITextDiff = {
       kind: DiffType.Text,
       text:
-        '@@ -1,1 +1,1 @@\n-old1\n+new1\n' +
-        '@@ -10,1 +10,1 @@\n-old2\n+new2',
+        '@@ -1,1 +1,1 @@\n-old1\n+new1\n' + '@@ -10,1 +10,1 @@\n-old2\n+new2',
       hunks: [],
       maxLineNumber: 10,
       hasHiddenBidiChars: false,
@@ -125,7 +127,9 @@ describe('MeldDiffPane', () => {
     const { container } = render(
       <MeldDiffPane {...defaultProps} editState={sampleEditState} />
     )
-    const buttons = container.querySelectorAll('button[aria-label="Copy to right"]')
+    const buttons = container.querySelectorAll(
+      'button[aria-label="Copy to right"]'
+    )
     void buttons // unused, but kept for future per-hunk assertions
     // No hunk buttons row should render when there is only one hunk.
     const hunkRows = container.querySelectorAll('.meld-diff-pane-hunk-row')

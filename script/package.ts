@@ -281,10 +281,9 @@ export function fixDebPermissions(outputDir: string) {
 
   // Repack. --root-owner-group ensures files are owned by root:root
   // inside the .deb regardless of the build user's uid/gid.
-  cp.execSync(
-    `dpkg-deb --root-owner-group -b "${tempDir}" "${debPath}"`,
-    { stdio: 'inherit' }
-  )
+  cp.execSync(`dpkg-deb --root-owner-group -b "${tempDir}" "${debPath}"`, {
+    stdio: 'inherit',
+  })
   cp.execSync(`rm -rf "${tempDir}"`)
   console.log('.deb permissions fixed.')
 }
@@ -302,13 +301,16 @@ function patchPostinst(postinstPath: string, productName: string) {
   let changed = false
 
   // --- Fix 1: Replace the unshare-conditional chrome-sandbox chmod ---
-  const suidBlock = /# Check if user namespaces[\s\S]*?chmod 0?755 '\/opt\/[^']*\/chrome-sandbox' \|\| true\nfi/
+  const suidBlock =
+    /# Check if user namespaces[\s\S]*?chmod 0?755 '\/opt\/[^']*\/chrome-sandbox' \|\| true\nfi/
 
   if (suidBlock.test(original)) {
     const replacement = `# Always set chrome-sandbox SUID 4755. On Ubuntu 23.10+ AppArmor\n# blocks unprivileged user namespaces even though \`unshare --user\`\n# succeeds, so the old conditional left chrome-sandbox at 0755 and\n# Electron's renderer FATAL-crashed ("No usable sandbox!").\nchmod 4755 '/opt/${productName}/chrome-sandbox' || true`
     original = original.replace(suidBlock, replacement)
     changed = true
-    console.log('  ✓ Patched postinst: chrome-sandbox → unconditional SUID 4755')
+    console.log(
+      '  ✓ Patched postinst: chrome-sandbox → unconditional SUID 4755'
+    )
   } else {
     console.warn(
       '  ⚠ Could not find chrome-sandbox conditional in postinst — skipping SUID patch.'
@@ -332,15 +334,14 @@ find '/opt/${productName}' -type d -exec chmod 755 {} + || true
     // chrome-sandbox chmod or before update-mime-database).
     const insertPoint = original.indexOf('\n# Check if user namespaces')
     const altInsertPoint = original.indexOf('\n# Always set chrome-sandbox')
-    const mimeInsertPoint = original.indexOf(
-      '\nif hash update-mime-database'
-    )
+    const mimeInsertPoint = original.indexOf('\nif hash update-mime-database')
 
     const anchor = Math.max(insertPoint, altInsertPoint, mimeInsertPoint)
     if (anchor > -1) {
       original =
         original.slice(0, anchor) +
-        '\n' + dirChmodSnippet +
+        '\n' +
+        dirChmodSnippet +
         original.slice(anchor)
       changed = true
       console.log('  ✓ Patched postinst: explicit chmod 755 for /opt dir tree')

@@ -115,32 +115,42 @@ export class MeldDiffPane extends React.Component<IMeldDiffPaneProps, {}> {
     const useEditors = editState !== undefined && editState !== null
 
     return (
-      <div className="meld-diff-pane" data-mode={useEditors ? 'editable' : 'raw'}>
+      <div
+        className="meld-diff-pane"
+        data-mode={useEditors ? 'editable' : 'raw'}
+      >
         <div className="meld-diff-pane-header" role="heading" aria-level={2}>
           {filePath}
         </div>
         {loading && (
-          <div className="meld-loading" role="status">Loading diff…</div>
+          <div className="meld-loading" role="status">
+            Loading diff…
+          </div>
         )}
         {!loading && !diff && !editState && (
-          <div className="meld-empty-state" role="status">No changes to display.</div>
+          <div className="meld-empty-state" role="status">
+            No changes to display.
+          </div>
         )}
         {!loading && diff && !useEditors && (
           <div className="meld-diff-pane-side-by-side">
             <pre className="meld-diff-raw">{renderDiffText(diff)}</pre>
           </div>
         )}
-        {!loading && useEditors && editState && this.renderEditors(editState, {
-          readOnly,
-          onEditChange,
-          onEditSave,
-          onEditDiscard,
-          onCopyHunkLeft,
-          onCopyHunkRight,
-          blame,
-          blameLoading,
-          onOpenCommit,
-        })}
+        {!loading &&
+          useEditors &&
+          editState &&
+          this.renderEditors(editState, {
+            readOnly,
+            onEditChange,
+            onEditSave,
+            onEditDiscard,
+            onCopyHunkLeft,
+            onCopyHunkRight,
+            blame,
+            blameLoading,
+            onOpenCommit,
+          })}
       </div>
     )
   }
@@ -159,7 +169,9 @@ export class MeldDiffPane extends React.Component<IMeldDiffPaneProps, {}> {
       onOpenCommit?: (sha: string) => void
     }
   ) {
-    const hunks = splitHunksFromText(this.props.diff ? renderDiffText(this.props.diff) : '')
+    const hunks = splitHunksFromText(
+      this.props.diff ? renderDiffText(this.props.diff) : ''
+    )
     const charDiffParts: ReadonlyArray<ICharDiffPart> =
       hunks.length > 0
         ? computeCharDiff(state.leftContent, state.rightContent)
@@ -190,7 +202,10 @@ export class MeldDiffPane extends React.Component<IMeldDiffPaneProps, {}> {
             onSave={handlers.onEditSave || (() => undefined)}
             onDiscard={handlers.onEditDiscard || (() => undefined)}
           />
-          <MeldCharDiff parts={charDiffParts} className="meld-diff-pane-overlay" />
+          <MeldCharDiff
+            parts={charDiffParts}
+            className="meld-diff-pane-overlay"
+          />
           <MeldEditorPane
             side="right"
             title="Working"
@@ -211,9 +226,17 @@ export class MeldDiffPane extends React.Component<IMeldDiffPaneProps, {}> {
           )}
         </div>
         {hunks.length > 1 && (
-          <div className="meld-diff-pane-hunk-buttons" role="list" aria-label="Hunk copy controls">
+          <div
+            className="meld-diff-pane-hunk-buttons"
+            role="list"
+            aria-label="Hunk copy controls"
+          >
             {hunks.map((hunkText, index) => (
-              <div key={index} role="listitem" className="meld-diff-pane-hunk-row">
+              <div
+                key={index}
+                role="listitem"
+                className="meld-diff-pane-hunk-row"
+              >
                 <pre className="meld-diff-pane-hunk-header" aria-hidden="true">
                   {hunkText.split('\n')[0]}
                 </pre>

@@ -117,10 +117,7 @@ describe('Dispatcher worktree wrappers', () => {
     const result = await dispatcher.getWorktreeDirtyState('/some/path')
 
     assert.deepStrictEqual(result, { modifiedCount: 2, untrackedCount: 3 })
-    assert.strictEqual(
-      appStore._getWorktreeDirtyState.mock.calls.length,
-      1
-    )
+    assert.strictEqual(appStore._getWorktreeDirtyState.mock.calls.length, 1)
     const call = appStore._getWorktreeDirtyState.mock.calls[0] as unknown as {
       arguments: unknown[]
     }
