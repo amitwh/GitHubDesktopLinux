@@ -89,7 +89,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: yarn
           architecture: ${{ matrix.arch }}
-      - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478e79d6989d # v5.3.0
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0 # v5.3.0
         with:
           python-version: '3.11'
       - name: Install dependencies
