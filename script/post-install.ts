@@ -5,6 +5,7 @@ import { spawnSync, SpawnSyncOptions } from 'child_process'
 
 import glob from 'glob'
 import { forceUnwrap } from '../app/src/lib/fatal-error'
+import { applyNodeModulePatches } from './patches/apply-patches'
 
 const root = Path.dirname(__dirname)
 
@@ -42,6 +43,10 @@ function findYarnVersion(callback: (path: string) => void) {
 }
 
 findYarnVersion(path => {
+  // Fork-carried node_modules patches must be in place before anything
+  // downstream shells out to electron-builder.
+  applyNodeModulePatches()
+
   let result = spawnSync(
     'node',
     [path, '--cwd', 'app', 'install', '--force'],
