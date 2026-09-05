@@ -93,6 +93,22 @@ jobs:
           python-version: '3.11'
       - name: Install dependencies
         run: yarn
+        env:
+          npm_config_arch: ${{ matrix.arch }}
+          TARGET_ARCH: ${{ matrix.arch }}
+      # When cross-compiling (arm64 leg on x64 hardware) yarn skips the
+      # target-arch optional dependency on platform grounds; install it
+      # explicitly so build.ts can bundle the native module. Mirrors
+      # upstream's .github/actions/setup-ci-environment.
+      - name: Install cross-compilation copilot package
+        shell: bash
+        run: |
+          PKG="@github/copilot-win32-${{ matrix.arch }}"
+          VERSION=$(node -p "require('./app/node_modules/@github/copilot/package.json').optionalDependencies['${PKG}']")
+          if [ ! -d "app/node_modules/@github/copilot-win32-${{ matrix.arch }}" ]; then
+            echo "Installing ${PKG}@${VERSION} for cross-compilation…"
+            cd app && yarn add --optional --ignore-platform --ignore-scripts "${PKG}@${VERSION}"
+          fi
       - name: Build production app (Windows target)
         run: yarn build:prod
       - name: Prepare testing environment
