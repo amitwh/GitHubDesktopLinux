@@ -1,5 +1,8 @@
 {
   "releases": {
+    "3.6.5-linux1": [
+      "[Sync] Merged upstream development (up to 57d5422190, 35 commits since b17e06dd0f): upstream 3.6.5 final release, Electron bumped 42.0.1 to 44.1.1 (clipboard module is now main-process only — the fork's Copy commit URL menu item and Diagnostics copy button migrated to the writeClipboardText IPC channel alongside upstream's copy actions), Node.js toolchain bumped to v24.19.0, dependency bumps (fast-uri 3.1.7, @xmldom/xmldom 0.9.12, browserslist 4.28.8), RStudio new-installer detection fix (#22774)"
+    ],
     "3.6.5-beta1-linux1": [
       "[Sync] Merged upstream development (up to b17e06dd0f, 71 commits since cc90c4deb9): upstream 3.6.4 final and 3.6.5-beta1 releases, migration to @electron/packager 18 (legacy macOS icons preserved), security dependency refresh (dompurify 3.4.13, postcss 8.5.26, undici, nanoid, ip-address), Azure storage dependency removed, Markdown lint tooling upgrade, image diff alignment fix (#21535), abort-rebase-with-unstashed-changes fix (#22536), protected-branch error handling fix (#22655)"
     ],
@@ -18,7 +21,7 @@
       "[Improved] 9 net new unit tests: 5 for buildCommitContextMenu (Copy SHA always-on, Copy Commit URL gating, Reset to Commit gating + callback wiring + hidden on row 0) and 4 for ResetModeDialog (mount, default-to-Mixed dispatch, radio-button propagation, cancel)",
       "[Fixed] Chromium setuid sandbox helper (chrome-sandbox) is now bundled in the .deb postinst — install no longer prints `chmod: cannot access ... chrome-sandbox` warning, and the app launches successfully on kernels without user namespaces",
       "[New] Public binaries mirror repo amitwh/GitHubDesktopLinux-releases hosts AppImage / .deb / Snap / Flatpak downloads; the source fork amitwh/GitHubDesktop is now private",
-      "[Security] Manual-trigger GitHub Actions workflow `.github/workflows/release-mirror.yml` hardened: third-party actions SHA-pinned (checkout v4.1.1, setup-node v4.0.3, action-gh-release v2.0.9), workflow_dispatch inputs validated against ^\d+\.\d+\.\d+(-[a-z0-9.]+)?$ + 16 KiB notes cap + shell/HTML payload reject, fail_on_unmatched_files defaults to true, top-level permissions: {}"
+      "[Security] Manual-trigger GitHub Actions workflow `.github/workflows/release-mirror.yml` hardened: third-party actions SHA-pinned (checkout v4.1.1, setup-node v4.0.3, action-gh-release v2.0.9), workflow_dispatch inputs validated against ^\\d+\\.\\d+\\.\\d+(-[a-z0-9.]+)?$ + 16 KiB notes cap + shell/HTML payload reject, fail_on_unmatched_files defaults to true, top-level permissions: {}"
     ],
     "3.6.4-beta1-linux2": [
       "[New] Linux-only top-level Tools menu (between Branch and Window): Open Configuration Folder, Open Logs Folder, Reload Window, Toggle Developer Tools, plus a Reveal Diagnostics Folder entry that opens the userData dir in the system file manager",
@@ -35,6 +38,22 @@
       "[New] About dialog now shows a fork attribution block that clearly identifies this as an unofficial community-maintained Linux build, credits GitHub, Inc. as the original developer, and links to both the fork and upstream repositories",
       "[New] Meld diff viewer: per-line git blame gutter (Phase 2 T1) shows author and short commit SHA next to each right-side line of the editable side-by-side view; click a cell to open that commit in a new Meld window",
       "[Improved] Meld diff viewer: 14 new unit tests for the blame-to-diff alignment helpers, 10 new React component tests for the BlameGutter, and a typed meld:get-blame IPC channel for the main-process git blame wrapper"
+    ],
+    "3.6.5": [
+      "[Fixed] Detect RStudio installations made by the new Windows installer that registers uninstall entries per-user or in the 64-bit machine-wide location - #22774",
+      "[Fixed] Keep the image diff \"Difference\" mode from showing false green artifacts caused by sub-pixel misalignment - #21535. Thanks @jackfreem!",
+      "[Fixed] Re-enable repository menu items after cancelling a rebase from the local changes overwritten dialog - #22536. Thanks @iamarjunsuresh!",
+      "[Fixed] Preserve existing branch protection information when GitHub API requests fail - #22655. Thanks @agisilaos!",
+      "[Fixed] Hooks taking input via stdin no longer error on Windows - #22620",
+      "[Improved] Prevent upgrading from macOS 12 and older ahead of an upcoming Electron update that drops support for it - #22800"
+    ],
+    "3.6.5-beta2": [
+      "[Fixed] Detect RStudio installations made by the new Windows installer that registers uninstall entries per-user or in the 64-bit machine-wide location - #22774",
+      "[Fixed] Keep the image diff \"Difference\" mode from showing false green artifacts caused by sub-pixel misalignment - #21535. Thanks @jackfreem!",
+      "[Fixed] Re-enable repository menu items after cancelling a rebase from the local changes overwritten dialog - #22536. Thanks @iamarjunsuresh!",
+      "[Fixed] Preserve existing branch protection information when GitHub API requests fail - #22655. Thanks @agisilaos!",
+      "[Improved] Prevent upgrading from macOS 12 and older ahead of an upcoming Electron update that drops support for it - #22800"
+    ],
     "3.6.5-beta1": [
       "[Fixed] Hooks taking input via stdin no longer error on Windows - #22620",
       "[Improved] Update Git for Windows to v2.53.0.windows.4",

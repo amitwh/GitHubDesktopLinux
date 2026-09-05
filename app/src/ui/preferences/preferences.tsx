@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { clipboard } from 'electron'
+import { writeClipboardText } from '../main-process-proxy'
 import { Account, isDotComAccount } from '../../models/account'
 import { PreferencesTab } from '../../models/preferences'
 import { Dispatcher } from '../dispatcher'
@@ -1073,12 +1073,13 @@ export class Preferences extends React.Component<
   }
 
   private onCopyDiagnosticsValue = (value: string) => {
-    // Use Electron's clipboard directly the same way `ui/copy-button.tsx`
-    // does — there is no dispatcher indirection needed for a best-effort
+    // Route through the main process the same way `ui/copy-button.tsx`
+    // does — Electron 44 exposes the clipboard module only in the main
+    // process. There is no dispatcher indirection needed for a best-effort
     // copy from a read-only diagnostics surface, and we keep the dispatcher
     // surface focused on state mutations rather than ephemeral clipboard
     // writes.
-    clipboard.writeText(value)
+    writeClipboardText(value)
   }
 
   private onUseSSHDefaultChanged = (useSSHDefault: boolean) => {

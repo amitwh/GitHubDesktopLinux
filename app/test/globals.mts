@@ -42,9 +42,11 @@ Object.assign(globalThis, {
 
 mock.module('electron', {
   namedExports: {
-    clipboard: { writeText: () => {} },
     shell: {},
-    ipcRenderer: { on: mock.fn(x => {}) },
+    ipcRenderer: {
+      invoke: mock.fn(async () => {}),
+      on: mock.fn(x => {}),
+    },
     // The main-process menu file registers `ipcMain.on` handlers at module
     // load time (e.g. the Open Recent submenu cache). Those calls execute
     // when the menu module is imported from tests, so we need a stub for
