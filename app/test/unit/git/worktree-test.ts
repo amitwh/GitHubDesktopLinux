@@ -423,14 +423,18 @@ describe('git/worktree', () => {
       // Make the worktree admin entry stale by removing its directory.
       await rm(worktreePath, { recursive: true, force: true })
 
+      // Git canonicalises the paths it reports (e.g. expanding the 8.3
+      // short name RUNNER~1 that Windows runners use for TEMP), so build
+      // the expected path from the realpath'd repository directory.
+      const expectedWorktreePath = (await realpath(repo.path)) + '-wt-a'
+
       const wouldPrune = await pruneWorktrees(repo, true)
       assert.strictEqual(wouldPrune.length, 1)
-      assert.strictEqual(wouldPrune[0], Path.resolve(worktreePath))
+      assert.strictEqual(wouldPrune[0], expectedWorktreePath)
 
       // After dry-run, the admin entry still lists the worktree as prunable.
       const wts = await listWorktrees(repo)
-      const resolvedPath = Path.resolve(worktreePath)
-      assert(wts.some(wt => wt.path === resolvedPath))
+      assert(wts.some(wt => wt.path === expectedWorktreePath))
     })
 
     it('live run removes stale admin entries', async t => {
@@ -446,9 +450,10 @@ describe('git/worktree', () => {
       const pruned = await pruneWorktrees(repo, false)
       assert.strictEqual(pruned.length, 1)
 
+      // Compare against the canonical form — see the dry-run test above.
+      const expectedWorktreePath = (await realpath(repo.path)) + '-wt-a'
       const wts = await listWorktrees(repo)
-      const resolvedPath = Path.resolve(worktreePath)
-      assert(!wts.some(wt => wt.path === resolvedPath))
+      assert(!wts.some(wt => wt.path === expectedWorktreePath))
     })
   })
 

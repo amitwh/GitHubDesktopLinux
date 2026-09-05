@@ -36,7 +36,11 @@ assert(releases.length > 0, 'Expected at least one release')
 
 for (const release of releases) {
   assert(
-    /^([0-9]+.[0-9]+.[0-9]+)(-beta[0-9]+|-test[0-9]+)?$/.test(release),
+    // `-linux<N>` is this fork's release suffix (e.g. 3.6.5-beta1-linux1);
+    // upstream's validator only knows its own -beta/-test suffixes.
+    /^([0-9]+.[0-9]+.[0-9]+)(-beta[0-9]+|-test[0-9]+)?(-linux[0-9]+)?$/.test(
+      release
+    ),
     `Release ${release} does not match the expected format`
   )
   const changes = changelogObj['releases'][release]
