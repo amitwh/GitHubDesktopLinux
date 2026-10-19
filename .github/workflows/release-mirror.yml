@@ -147,7 +147,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
         with:
-          node-version: '20'
+          node-version: '24.15.0'
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
@@ -199,11 +199,36 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
         with:
-          node-version: '20'
-          architecture: ${{ matrix.arch }}
+          node-version: '24.15.0'
+          cache: yarn
 
+      # The arm64 matrix leg cross-compiles on an x64 windows-2022 runner via
+      # npm_config_arch/TARGET_ARCH (mirroring upstream's ci.yml). Do NOT pass
+      # `architecture:` to setup-node — that installs an arm64 Node onto x64
+      # Windows, which the runner cannot execute ('Error: spawn UNKNOWN').
       - name: Install dependencies
+        env:
+          npm_config_arch: ${{ matrix.arch }}
+          TARGET_ARCH: ${{ matrix.arch }}
         run: yarn install --frozen-lockfile
+
+      # Yarn 1 checks process.arch, not npm_config_arch, for optional packages,
+      # so the target-arch Copilot SDK runtime is skipped on the cross-compile
+      # leg and has to be installed explicitly for build.ts to bundle it.
+      # Upstream 3.6.7 replaced the `@github/copilot` CLI package with
+      # `@github/copilot-sdk`, whose runtimes are published as
+      # `@github/copilot-sdk-<platform>-<arch>`.
+      - name: Install cross-compilation Copilot SDK runtime
+        shell: bash
+        env:
+          TARGET_ARCH: ${{ matrix.arch }}
+        run: |
+          PKG=$(node -p "'@github/copilot-sdk-' + process.platform + '-' + process.env.TARGET_ARCH")
+          VERSION=$(node -e "const pkg = require('./app/node_modules/@github/copilot-sdk/package.json'); const version = pkg.optionalDependencies[process.argv[1]]; if (!version) throw new Error('Unsupported Copilot SDK runtime: ' + process.argv[1]); console.log(version)" "$PKG")
+          if [ ! -d "app/node_modules/$PKG" ]; then
+            echo "Installing ${PKG}@${VERSION} for cross-compilation…"
+            cd app && yarn add --optional --ignore-platform --ignore-scripts "${PKG}@${VERSION}"
+          fi
 
       # DESKTOP_BUILD_TARGET=windows makes app/package-info.ts::getProductName
       # return 'GitHub Desktop Plus'. yarn package then dispatches to
@@ -212,11 +237,14 @@ jobs:
       - name: Production build (Windows target)
         env:
           DESKTOP_BUILD_TARGET: windows
+          npm_config_arch: ${{ matrix.arch }}
+          TARGET_ARCH: ${{ matrix.arch }}
         run: yarn build:prod
 
       - name: Package Windows installer
         env:
           DESKTOP_BUILD_TARGET: windows
+          npm_config_arch: ${{ matrix.arch }}
         run: yarn package
 
       - name: Publish to public mirror
