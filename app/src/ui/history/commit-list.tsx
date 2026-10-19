@@ -11,7 +11,7 @@ import memoizeOne from 'memoize-one'
 import { IMenuItem, showContextualMenu } from '../../lib/menu-item'
 import { getDotComAPIEndpoint } from '../../lib/api'
 import { createCommitURL } from '../../lib/commit-url'
-import { writeClipboardText } from '../main-process-proxy'
+import { clipboard } from 'electron'
 import { RowIndexPath } from '../lib/list/list-row-index-path'
 import { assertNever } from '../../lib/fatal-error'
 import { CommitDragElement } from '../drag-elements/commit-drag-element'
@@ -355,21 +355,21 @@ export function buildCommitContextMenu(
     { type: 'separator' },
     {
       label: 'Copy SHA',
-      action: () => writeClipboardText(commit.sha),
+      action: () => clipboard.writeText(commit.sha),
     },
     {
       label: __DARWIN__ ? 'Copy Commit URL' : 'Copy commit URL',
       action: () => {
         const url = createCommitURL(gitHubRepository!, commit.sha)
         if (url !== null) {
-          writeClipboardText(url)
+          clipboard.writeText(url)
         }
       },
       enabled: !isLocal && !!gitHubRepository,
     },
     {
       label: __DARWIN__ ? darwinTagsLabel : windowTagsLabel,
-      action: () => writeClipboardText(commit.tags.join(' ')),
+      action: () => clipboard.writeText(commit.tags.join(' ')),
       enabled: commit.tags.length > 0,
     },
     {

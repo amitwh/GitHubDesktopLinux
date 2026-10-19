@@ -1,7 +1,7 @@
 import * as path from 'path'
 import { promisify } from 'util'
 
-import { copilotCLILicenseName, licenseOverrides } from './license-overrides'
+import { licenseOverrides } from './license-overrides'
 
 import _legalEagle from 'legal-eagle'
 const legalEagle = promisify(_legalEagle)
@@ -28,7 +28,6 @@ const assertValidLicensesIn = async (dir: string) => {
     'MPL-2.0',
     'CC0-1.0',
     'OFL-1.1',
-    copilotCLILicenseName,
   ]
 
   for (const key in summary) {
