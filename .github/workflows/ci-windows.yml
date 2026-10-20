@@ -137,7 +137,9 @@ jobs:
         # unconditionally outside workflow_call, and honour the input inside
         # it (GitHub casts null and false to the same value, so a plain
         # `!= false` comparison would not work here).
-        if: ${{ inputs.upload-artifacts == true || github.event_name != 'workflow_call' }}
+        if:
+          ${{ inputs.upload-artifacts == true || github.event_name !=
+          'workflow_call' }}
         uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: windows-packages-${{ matrix.arch }}
