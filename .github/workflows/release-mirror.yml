@@ -344,4 +344,8 @@ jobs:
           # will fail this step rather than publishing a hollow tag.
           generate_release_notes: false
           draft: false
-          prerelease: true
+          # Not a prerelease: GitHub's /releases/latest (and the
+          # releases/latest/download/<asset> shortcut) skips prereleases,
+          # so a prerelease tag would leave the previous build as the
+          # one users are offered.
+          prerelease: false
