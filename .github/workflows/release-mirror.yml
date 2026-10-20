@@ -43,6 +43,16 @@ on:
           - linux
           - windows
           - both
+      publish-repo:
+        description:
+          'Repository the release is created in, as owner/name. Defaults to the
+          public binary mirror. NOTE: the workflow GITHUB_TOKEN can only write
+          to this repository, so publishing anywhere else needs the optional
+          RELEASE_MIRROR_TOKEN secret (a fine-grained PAT with Contents:write on
+          that repository) to be set.'
+        required: false
+        default: 'amitwh/GitHubDesktopLinux-releases'
+        type: string
       notes:
         description:
           'Optional release notes (Markdown). Capped at 16 KiB; shell-expansion
@@ -69,12 +79,14 @@ jobs:
       version: ${{ steps.validate.outputs.version }}
       notes: ${{ steps.validate.outputs.notes }}
       target: ${{ steps.validate.outputs.target }}
+      publish-repo: ${{ steps.validate.outputs.publish-repo }}
     steps:
       - name: Validate inputs
         id: validate
         env:
           INPUT_VERSION: ${{ inputs.version }}
           INPUT_TARGET: ${{ inputs.target }}
+          INPUT_PUBLISH_REPO: ${{ inputs.publish-repo }}
           INPUT_NOTES: ${{ inputs.notes }}
         run: |
           set -euo pipefail
@@ -104,6 +116,16 @@ jobs:
               ;;
           esac
 
+          # ---- Publish target must be a plain owner/name pair ----
+          PUBLISH_REPO="${INPUT_PUBLISH_REPO}"
+          if ! echo "${PUBLISH_REPO}" | grep -qE '^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$'; then
+            {
+              echo "::error::Publish repository '${PUBLISH_REPO}' is not a valid owner/name pair"
+              echo "::error::Expected: ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$"
+            } >&2
+            exit 1
+          fi
+
           # ---- Notes safety: cap length, reject shell-expansion patterns ----
           NOTES_LEN=${#INPUT_NOTES}
           if [ "${NOTES_LEN}" -gt 16384 ]; then
@@ -121,6 +143,7 @@ jobs:
           {
             echo "version=${VERSION}"
             echo "target=${INPUT_TARGET}"
+            echo "publish-repo=${PUBLISH_REPO}"
             echo "notes<<EOF"
             printf '%s' "${INPUT_NOTES}"
             echo
@@ -172,6 +195,15 @@ jobs:
       - name: Publish to public mirror
         uses: softprops/action-gh-release@e7a8f85e1c67a31e6ed99a94b41bd0b71bbee6b8 # v2.0.9
         with:
+          # The workflow GITHUB_TOKEN can only create releases in this
+          # repository. Publishing to the public binary mirror needs the
+          # optional RELEASE_MIRROR_TOKEN secret (fine-grained PAT with
+          # Contents:write on the target repository); without it the action
+          # falls back to the GITHUB_TOKEN, which only works when the target
+          # is this repository.
+          token:
+            ${{ secrets.RELEASE_MIRROR_TOKEN != '' &&
+            secrets.RELEASE_MIRROR_TOKEN || github.token }}
           tag_name: v${{ needs.validate.outputs.version }}
           name: GitHub Desktop Linux ${{ needs.validate.outputs.version }}
           body: ${{ needs.validate.outputs.notes }}
@@ -179,7 +211,7 @@ jobs:
             dist/*.deb
             dist/*.AppImage
             dist/*.snap
-          repository: amitwh/GitHubDesktopLinux-releases
+          repository: ${{ needs.validate.outputs.publish-repo }}
           # Default fail_on_unmatched_files is true; an empty release
           # will fail this step rather than publishing a hollow tag.
           generate_release_notes: false
@@ -257,6 +289,15 @@ jobs:
       - name: Publish to public mirror
         uses: softprops/action-gh-release@e7a8f85e1c67a31e6ed99a94b41bd0b71bbee6b8 # v2.0.9
         with:
+          # The workflow GITHUB_TOKEN can only create releases in this
+          # repository. Publishing to the public binary mirror needs the
+          # optional RELEASE_MIRROR_TOKEN secret (fine-grained PAT with
+          # Contents:write on the target repository); without it the action
+          # falls back to the GITHUB_TOKEN, which only works when the target
+          # is this repository.
+          token:
+            ${{ secrets.RELEASE_MIRROR_TOKEN != '' &&
+            secrets.RELEASE_MIRROR_TOKEN || github.token }}
           tag_name: v${{ needs.validate.outputs.version }}
           name: GitHub Desktop Linux ${{ needs.validate.outputs.version }}
           body: ${{ needs.validate.outputs.notes }}
@@ -265,7 +306,7 @@ jobs:
             dist/*.msi
             dist/*.nupkg
             dist/*.zip
-          repository: amitwh/GitHubDesktopLinux-releases
+          repository: ${{ needs.validate.outputs.publish-repo }}
           generate_release_notes: false
           draft: false
           prerelease: true
