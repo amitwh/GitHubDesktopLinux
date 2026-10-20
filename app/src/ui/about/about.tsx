@@ -274,8 +274,8 @@ export class About extends React.Component<IAboutProps> {
           <strong>{this.props.applicationName}</strong> fork, by{' '}
           <LinkButton uri="https://github.com/amitwh">Amit Haridas</LinkButton>.
           The full source for this fork is available at{' '}
-          <LinkButton uri="https://github.com/amitwh/GitHubDesktop">
-            github.com/amitwh/GitHubDesktop
+          <LinkButton uri="https://github.com/amitwh/GitHubDesktopLinux">
+            github.com/amitwh/GitHubDesktopLinux
           </LinkButton>
           ; the upstream project lives at{' '}
           <LinkButton uri="https://github.com/desktop/desktop">

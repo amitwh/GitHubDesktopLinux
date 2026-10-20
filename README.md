@@ -38,11 +38,11 @@ All four targets are published on every release. Auto-update does not run for th
 
 ```sh
 # Debian / Ubuntu (e.g., Ubuntu 22.04+)
-curl -L https://github.com/amitwh/GitHubDesktopLinux-releases/releases/latest/download/GithubDesktopLinux_3.6.4-beta1-linux3_amd64.deb \
+curl -L https://github.com/amitwh/GitHubDesktopLinux-releases/releases/download/v3.6.7-fork1/GithubDesktopLinux_3.6.7-fork1_amd64.deb \
   -o /tmp/github-desktop.deb && sudo apt install /tmp/github-desktop.deb
 
 # Portable AppImage
-curl -L https://github.com/amitwh/GitHubDesktopLinux-releases/releases/latest/download/GithubDesktopLinux-3.6.4-beta1-linux3.AppImage \
+curl -L https://github.com/amitwh/GitHubDesktopLinux-releases/releases/download/v3.6.7-fork1/GithubDesktopLinux-3.6.7-fork1.AppImage \
   -o ~/bin/github-desktop && chmod +x ~/bin/github-desktop
 ```
 
@@ -50,18 +50,17 @@ curl -L https://github.com/amitwh/GitHubDesktopLinux-releases/releases/latest/do
 
 The fork also ships an **unsigned Windows installer** named **GitHub Desktop Plus** on the same [`amitwh/GitHubDesktopLinux-releases`](https://github.com/amitwh/GitHubDesktopLinux-releases/releases/latest) mirror. Because it is not Authenticode-signed, Windows SmartScreen will warn on first launch — click **More info → Run anyway** to install. See [`docs/contributing/windows-build.md`](./docs/contributing/windows-build.md) for full details, the build pipeline, and the SmartScreen workaround.
 
-- **Squirrel `.exe` installer** — installs to `%LocalAppData%\GitHubDesktopPlus`, registers uninstall entry, auto-updates in-place.
-- **Standalone `.zip`** — portable, no installer, useful for locked-down environments or USB-stick installs.
+- **Squirrel `.exe` installer** — installs to `%LocalAppData%\GitHubDesktopPlus`, registers an uninstall entry, auto-updates in place.
+- **MSI installer** — the same build packaged for MSI-based deployment.
+- **`.nupkg` application package** — the payload the installer resolves and the updater replaces; keep it next to the `.exe` for an offline install.
 - **x64 and ARM64** — both architectures ship per release.
 
-```sh
-# Debian / Ubuntu (e.g., Ubuntu 22.04+)
-curl -L https://github.com/amitwh/GitHubDesktopLinux-releases/releases/latest/download/GithubDesktopLinux_3.6.4-beta1-linux3_amd64.deb \
-  -o /tmp/github-desktop.deb && sudo apt install /tmp/github-desktop.deb
+```powershell
+# Windows x64 (PowerShell)
+curl.exe -L https://github.com/amitwh/GitHubDesktopLinux-releases/releases/download/v3.6.7-fork1/GitHubDesktopPlusSetup-x64.exe -o GitHubDesktopPlusSetup-x64.exe
 
-# Portable AppImage
-curl -L https://github.com/amitwh/GitHubDesktopLinux-releases/releases/latest/download/GithubDesktopLinux-3.6.4-beta1-linux3.AppImage \
-  -o ~/bin/github-desktop && chmod +x ~/bin/github-desktop
+# Windows ARM64
+curl.exe -L https://github.com/amitwh/GitHubDesktopLinux-releases/releases/download/v3.6.7-fork1/GitHubDesktopPlusSetup-arm64.exe -o GitHubDesktopPlusSetup-arm64.exe
 ```
 
 ## What's different from upstream GitHub Desktop?
@@ -149,10 +148,10 @@ Four new Preferences tabs (Preferences → …):
 ### 📝 Linux-fork disclosure
 
 The in-app **About** dialog now contains a fork-attribution block that:
-- Names the fork "GitHub Desktop Linux" (distinct from upstream's "GitHub Desktop").
+- Names the fork by its own build product name — "GitHub Desktop Linux" on Linux, "GitHub Desktop Plus" on Windows.
 - States clearly that it is unofficial and community-maintained.
 - Credits GitHub, Inc. as the original developer of all upstream code.
-- Links to both `amitwh/GitHubDesktop` (private source) and `desktop/desktop` (upstream).
+- Links to both `amitwh/GitHubDesktopLinux` (this fork's source) and `desktop/desktop` (upstream).
 
 Mitigates any trademark-policy concerns from GitHub by being explicit rather than silent about the fork relationship.
 
