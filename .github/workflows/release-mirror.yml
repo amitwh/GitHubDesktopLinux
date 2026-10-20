@@ -170,7 +170,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
-          repository: amitwh/GitHubDesktop
+          repository: amitwh/GitHubDesktopLinux
 
       - name: Setup Node
         uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
@@ -197,31 +197,19 @@ jobs:
       - name: Fix .deb permissions (SUID chrome-sandbox, /opt mode)
         run: yarn ts-node -P script/tsconfig.json script/fix-deb-permissions.ts
 
-      - name: Publish to public mirror
-        uses: softprops/action-gh-release@e7a8f85e1c67a31e6ed99a94b41bd0b71bbee6b8 # v2.0.9
+      # The release itself is created by the `publish` job: with target=both
+      # the Linux job and both Windows matrix legs would otherwise race to
+      # create the same tag, and the loser gets a 500 from the release API.
+      - name: Upload Linux packages
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
-          # The workflow GITHUB_TOKEN can only create releases in this
-          # repository. Publishing to the public binary mirror needs the
-          # optional RELEASE_MIRROR_TOKEN secret (fine-grained PAT with
-          # Contents:write on the target repository); without it the action
-          # falls back to the GITHUB_TOKEN, which only works when the target
-          # is this repository.
-          token:
-            ${{ secrets.RELEASE_MIRROR_TOKEN != '' &&
-            secrets.RELEASE_MIRROR_TOKEN || github.token }}
-          tag_name: v${{ needs.validate.outputs.version }}
-          name: GitHub Desktop Linux ${{ needs.validate.outputs.version }}
-          body: ${{ needs.validate.outputs.notes }}
-          files: |
+          name: release-linux
+          path: |
             dist/*.deb
             dist/*.AppImage
             dist/*.snap
-          repository: ${{ needs.validate.outputs.publish-repo }}
-          # Default fail_on_unmatched_files is true; an empty release
-          # will fail this step rather than publishing a hollow tag.
-          generate_release_notes: false
-          draft: false
-          prerelease: true
+          if-no-files-found: error
+          retention-days: 1
 
   windows:
     name: Windows release
@@ -240,7 +228,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
-          repository: amitwh/GitHubDesktop
+          repository: amitwh/GitHubDesktopLinux
 
       - name: Setup Node
         uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
@@ -293,6 +281,41 @@ jobs:
           npm_config_arch: ${{ matrix.arch }}
         run: yarn package
 
+      # See the note on the Linux upload step: the release is created once,
+      # by the `publish` job, so the two matrix legs do not race each other.
+      - name: Upload Windows packages
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+        with:
+          name: release-windows-${{ matrix.arch }}
+          path: |
+            dist/*.exe
+            dist/*.msi
+            dist/*.nupkg
+            dist/*.zip
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: Publish release
+    needs: [validate, linux, windows]
+    # Runs whenever at least one build job succeeded. The build jobs are
+    # skipped when their target was not requested, so the result of a
+    # skipped job is 'skipped', not 'failure'.
+    if:
+      always() && needs.validate.result == 'success' && needs.linux.result !=
+      'failure' && needs.windows.result != 'failure' && (needs.linux.result ==
+      'success' || needs.windows.result == 'success')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          path: packages
+          merge-multiple: true
+          pattern: release-*
+
       - name: Publish to public mirror
         uses: softprops/action-gh-release@e7a8f85e1c67a31e6ed99a94b41bd0b71bbee6b8 # v2.0.9
         with:
@@ -309,11 +332,16 @@ jobs:
           name: GitHub Desktop Linux ${{ needs.validate.outputs.version }}
           body: ${{ needs.validate.outputs.notes }}
           files: |
-            dist/*.exe
-            dist/*.msi
-            dist/*.nupkg
-            dist/*.zip
+            packages/*.deb
+            packages/*.AppImage
+            packages/*.snap
+            packages/*.exe
+            packages/*.msi
+            packages/*.nupkg
+            packages/*.zip
           repository: ${{ needs.validate.outputs.publish-repo }}
+          # Default fail_on_unmatched_files is true; an empty release
+          # will fail this step rather than publishing a hollow tag.
           generate_release_notes: false
           draft: false
           prerelease: true
