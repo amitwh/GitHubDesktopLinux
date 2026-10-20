@@ -153,7 +153,12 @@ jobs:
   linux:
     name: Linux release
     needs: validate
-    if: contains(needs.validate.outputs.target, 'linux')
+    # 'both' does not contain 'linux' as a substring, so an exact match on
+    # the two concrete targets is required — `contains()` silently skipped
+    # both jobs when target=both.
+    if:
+      needs.validate.outputs.target == 'linux' || needs.validate.outputs.target
+      == 'both'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -221,7 +226,9 @@ jobs:
   windows:
     name: Windows release
     needs: validate
-    if: contains(needs.validate.outputs.target, 'windows')
+    if:
+      needs.validate.outputs.target == 'windows' ||
+      needs.validate.outputs.target == 'both'
     runs-on: windows-2022
     permissions:
       contents: write
