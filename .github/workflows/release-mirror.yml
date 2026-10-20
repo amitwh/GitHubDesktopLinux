@@ -363,10 +363,16 @@ jobs:
           # -x86_64.flatpak" and a plain glob would split it into words.
           while IFS= read -r -d '' FILE; do
             NAME=$(basename "$FILE")
-            # The name is passed to jq as an argument, never interpolated
+            # GitHub rewrites spaces in an asset name to dots, so the flatpak
+            # built as "GitHub Desktop Linux-<version>-x86_64.flatpak" is
+            # stored as "GitHub.Desktop.Linux-<version>-x86_64.flatpak".
+            # Look up both spellings, or the upload collides with the
+            # asset that was never deleted.
+            # The names are passed to jq as arguments, never interpolated
             # into the jq program.
             ID=$(gh api "repos/${REPO}/releases/${RELEASE_ID}/assets" 2>/dev/null \
-              | jq --arg name "$NAME" -r '.[] | select(.name == $name) | .id' || true)
+              | jq --arg name "$NAME" --arg dotted "${NAME// /.}" -r \
+                  '.[] | select(.name == $name or .name == $dotted) | .id' || true)
             if [ -n "$ID" ]; then
               echo "Deleting superseded asset ${NAME}"
               gh api --method DELETE "repos/${REPO}/releases/assets/${ID}"
