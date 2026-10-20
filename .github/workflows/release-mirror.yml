@@ -255,6 +255,8 @@ jobs:
           body: ${{ needs.validate.outputs.notes }}
           files: |
             dist/*.exe
+            dist/*.msi
+            dist/*.nupkg
             dist/*.zip
           repository: amitwh/GitHubDesktopLinux-releases
           generate_release_notes: false

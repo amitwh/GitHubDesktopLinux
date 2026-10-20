@@ -143,8 +143,14 @@ jobs:
         uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: windows-packages-${{ matrix.arch }}
+          # electron-winstaller emits the standalone setup (.exe), the MSI
+          # installer, and the Squirrel application package (.nupkg). The
+          # .nupkg is the payload the setup installer resolves and the
+          # updater replaces, so it has to ship alongside the setup.
           path: |
             dist/*.exe
+            dist/*.msi
+            dist/*.nupkg
             dist/*.zip
           if-no-files-found: error
           retention-days: 14
