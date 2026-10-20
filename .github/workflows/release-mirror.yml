@@ -361,8 +361,10 @@ jobs:
           for FILE in packages/*; do
             [ -e "$FILE" ] || continue
             NAME=$(basename "$FILE")
-            ID=$(gh api "repos/${REPO}/releases/${RELEASE_ID}/assets" \
-              --jq ".[] | select(.name == \"${NAME}\") | .id" || true)
+            # The name is passed to jq as an argument, never interpolated
+            # into the jq program.
+            ID=$(gh api "repos/${REPO}/releases/${RELEASE_ID}/assets" 2>/dev/null \
+              | jq --arg name "$NAME" -r '.[] | select(.name == $name) | .id' || true)
             if [ -n "$ID" ]; then
               echo "Deleting superseded asset ${NAME}"
               gh api --method DELETE "repos/${REPO}/releases/assets/${ID}"
