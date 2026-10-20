@@ -183,11 +183,24 @@ jobs:
       - name: Production build
         run: yarn build:prod
 
-      - name:
-          Package Linux (deb + AppImage + snap; flatpak skipped — requires
-          flatpak CLI on host)
+      # The flatpak target needs flatpak-builder and the Freedesktop runtime
+      # plus the Electron base app that electron-builder.yml pins. Without
+      # them the flatpak target fails the whole electron-builder invocation,
+      # which is how the .deb target used to be lost with it.
+      - name: Install flatpak tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak-builder
+          flatpak remote-add --user --if-not-exists flathub \
+            https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y --noninteractive flathub \
+            org.freedesktop.Platform//23.08 \
+            org.freedesktop.Sdk//23.08 \
+            org.electronjs.Electron2.BaseApp//23.08
+
+      - name: Package Linux (deb + AppImage + snap + flatpak)
         run:
-          npx electron-builder --linux deb AppImage snap --prepackaged
+          npx electron-builder --linux deb AppImage snap flatpak --prepackaged
           dist/GithubDesktopLinux-linux-x64 --publish never
       # electron-builder packs the app tree as 0700 and ships chrome-sandbox
       # without its setuid bit, so the installed app cannot start on kernels
@@ -208,6 +221,7 @@ jobs:
             dist/*.deb
             dist/*.AppImage
             dist/*.snap
+            dist/*.flatpak
           if-no-files-found: error
           retention-days: 1
 
@@ -335,6 +349,7 @@ jobs:
             packages/*.deb
             packages/*.AppImage
             packages/*.snap
+            packages/*.flatpak
             packages/*.exe
             packages/*.msi
             packages/*.nupkg
