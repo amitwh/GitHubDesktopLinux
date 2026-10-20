@@ -161,6 +161,13 @@ jobs:
         run:
           npx electron-builder --linux deb AppImage snap --prepackaged
           dist/GithubDesktopLinux-linux-x64 --publish never
+      # electron-builder packs the app tree as 0700 and ships chrome-sandbox
+      # without its setuid bit, so the installed app cannot start on kernels
+      # without user namespaces. script/fix-deb-permissions.ts rewrites the
+      # .deb: /opt back to 0755, chrome-sandbox to SUID 4755, and the postinst
+      # to apply both at install time.
+      - name: Fix .deb permissions (SUID chrome-sandbox, /opt mode)
+        run: yarn ts-node -P script/tsconfig.json script/fix-deb-permissions.ts
 
       - name: Publish to public mirror
         uses: softprops/action-gh-release@e7a8f85e1c67a31e6ed99a94b41bd0b71bbee6b8 # v2.0.9

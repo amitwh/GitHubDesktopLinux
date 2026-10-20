@@ -98,8 +98,24 @@ export function getWindowsDeltaNugetPackagePath() {
   )
 }
 
+/**
+ * The identifier the Windows build is shipped under.
+ *
+ * Upstream uses 'GitHubDesktop' — it is the Squirrel package id, so it
+ * determines the installed executable name, the install directory
+ * (%LOCALAPPDATA%\<id>) and the published .nupkg / setup .exe / .msi file
+ * names. The fork ships the Windows build as 'GitHub Desktop Plus', and
+ * naming the artefacts 'GitHubDesktopSetup-x64.exe' made it
+ * indistinguishable from an upstream installer on disk, so the id carries
+ * the fork branding instead.
+ *
+ * Changing the id changes the Squirrel app id: an existing install of the
+ * previous id is not upgraded in place, it is installed alongside. No
+ * Windows release of this fork has been published yet, so there is no
+ * installed base to preserve.
+ */
 export function getWindowsIdentifierName() {
-  return 'GitHubDesktop'
+  return 'GitHubDesktopPlus'
 }
 
 export function getBundleSizes() {

@@ -250,12 +250,16 @@ export class About extends React.Component<IAboutProps> {
 
   /**
    * Renders a block of text that clearly identifies this build as an
-   * unofficial community-maintained Linux fork, names the fork and its
+   * unofficial community-maintained fork, names the fork and its
    * maintainer, links to the fork's source repository, and links to the
    * upstream project. Intended to avoid any appearance that this build
    * is an official GitHub product (per GitHub's trademark policy) while
    * preserving the MIT-required copyright acknowledgement of the
    * original project.
+   *
+   * The fork name is the build's own product name — 'GitHub Desktop Linux'
+   * on Linux, 'GitHub Desktop Plus' on the Windows fork — so the attribution
+   * never contradicts the branding the user is looking at.
    */
   private renderForkAttribution() {
     return (
@@ -267,7 +271,7 @@ export class About extends React.Component<IAboutProps> {
         </p>
         <p className="no-padding">
           This is the unofficial community-maintained{' '}
-          <strong>GitHub Desktop Linux</strong> fork, by{' '}
+          <strong>{this.props.applicationName}</strong> fork, by{' '}
           <LinkButton uri="https://github.com/amitwh">Amit Haridas</LinkButton>.
           The full source for this fork is available at{' '}
           <LinkButton uri="https://github.com/amitwh/GitHubDesktop">
