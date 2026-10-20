@@ -358,8 +358,10 @@ jobs:
             exit 0
           fi
 
-          for FILE in packages/*; do
-            [ -e "$FILE" ] || continue
+          # find -print0 plus read -d '' keeps names with spaces intact —
+          # the flatpak artefact is called "GitHub Desktop Linux-<version>
+          # -x86_64.flatpak" and a plain glob would split it into words.
+          while IFS= read -r -d '' FILE; do
             NAME=$(basename "$FILE")
             # The name is passed to jq as an argument, never interpolated
             # into the jq program.
@@ -369,7 +371,7 @@ jobs:
               echo "Deleting superseded asset ${NAME}"
               gh api --method DELETE "repos/${REPO}/releases/assets/${ID}"
             fi
-          done
+          done < <(find packages -maxdepth 1 -type f -print0)
 
           # Let the deletions land before the upload.
           sleep 20
